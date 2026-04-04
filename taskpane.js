@@ -1,0 +1,804 @@
+import { WordService } from './word_service.js';
+import { StorageService } from './storage_service.js';
+import { MockData } from './mock_data.js';
+
+/* global Office, lucide */
+
+// --- GLOBAL STATE ---
+let state = {
+    currentTab: 'duAn',
+    editingIndex: -1,
+    duAn: {
+        tenDuAn: "",
+        goiThau: "",
+        dvtc: "",
+        daiDienCDT: "",
+        tvgs: "",
+        ngayKhoiCong: "",
+        ngayHoanThanh: ""
+    },
+    soHDForExport: "",
+    exportFolderHandle: null,
+    exportFolderLabel: "",
+    nhanSu: [],
+    mayMoc: [],
+    vatLieu: [],
+    thiNghiem: [],
+    outputMode: 'multiple'
+};
+
+// --- CONFIGURATION ---
+const categories = {
+    duAn: { title: "Dự án", fields: ["tenDuAn", "goiThau", "dvtc", "daiDienCDT", "tvgs", "ngayKhoiCong", "ngayHoanThanh"], labels: ["Tên dự án", "Tên gói thầu", "Đơn vị thi công", "Đại diện CDT", "Tư vấn giám sát", "Ngày khởi công", "Ngày hoàn thành"] },
+    nhanSu: { title: "Nhân sự", fields: ["stt", "name", "role", "major", "phone"], labels: ["STT", "Họ và tên", "Chức danh", "Chuyên ngành", "Số điện thoại"] },
+    mayMoc: { title: "Máy móc", fields: ["stt", "name", "unit", "qty", "owner", "status"], labels: ["STT", "Tên thiết bị", "Đơn vị tính", "Số lượng", "Chủ sở hữu", "Hình thức"] },
+    vatLieu: { title: "Vật liệu", fields: ["stt", "name", "standard", "origin", "note"], labels: ["STT", "Tên vật tư", "Tiêu chuẩn", "Nguồn gốc", "Ghi chú"] },
+    thiNghiem: { title: "Phòng TN", fields: ["stt", "dvtn", "address", "ptn", "func"], labels: ["STT", "Đơn vị TN", "Địa chỉ", "Tên phòng TN", "Chức năng"] }
+};
+
+// --- INITIALIZATION ---
+Office.onReady(async (info) => {
+    if (info.host === Office.HostType.Word) {
+        await initializeApp();
+    }
+});
+
+async function initializeApp() {
+    await loadState();
+    registerEvents();
+    switchTab('duAn');
+}
+
+// --- DATA & STATE ---
+async function loadState() {
+    // Để thấy ngay sự thay đổi từ mock_data.js, ta tạm thời ưu tiên MockData hơn StorageService
+    const duAnSaved = await StorageService.getProjectData("duAn");
+    state.duAn = MockData.duAn || duAnSaved || state.duAn;
+    
+    const nhanSuSaved = await StorageService.getProjectData("nhanSu");
+    state.nhanSu = (MockData.nhanSu && MockData.nhanSu.length > 0) ? MockData.nhanSu : (nhanSuSaved || []);
+    
+    const mayMocSaved = await StorageService.getProjectData("mayMoc");
+    state.mayMoc = (MockData.mayMoc && MockData.mayMoc.length > 0) ? MockData.mayMoc : (mayMocSaved || []);
+    
+    const vatLieuSaved = await StorageService.getProjectData("vatLieu");
+    state.vatLieu = (MockData.vatLieu && MockData.vatLieu.length > 0) ? MockData.vatLieu : (vatLieuSaved || []);
+    
+    const thiNghiemSaved = await StorageService.getProjectData("thiNghiem");
+    state.thiNghiem = (MockData.thiNghiem && MockData.thiNghiem.length > 0) ? MockData.thiNghiem : (thiNghiemSaved || []);
+}
+
+async function saveState() {
+    await StorageService.setProjectData("duAn", state.duAn);
+    await StorageService.setProjectData("nhanSu", state.nhanSu);
+    await StorageService.setProjectData("mayMoc", state.mayMoc);
+    await StorageService.setProjectData("vatLieu", state.vatLieu);
+    await StorageService.setProjectData("thiNghiem", state.thiNghiem);
+}
+
+// --- UI CONTROLLER ---
+function switchTab(tabId) {
+    state.currentTab = tabId;
+    document.querySelectorAll('[data-tab]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabId);
+    });
+    
+    renderContent();
+    lucide.createIcons();
+}
+
+function renderContent() {
+    const container = document.getElementById('tabContent');
+    container.innerHTML = "";
+    
+    if (state.currentTab === 'duAn') {
+        renderProjectForm(container);
+    } else if (state.currentTab === 'xuatBan') {
+        renderExportSettings(container);
+    } else {
+        renderList(container, state.currentTab);
+    }
+    
+    // Tự động căn chỉnh lại độ cao cho các textarea khi load dữ liệu
+    setTimeout(() => {
+        document.querySelectorAll('textarea').forEach(ta => {
+            ta.style.height = 'auto';
+            ta.style.height = ta.scrollHeight + 'px';
+        });
+    }, 50);
+}
+
+function renderProjectForm(container) {
+    const config = categories.duAn;
+    const form = document.createElement("div");
+    form.className = "space-y-4 bg-white p-5 rounded-[1.5rem] border border-slate-100 shadow-sm";
+    
+    config.fields.forEach((field, i) => {
+        const div = document.createElement("div");
+        const isDate = field === 'ngayKhoiCong' || field === 'ngayHoanThanh';
+        const extraClass = isDate ? 'date-picker-input' : '';
+        
+        if (isDate) {
+            div.innerHTML = `
+                <label class="text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">${config.labels[i]}</label>
+                <input type="text" spellcheck="false" data-field="${field}" value="${state.duAn[field] || ''}" class="input-field project-input ${extraClass}" placeholder="Nhấp để chọn ngày">
+            `;
+        } else {
+            div.innerHTML = `
+                <label class="text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">${config.labels[i]}</label>
+                <textarea spellcheck="false" data-field="${field}" class="input-field project-input resize-y py-2 w-full" style="height: auto; min-height: 3.5rem;" rows="2">${state.duAn[field] || ''}</textarea>
+            `;
+        }
+        form.appendChild(div);
+    });
+    
+    container.appendChild(form);
+    
+    // Khởi tạo Flatpickr cho tiện ích lịch cực đẹp và chuẩn DD/MM/YYYY
+    setTimeout(() => {
+        if (typeof flatpickr !== 'undefined') {
+            flatpickr(".date-picker-input", {
+                dateFormat: "d/m/Y",
+                locale: "vn",
+                allowInput: true,
+                altInput: true,
+                altFormat: "d/m/Y"
+            });
+        }
+    }, 50);
+    
+    // Real-time Save for Project Info
+    form.querySelectorAll('.project-input').forEach(input => {
+        input.onchange = async () => {
+            state.duAn[input.dataset.field] = input.value;
+            await saveState();
+        };
+    });
+}
+
+function renderList(container, type) {
+    const items = state[type] || [];
+    const config = categories[type];
+
+    const listCard = document.createElement('div');
+    listCard.className = 'bg-white p-4 rounded-[1.5rem] border border-slate-100 shadow-sm';
+
+    const header = document.createElement('div');
+    header.className = 'flex items-center justify-between mb-3';
+    header.innerHTML = `<h3 class="font-black text-sm text-slate-700">${config.title}</h3>`;
+
+    const btnAdd = document.createElement('button');
+    btnAdd.className = 'h-8 px-3 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700';
+    btnAdd.innerText = 'Thêm dòng mới';
+    btnAdd.onclick = async () => {
+        const newRow = config.fields.map((field, i) => i === 0 ? (items.length + 1).toString() : '');
+        if (type === 'mayMoc') newRow[5] = 'Đi thuê';
+        state[type].push(newRow);
+        await saveState();
+        renderContent();
+        lucide.createIcons();
+    };
+    header.appendChild(btnAdd);
+    listCard.appendChild(header);
+
+    if (items.length === 0) {
+        const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'p-6 text-center text-slate-400 italic';
+        emptyMessage.innerText = 'Chưa có dữ liệu. Nhấn "Thêm dòng mới" để nhập.';
+        listCard.appendChild(emptyMessage);
+        container.appendChild(listCard);
+        return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'w-full border-collapse text-[12px]';
+
+    const thead = document.createElement('thead');
+    thead.innerHTML = `<tr class="bg-slate-100 text-slate-600 uppercase text-[10px] font-bold"><th class="border px-2 py-2">STT</th>${config.labels.filter((_, idx) => config.fields[idx] !== 'stt').map(lbl => `<th class="border px-2 py-2">${lbl}</th>`).join('')}<th class="border px-2 py-2">Thao tác</th></tr>`;
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    items.forEach((item, idx) => {
+        const row = document.createElement('tr');
+        row.className = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+
+        row.innerHTML = `<td class="border px-2 py-2 text-center font-bold">${item[0]}</td>`;
+
+        config.fields.forEach((field, i) => {
+            if (field === 'stt') return;
+            const val = item[i] || '';
+            
+            let inputElement;
+            
+            // Xử lý riêng cho trường "Hình thức" (chỉ đọc) của máy móc
+            if (type === 'mayMoc' && field === 'status') {
+                inputElement = document.createElement('input');
+                inputElement.type = 'text';
+                inputElement.spellcheck = false;
+                inputElement.readOnly = true;
+                inputElement.className = 'w-full border border-slate-200 rounded px-2 py-1 text-xs bg-slate-50 text-slate-600 cursor-not-allowed h-8';
+            } else {
+                // Sử dụng Textarea cho tất cả các trường nhập liệu để hỗ trợ multiline
+                inputElement = document.createElement('textarea');
+                inputElement.rows = 2; // Hiển thị sẵn 2 dòng
+                inputElement.spellcheck = false;
+                inputElement.className = 'w-full border border-slate-200 rounded px-2 py-1 text-xs bg-white resize-y';
+                inputElement.style.minHeight = '3rem';
+            }
+            
+            inputElement.value = val;
+            
+            inputElement.onblur = async (e) => {
+                // Chỉ xử lý nếu không phải trường readonly
+                if (!(type === 'mayMoc' && field === 'status')) {
+                    state[type][idx][i] = e.target.value;
+                }
+
+                if (type === 'mayMoc' && field === 'owner') {
+                    const ownerName = normalize(state[type][idx][4]);
+                    const companyName = normalize(state.duAn.dvtc);
+                    state[type][idx][5] = (ownerName.includes(companyName) || companyName.includes(ownerName)) ? 'Sở hữu' : 'Đi thuê';
+                }
+
+                if (type === 'mayMoc' && field !== 'owner' && field !== 'status') {
+                    const ownerName = normalize(state[type][idx][4]);
+                    const companyName = normalize(state.duAn.dvtc);
+                    state[type][idx][5] = (ownerName.includes(companyName) || companyName.includes(ownerName)) ? 'Sở hữu' : 'Đi thuê';
+                }
+
+                await saveState();
+                // Cần render lại để cập nhật trường Hình thức
+                if (type === 'mayMoc' && (field === 'owner' || field === 'status')) {
+                    renderContent();
+                    lucide.createIcons();
+                }
+            };
+
+            const cell = document.createElement('td');
+            cell.className = 'border p-1';
+            cell.appendChild(inputElement);
+            row.appendChild(cell);
+        });
+
+        const actionTd = document.createElement('td');
+        actionTd.className = 'border px-2 py-2 text-center';
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'text-red-600 font-bold text-xs';
+        deleteBtn.innerText = 'Xóa';
+        deleteBtn.onclick = async () => {
+            state[type].splice(idx, 1);
+            state[type].forEach((itemRow, i2) => { itemRow[0] = (i2 + 1).toString(); });
+            await saveState();
+            renderContent();
+            lucide.createIcons();
+        };
+        actionTd.appendChild(deleteBtn);
+        row.appendChild(actionTd);
+
+        tbody.appendChild(row);
+    });
+
+    table.appendChild(tbody);
+    listCard.appendChild(table);
+    container.appendChild(listCard);
+}
+
+function renderExportSettings(container) {
+    container.innerHTML = `
+        <div class="p-5 bg-white rounded-[1.5rem] border border-slate-100 shadow-sm space-y-4">
+            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cấu hình đóng gói</h4>
+            <label class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer border-2 border-transparent hover:border-indigo-100 transition-all">
+                <input type="radio" name="exportMode" value="zip" ${state.outputMode === 'zip' ? 'checked' : ''} class="w-5 h-5 text-indigo-600">
+                <span class="text-sm font-bold text-slate-700">Tạo tệp Nén ZIP (.zip)</span>
+            </label>
+            <label class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer border-2 border-transparent hover:border-indigo-100 transition-all">
+                <input type="radio" name="exportMode" value="multiple" ${state.outputMode === 'multiple' ? 'checked' : ''} class="w-5 h-5 text-indigo-600">
+                <span class="text-sm font-bold text-slate-700">Tách từng tệp rời (.docx)</span>
+            </label>
+            <div class="space-y-2 mt-4">
+                <button id="btnChooseFolder" class="w-full h-12 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition-all">Chọn thư mục lưu</button>
+                <div id="exportFolderLabel" class="text-[12px] text-slate-500">${state.exportFolderLabel ? `Thư mục đã chọn: ${state.exportFolderLabel}` : 'Chưa chọn thư mục lưu. Nếu không chọn, hệ thống sẽ yêu cầu lưu tệp.'}</div>
+                <div class="text-[11px] text-slate-400">Lưu ý: Chức năng chọn thư mục chỉ hoạt động nếu trình duyệt/hệ thống hỗ trợ API File System Access.</div>
+            </div>
+            <button id="btnResetData" class="w-full mt-4 h-12 bg-red-50 text-red-600 font-bold rounded-xl border border-red-200 hover:bg-red-100 transition-all flex items-center justify-center gap-2">
+                <i data-lucide="alert-triangle" size="18"></i> KHỞI TẠO LẠI DỮ LIỆU
+            </button>
+        </div>
+    `;
+    
+    const soHDInput = document.createElement('div');
+    soHDInput.className = 'mt-6 pt-4 border-t border-slate-200';
+    soHDInput.innerHTML = `
+        <label class="text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Số hợp đồng (cho đặt tên file)</label>
+        <input type="text" id="soHDInput" spellcheck="false" value="${state.soHDForExport || ''}" placeholder="VD: HD-2024-001" class="input-field w-full">
+    `;
+    container.appendChild(soHDInput);
+
+    const radioInputs = container.querySelectorAll('input[type="radio"]');
+    radioInputs.forEach(input => {
+        input.onchange = () => { state.outputMode = input.value; };
+    });
+
+    const soHDField = container.querySelector('#soHDInput');
+    soHDField.onchange = () => { state.soHDForExport = soHDField.value; };
+
+    const btnChooseFolder = container.querySelector('#btnChooseFolder');
+    const exportFolderLabel = container.querySelector('#exportFolderLabel');
+    if (btnChooseFolder) {
+        btnChooseFolder.onclick = async () => {
+            if (typeof window.showDirectoryPicker !== 'function') {
+                showToast('Trình duyệt không hỗ trợ chức năng chọn thư mục trực tiếp.', 'error');
+                return;
+            }
+
+            try {
+                const folderHandle = await window.showDirectoryPicker();
+                state.exportFolderHandle = folderHandle;
+                state.exportFolderLabel = folderHandle.name || 'Thư mục được chọn';
+                exportFolderLabel.innerText = `Thư mục đã chọn: ${state.exportFolderLabel}`;
+                showToast('Đã chọn thư mục lưu.', 'success');
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    showToast('Không thể chọn thư mục: ' + err.message, 'error');
+                }
+            }
+        };
+    }
+
+    document.getElementById('btnResetData').onclick = async () => {
+        const confirmed = await openResetDataModal();
+        if (!confirmed) {
+            updateLog("Đã hủy thao tác khởi tạo lại dữ liệu.");
+            return;
+        }
+
+        updateLog("Đang khởi tạo lại dữ liệu...");
+
+        try {
+            // Reset to empty state
+            state.duAn = { tenDuAn: "", goiThau: "", dvtc: "", daiDienCDT: "", tvgs: "", ngayKhoiCong: "", ngayHoanThanh: "" };
+            state.nhanSu = [];
+            state.mayMoc = [];
+            state.vatLieu = [];
+            state.thiNghiem = [];
+
+            await saveState();
+
+            // Xóa dữ liệu trong Word document
+            await WordService.clearDocumentData();
+
+            switchTab('duAn');
+            updateLog("✅ Đã khởi tạo lại dữ liệu thành công! Sẵn sàng cho dự án mới.");
+        } catch (e) {
+            updateLog("❌ Lỗi khi khởi tạo lại dữ liệu: " + e.message);
+        }
+    };
+}
+
+// --- MODAL & CRUD ---
+function openEditModal(index = -1) {
+    state.editingIndex = index;
+    const type = state.currentTab;
+    const config = categories[type];
+    const modalForm = document.getElementById('modalFormContent');
+    modalForm.innerHTML = "";
+    
+    document.getElementById('modalTitle').innerText = (index === -1 ? "Thêm mới " : "Chỉnh sửa ") + config.title;
+    
+    const existingData = index === -1 ? [] : state[type][index];
+    
+    config.fields.forEach((field, i) => {
+        if (field === 'stt') return; // Auto-generated
+        if (field === 'status' && type === 'mayMoc') return; // Auto-calculated
+        
+        const div = document.createElement("div");
+        div.innerHTML = `
+            <label class="text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">${config.labels[i]}</label>
+            <textarea spellcheck="false" id="modalInput_${field}" class="input-field resize-y py-2 w-full" style="height: auto; min-height: 4rem;" rows="2">${existingData[i] || ''}</textarea>
+        `;
+        modalForm.appendChild(div);
+    });
+    
+    document.getElementById('modalOverlay').classList.remove('hidden');
+    
+    // Tự động căn chỉnh độ cao các textarea trong bảng chi tiết
+    setTimeout(() => {
+        document.querySelectorAll('#modalFormContent textarea').forEach(ta => {
+            ta.style.height = 'auto';
+            ta.style.height = ta.scrollHeight + 'px';
+        });
+    }, 50);
+}
+
+async function saveModal() {
+    const type = state.currentTab;
+    const config = categories[type];
+    const newEntry = [];
+    
+    // Auto-calculate STT
+    newEntry[0] = state.editingIndex === -1 ? (state[type].length + 1).toString() : state[type][state.editingIndex][0];
+    
+    config.fields.forEach((field, i) => {
+        if (field === 'stt') return;
+        const val = document.getElementById(`modalInput_${field}`)?.value || "";
+        newEntry[i] = val;
+    });
+    
+    // Specialized Logic: KiemTraSoHuu (VBA Port)
+    if (type === 'mayMoc') {
+        const ownerName = normalize(newEntry[4]); // Chu So Huu
+        const companyName = normalize(state.duAn.dvtc); // Don Vi Thi Cong
+        newEntry[5] = (ownerName.includes(companyName) || companyName.includes(ownerName)) ? "Sở hữu" : "Đi thuê";
+    }
+    
+    if (state.editingIndex === -1) {
+        state[type].push(newEntry);
+    } else {
+        state[type][state.editingIndex] = newEntry;
+    }
+    
+    await saveState();
+    closeModal();
+    renderContent();
+    lucide.createIcons();
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').classList.add('hidden');
+}
+
+// --- CORE FUNCTIONS ---
+async function syncDataToWord() {
+    updateLog("Đang đồng bộ dữ liệu vào văn bản...");
+
+    // 1. Cập nhật Biến văn bản (DocVariables) như VBA và tag cụ thể
+    const docVars = {
+        "DuAn": state.duAn.tenDuAn,
+        "GoiThau": state.duAn.goiThau,
+        "DVTC": state.duAn.dvtc,
+        "DaiDienCDT": state.duAn.daiDienCDT,
+        "TVGS": state.duAn.tvgs,
+        "NgayKhoiCong": state.duAn.ngayKhoiCong,
+        "NgayHoanThanh": state.duAn.ngayHoanThanh
+    };
+    
+    try {
+        // Thử cập nhật Content Controls trước
+        await WordService.updateDocVariables(docVars);
+    } catch (e) {
+        updateLog("Content Controls không khả dụng: " + e.message);
+    }
+
+    // Luôn cập nhật Document Variables (DOCVARIABLE) để phù hợp template dùng DOCVARIABLE
+    try {
+        await WordService.updateDocumentVariables(docVars);
+    } catch (e) {
+        updateLog("Document Variables thất bại: " + e.message);
+    }
+
+    // Thay placeholder chung (ưu tiên) để không phụ thuộc hoàn toàn DOCVARIABLE.
+    try {
+        await WordService.replaceInDocument("<<DuAn>>", state.duAn.tenDuAn || "", "DuAn");
+        await WordService.replaceInDocument("<<GoiThau>>", state.duAn.goiThau || "", "GoiThau");
+        await WordService.replaceInDocument("<<DVTC>>", state.duAn.dvtc || "", "DVTC");
+        await WordService.replaceInDocument("<<DaiDienCDT>>", state.duAn.daiDienCDT || "", "DaiDienCDT");
+        await WordService.replaceInDocument("<<TVGS>>", state.duAn.tvgs || "", "TVGS");
+        await WordService.replaceInDocument("<<NgayKhoiCong>>", state.duAn.ngayKhoiCong || "", "NgayKhoiCong");
+        await WordService.replaceInDocument("<<NgayHoanThanh>>", state.duAn.ngayHoanThanh || "", "NgayHoanThanh");
+    } catch (err) {
+        updateLog("Không thể thay placeholder: " + err.message);
+    }
+
+    // Cập nhật các field trong document để DOCVARIABLE hiển thị giá trị mới.
+    try {
+        await WordService.updateAllFields();
+    } catch (fieldError) {
+        updateLog("Không thể update các field: " + fieldError.message);
+    }
+    
+    await WordService.replaceTag("bmTenDuAn", state.duAn.tenDuAn || "---");
+    
+    // 2. Cập nhật Bảng (Table Syncs), ưu tiên Bookmark nếu có
+    await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu");
+    await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu2");
+    await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu3");
+    await WordService.xuatBang(state.mayMoc, "Tên thiết bị|Xe máy|Máy móc|Thiết bị", "bmMayMoc");
+    await WordService.xuatBang(state.vatLieu, "Tên vật tư", "bmVatLieu");
+    await WordService.xuatBang(state.thiNghiem, "Đơn vị thí nghiệm", "bmThiNghiem");
+    
+    await WordService.applyModernStyleToDocument();
+}
+
+async function onCapNhatClick() {
+    try {
+        await syncDataToWord();
+        updateLog("Đã CẬP NHẬT dữ liệu thành công!");
+        showToast("Đã cập nhật dữ liệu vào văn bản!", "success");
+    } catch (e) {
+        updateLog("Lỗi: " + e.message + (e.debugInfo ? "\nDebug: " + JSON.stringify(e.debugInfo) : ""));
+        showToast("Có lỗi xảy ra: " + e.message, "error");
+    }
+}
+
+async function requestExportFolder() {
+    if (state.exportFolderHandle) return true;
+    if (typeof window.showDirectoryPicker !== 'function') {
+        updateLog('⚠️ Trình duyệt không hỗ trợ chọn thư mục trực tiếp. Hệ thống sẽ lưu file vào thư mục Download.');
+        return false;
+    }
+
+    try {
+        const folderHandle = await window.showDirectoryPicker();
+        if (folderHandle) {
+            state.exportFolderHandle = folderHandle;
+            state.exportFolderLabel = folderHandle.name || 'Thư mục được chọn';
+            const labelElement = document.getElementById('exportFolderLabel');
+            if (labelElement) labelElement.innerText = `Thư mục đã chọn: ${state.exportFolderLabel}`;
+            updateLog('Đã chọn thư mục lưu.');
+            return true;
+        }
+    } catch (err) {
+        if (err.name !== 'AbortError') {
+            updateLog('Không thể chọn thư mục: ' + err.message);
+        }
+        return false;
+    }
+
+    return false;
+}
+
+async function onTachClick() {
+    try {
+        await syncDataToWord();
+        updateLog("⏳ Đang chuẩn bị tách hồ sơ theo bookmark...");
+        
+        // Capture console logs để debug
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+        const logs = [];
+        
+        console.log = (...args) => {
+            const msg = args.join(" ");
+            logs.push("[LOG] " + msg);
+            originalLog(...args);
+        };
+        console.warn = (...args) => {
+            const msg = args.join(" ");
+            logs.push("[WARN] " + msg);
+            originalWarn(...args);
+        };
+        console.error = (...args) => {
+            const msg = args.join(" ");
+            logs.push("[ERROR] " + msg);
+            originalError(...args);
+        };
+        
+        await requestExportFolder();
+        await WordService.processExport('split', state.duAn.tenDuAn, {
+            folderHandle: state.exportFolderHandle,
+            outputMode: state.outputMode
+        });
+        
+        console.log = originalLog;
+        console.warn = originalWarn;
+        console.error = originalError;
+        
+        // Phân tích logs để detect vấn đề
+        const allLogs = logs.join("\n");
+        
+        // Check for critical issues
+        if (allLogs.includes("ERROR") && 
+            !allLogs.includes("getSlice") && 
+            !allLogs.includes("Split thành công")) {
+            updateLog("❌ LỖI CHI TIẾT:\n" + allLogs);
+            showToast("Có lỗi xảy ra trong quá trình tách hồ sơ", "error");
+            return;
+        }
+        
+        if (allLogs.includes("ZIP file created: 0 bytes")) {
+            updateLog("❌ ZIP file trống (0 bytes)!\n\n" + allLogs); 
+            showToast("ZIP file trống - kiểm tra logs", "error");
+            return;
+        }
+        
+        // Check if "Found bookmark" appears (new logging format)
+        const hasFoundBookmarks = allLogs.includes("✓ Found bookmark");
+        const hasSplitSuccess = allLogs.includes("✅ Split thành công");
+        
+        if (!hasFoundBookmarks && !hasSplitSuccess) {
+            updateLog("⚠️ CẢNH BÁO: Không thể truy cập bookmark!\n\n" +
+                     "Lỗi có thể là:\n" +
+                     "- Word API không hỗ trợ phương thức truy cập bookmark\n" +
+                     "- Phiên bản Word quá cũ\n" +
+                     "- Add-in không có quyền truy cập bookmarks\n\n" +
+                     "Chi tiết:\n" + allLogs);
+            showToast("Không thể truy cập bookmark - kiểm tra logs", "warning");
+            return;
+        }
+        
+        // Hiển thị logs chi tiết
+        updateLog("📊 Chi tiết quá trình tách:\n" + allLogs);
+        updateLog("\n✅ Đã TÁCH HỒ SƠ thành công!");
+        showToast("Đã tách hồ sơ thành công!", "success");
+    } catch (e) {
+        updateLog("❌ Lỗi exception: " + e.message + "\n" + (e.stack || ""));
+        showToast("Có lỗi xảy ra: " + e.message, "error");
+    }
+}
+
+async function onXuatClick() {
+    try {
+        await syncDataToWord();
+        updateLog("Đang xuất bộ hồ sơ tổng...");
+        await requestExportFolder();
+        await WordService.processExport('master', state.duAn.tenDuAn, {
+            folderHandle: state.exportFolderHandle,
+            outputMode: state.outputMode
+        });
+        updateLog("Đã XUẤT HỒ SƠ TỔNG (.docx) thành công!");
+        showToast("Đã xuất hồ sơ tổng thành công!", "success");
+    } catch (e) {
+        updateLog("Lỗi: " + e.message + (e.debugInfo ? "\nDebug: " + JSON.stringify(e.debugInfo) : ""));
+        showToast("Có lỗi xảy ra khi xuất hồ sơ", "error");
+    }
+}
+
+// --- UTILS ---
+function registerEvents() {
+    document.querySelectorAll('[data-tab]').forEach(btn => {
+        btn.onclick = () => switchTab(btn.dataset.tab);
+    });
+    
+    document.getElementById('btnModalCancel').onclick = closeModal;
+    document.getElementById('btnModalSave').onclick = saveModal;
+    
+    // Nút chức năng giống VBA
+    document.getElementById('btnCapNhat').onclick = onCapNhatClick;
+    document.getElementById('btnTach').onclick = onTachClick;
+    document.getElementById('btnXuat').onclick = onXuatClick;
+
+    // Tự động thay đổi chiều cao textarea khi nhập liệu
+    document.addEventListener('input', function(e) {
+        if (e.target.tagName && e.target.tagName.toLowerCase() === 'textarea') {
+            e.target.style.height = 'auto';
+            e.target.style.height = e.target.scrollHeight + 'px';
+        }
+    });
+}
+
+function normalize(s) { 
+    if (!s) return "";
+    return s.toLowerCase()
+        .replace(/â/g, "a").replace(/ă/g, "a").replace(/đ/g, "d").replace(/ê/g, "e").replace(/ô/g, "o").replace(/ơ/g, "o").replace(/ư/g, "u")
+        .trim(); 
+}
+
+function sanitizeFileName(input) {
+    if (!input) return "";
+    return input.replace(/[\\/:*?"<>|]/g, "").trim();
+}
+
+function generateProjectFolderName() {
+    const duAn = state.duAn || {};
+    const tenDuAn = sanitizeFileName(duAn.tenDuAn);
+    const soHD = sanitizeFileName(state.soHDForExport);
+    const dvtc = sanitizeFileName(duAn.dvtc);
+
+    if (tenDuAn && soHD) {
+        return `${tenDuAn}_${soHD}`;
+    }
+
+    if (tenDuAn) {
+        return tenDuAn;
+    }
+
+    if (soHD) {
+        return soHD;
+    }
+
+    if (dvtc) {
+        return dvtc;
+    }
+
+    return "";
+}
+
+function openProjectNameModal(defaultName = "") {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('projectNameModal');
+        const input = document.getElementById('projectNameInput');
+        const error = document.getElementById('projectNameError');
+        const btnConfirm = document.getElementById('projectNameConfirm');
+        const btnCancel = document.getElementById('projectNameCancel');
+
+        input.value = defaultName;
+        error.classList.add('hidden');
+
+        const closeModal = () => {
+            modal.classList.add('hidden');
+            btnConfirm.onclick = null;
+            btnCancel.onclick = null;
+        };
+
+        btnConfirm.onclick = () => {
+            const value = input.value.trim();
+            if (!value) {
+                error.classList.remove('hidden');
+                return;
+            }
+            closeModal();
+            resolve(value);
+        };
+
+        btnCancel.onclick = () => {
+            closeModal();
+            resolve(null);
+        };
+
+        modal.classList.remove('hidden');
+        input.focus();
+    });
+}
+
+async function requestProjectName(defaultName = state.duAn.tenDuAn || "") {
+    const autoName = generateProjectFolderName();
+    if (autoName) {
+        return autoName;
+    }
+
+    const projectName = await openProjectNameModal(defaultName);
+    return projectName;
+}
+
+function openResetDataModal() {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('resetDataModal');
+        const btnConfirm = document.getElementById('resetDataConfirm');
+        const btnCancel = document.getElementById('resetDataCancel');
+
+        const closeModal = () => {
+            modal.classList.add('hidden');
+            btnConfirm.onclick = null;
+            btnCancel.onclick = null;
+        };
+
+        btnConfirm.onclick = () => {
+            closeModal();
+            resolve(true);
+        };
+
+        btnCancel.onclick = () => {
+            closeModal();
+            resolve(false);
+        };
+
+        modal.classList.remove('hidden');
+        lucide.createIcons();
+    });
+}
+
+function updateLog(m) { document.getElementById('logMsg').innerText = m; }
+
+function showToast(message, type = 'success') {
+    const bgClass = type === 'error' ? 'bg-red-600' : 'bg-emerald-600';
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-4 left-1/2 -translate-x-1/2 ${bgClass} text-white px-4 py-2 rounded-xl shadow-xl shadow-slate-200/50 text-[12px] font-bold z-[100] transition-all duration-300`;
+    toast.style.transform = 'translate(-50%, 20px)';
+    toast.style.opacity = '0';
+    toast.innerText = message;
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+        toast.style.transform = 'translate(-50%, 0)';
+        toast.style.opacity = '1';
+    }, 10);
+    
+    // Animate out
+    setTimeout(() => {
+        toast.style.transform = 'translate(-50%, 20px)';
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
