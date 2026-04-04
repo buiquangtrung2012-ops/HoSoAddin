@@ -198,8 +198,8 @@ function renderList(container, type) {
         <th class="border px-2 py-2 w-8">STT</th>
         ${config.labels.filter((_, idx) => config.fields[idx] !== 'stt').map(lbl => {
             let wClass = "";
-            if (lbl === 'Đơn vị tính') wClass = "w-20";
-            if (lbl === 'Số lượng') wClass = "w-20";
+            if (lbl === 'Đơn vị tính') wClass = "w-12"; // Thu nhỏ tối đa
+            if (lbl === 'Số lượng') wClass = "w-14"; // Vừa đủ nút bấm tăng giảm
             return `<th class="border px-2 py-2 ${wClass}">${lbl}</th>`;
         }).join('')}
         <th class="border px-2 py-2 w-16">Thao tác</th>
