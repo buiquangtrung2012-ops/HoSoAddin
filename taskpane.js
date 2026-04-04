@@ -191,19 +191,23 @@ function renderList(container, type) {
     }
 
     const table = document.createElement('table');
-    table.className = 'w-full border-collapse text-[12px]';
+    table.className = 'w-full border-collapse text-[12px] table-fixed break-words';
 
+    // Tính toán tỷ lệ % cho các cột để không bị vỡ khung
     const thead = document.createElement('thead');
-    thead.innerHTML = `<tr class="bg-slate-100 text-slate-600 uppercase text-[10px] font-bold">
-        <th class="border px-2 py-2 w-8">STT</th>
-        ${config.labels.filter((_, idx) => config.fields[idx] !== 'stt').map(lbl => {
-            let wClass = "";
-            if (lbl === 'Đơn vị tính') wClass = "w-12"; // Thu nhỏ tối đa
-            if (lbl === 'Số lượng') wClass = "w-14"; // Vừa đủ nút bấm tăng giảm
-            return `<th class="border px-2 py-2 ${wClass}">${lbl}</th>`;
-        }).join('')}
-        <th class="border px-2 py-2 w-16">Thao tác</th>
-    </tr>`;
+    let wMap = { stt: '8%' };
+    if (type === 'mayMoc') wMap = { name: '28%', unit: '12%', qty: '12%', owner: '28%', status: '12%' };
+    else if (type === 'nhanSu') wMap = { name: '35%', role: '22%', major: '20%', phone: '15%' };
+    else if (type === 'vatLieu') wMap = { name: '35%', standard: '22%', origin: '20%', note: '15%' };
+    else if (type === 'thiNghiem') wMap = { dvtn: '27%', address: '25%', ptn: '25%', func: '15%' };
+
+    let headersHtml = `<th class="border px-1 py-2" style="width: 8%;">STT</th>`;
+    config.fields.forEach((field, idx) => {
+        if (field === 'stt') return;
+        headersHtml += `<th class="border px-1 py-2" style="width: ${wMap[field] || 'auto'};">${config.labels[idx]}</th>`;
+    });
+
+    thead.innerHTML = `<tr class="bg-slate-100 text-slate-600 uppercase text-[9px] font-bold">${headersHtml}</tr>`;
     table.appendChild(thead);
 
     const tbody = document.createElement('tbody');
@@ -211,7 +215,12 @@ function renderList(container, type) {
         const row = document.createElement('tr');
         row.className = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50';
 
-        row.innerHTML = `<td class="border px-2 py-2 text-center font-bold">${item[0]}</td>`;
+        row.innerHTML = `<td class="border px-1 py-1 text-center font-bold">
+            <label class="cursor-pointer flex items-center justify-center gap-1 group" title="Click để chọn xóa">
+               <input type="radio" name="selectRow_${type}" value="${idx}" class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer">
+               <span class="group-hover:text-indigo-600 text-[10px]">${item[0]}</span>
+            </label>
+        </td>`;
 
         config.fields.forEach((field, i) => {
             if (field === 'stt') return;
@@ -246,7 +255,10 @@ function renderList(container, type) {
             inputElement.onblur = async (e) => {
                 // Chỉ xử lý nếu không phải trường readonly
                 if (!(type === 'mayMoc' && field === 'status')) {
-                    state[type][idx][i] = e.target.value;
+                    let finalVal = e.target.value;
+                    if (field === 'qty' && finalVal) finalVal = String(finalVal).padStart(2, '0');
+                    if (field === 'qty') e.target.value = finalVal; // Cập nhật lại UI hiển thị 01,02
+                    state[type][idx][i] = finalVal;
                 }
 
                 if (type === 'mayMoc' && field === 'owner') {
@@ -275,20 +287,7 @@ function renderList(container, type) {
             row.appendChild(cell);
         });
 
-        const actionTd = document.createElement('td');
-        actionTd.className = 'border px-2 py-2 text-center';
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'text-red-600 font-bold text-xs';
-        deleteBtn.innerText = 'Xóa';
-        deleteBtn.onclick = async () => {
-            state[type].splice(idx, 1);
-            state[type].forEach((itemRow, i2) => { itemRow[0] = (i2 + 1).toString(); });
-            await saveState();
-            renderContent();
-            lucide.createIcons();
-        };
-        actionTd.appendChild(deleteBtn);
-        row.appendChild(actionTd);
+        // Đã xóa cột Thao tác từng dòng
 
         tbody.appendChild(row);
     });
@@ -296,13 +295,35 @@ function renderList(container, type) {
     table.appendChild(tbody);
     listCard.appendChild(table);
 
-    // Thêm nút Thêm Dòng Mới ở dưới cùng bảng
+    // Thêm các nút thao tác chung ở dưới cùng bảng
+    const actionContainer = document.createElement('div');
+    actionContainer.className = 'flex gap-2 mt-4';
+    
     const btnAddBottom = document.createElement('button');
-    btnAddBottom.className = 'w-full mt-4 h-10 border-2 border-dashed border-slate-300 text-slate-500 rounded-xl hover:bg-slate-50 hover:border-indigo-400 hover:text-indigo-600 transition-all font-bold text-xs flex items-center justify-center gap-2';
+    btnAddBottom.className = 'flex-1 h-10 border-2 border-dashed border-slate-300 text-slate-500 rounded-xl hover:bg-slate-50 hover:border-indigo-400 hover:text-indigo-600 transition-all font-bold text-xs flex items-center justify-center gap-2';
     btnAddBottom.innerHTML = '<i data-lucide="plus" size="16"></i> THÊM DÒNG MỚI';
     btnAddBottom.onclick = btnAdd.onclick;
     
-    listCard.appendChild(btnAddBottom);
+    const btnDelBottom = document.createElement('button');
+    btnDelBottom.className = 'w-24 h-10 border-2 border-dashed border-red-200 text-red-500 rounded-xl hover:bg-red-50 hover:border-red-400 hover:text-red-700 transition-all font-bold text-xs flex items-center justify-center gap-2';
+    btnDelBottom.innerHTML = '<i data-lucide="trash-2" size="14"></i> XÓA';
+    btnDelBottom.onclick = async () => {
+        const selectedRadio = container.querySelector(`input[name="selectRow_${type}"]:checked`);
+        if (!selectedRadio) {
+            showToast('Kiểm tra bảng: Vui lòng click chọn 1 dòng ở cột STT để xóa!', 'warning');
+            return;
+        }
+        const delIdx = parseInt(selectedRadio.value, 10);
+        state[type].splice(delIdx, 1);
+        state[type].forEach((itemRow, i2) => { itemRow[0] = (i2 + 1).toString(); });
+        await saveState();
+        renderContent();
+        lucide.createIcons();
+    };
+    
+    actionContainer.appendChild(btnAddBottom);
+    actionContainer.appendChild(btnDelBottom);
+    listCard.appendChild(actionContainer);
 
     container.appendChild(listCard);
 }
