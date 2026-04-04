@@ -194,7 +194,16 @@ function renderList(container, type) {
     table.className = 'w-full border-collapse text-[12px]';
 
     const thead = document.createElement('thead');
-    thead.innerHTML = `<tr class="bg-slate-100 text-slate-600 uppercase text-[10px] font-bold"><th class="border px-2 py-2">STT</th>${config.labels.filter((_, idx) => config.fields[idx] !== 'stt').map(lbl => `<th class="border px-2 py-2">${lbl}</th>`).join('')}<th class="border px-2 py-2">Thao tác</th></tr>`;
+    thead.innerHTML = `<tr class="bg-slate-100 text-slate-600 uppercase text-[10px] font-bold">
+        <th class="border px-2 py-2 w-8">STT</th>
+        ${config.labels.filter((_, idx) => config.fields[idx] !== 'stt').map(lbl => {
+            let wClass = "";
+            if (lbl === 'Đơn vị tính') wClass = "w-20";
+            if (lbl === 'Số lượng') wClass = "w-20";
+            return `<th class="border px-2 py-2 ${wClass}">${lbl}</th>`;
+        }).join('')}
+        <th class="border px-2 py-2 w-16">Thao tác</th>
+    </tr>`;
     table.appendChild(thead);
 
     const tbody = document.createElement('tbody');
@@ -217,6 +226,12 @@ function renderList(container, type) {
                 inputElement.spellcheck = false;
                 inputElement.readOnly = true;
                 inputElement.className = 'w-full border border-slate-200 rounded px-2 py-1 text-xs bg-slate-50 text-slate-600 cursor-not-allowed h-8';
+            } else if (field === 'qty') {
+                // Trường số lượng dạng number (có nút tăng giảm)
+                inputElement = document.createElement('input');
+                inputElement.type = 'number';
+                inputElement.min = '0';
+                inputElement.className = 'w-full border border-slate-200 rounded px-2 py-1 text-xs bg-white text-center h-8 cursor-pointer';
             } else {
                 // Sử dụng Textarea cho tất cả các trường nhập liệu để hỗ trợ multiline
                 inputElement = document.createElement('textarea');
@@ -280,6 +295,15 @@ function renderList(container, type) {
 
     table.appendChild(tbody);
     listCard.appendChild(table);
+
+    // Thêm nút Thêm Dòng Mới ở dưới cùng bảng
+    const btnAddBottom = document.createElement('button');
+    btnAddBottom.className = 'w-full mt-4 h-10 border-2 border-dashed border-slate-300 text-slate-500 rounded-xl hover:bg-slate-50 hover:border-indigo-400 hover:text-indigo-600 transition-all font-bold text-xs flex items-center justify-center gap-2';
+    btnAddBottom.innerHTML = '<i data-lucide="plus" size="16"></i> THÊM DÒNG MỚI';
+    btnAddBottom.onclick = btnAdd.onclick;
+    
+    listCard.appendChild(btnAddBottom);
+
     container.appendChild(listCard);
 }
 
@@ -392,9 +416,13 @@ function openEditModal(index = -1) {
         if (field === 'status' && type === 'mayMoc') return; // Auto-calculated
         
         const div = document.createElement("div");
+        const inputHtml = (field === 'qty') 
+            ? `<input type="number" min="0" id="modalInput_${field}" value="${existingData[i] || ''}" class="input-field w-full">`
+            : `<textarea spellcheck="false" id="modalInput_${field}" class="input-field resize-y py-2 w-full" style="height: auto; min-height: 4rem;" rows="2">${existingData[i] || ''}</textarea>`;
+
         div.innerHTML = `
             <label class="text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">${config.labels[i]}</label>
-            <textarea spellcheck="false" id="modalInput_${field}" class="input-field resize-y py-2 w-full" style="height: auto; min-height: 4rem;" rows="2">${existingData[i] || ''}</textarea>
+            ${inputHtml}
         `;
         modalForm.appendChild(div);
     });
