@@ -197,8 +197,12 @@ function renderList(container, type) {
         return;
     }
 
+    const tableWrapper = document.createElement('div');
+    tableWrapper.className = 'overflow-x-auto custom-scrollbar border rounded-xl';
+    
     const table = document.createElement('table');
-    table.className = 'w-full border-collapse text-[12px] table-fixed break-words';
+    table.className = 'w-full border-collapse text-[12px] break-words';
+    table.style.minWidth = '600px'; // Đảm bảo bảng không bị bóp quá hẹp
 
     // Tính toán tỷ lệ % cho các cột để không bị vỡ khung
     const thead = document.createElement('thead');
@@ -308,7 +312,8 @@ function renderList(container, type) {
     });
 
     table.appendChild(tbody);
-    listCard.appendChild(table);
+    tableWrapper.appendChild(table);
+    listCard.appendChild(tableWrapper);
 
     // Thêm các nút thao tác chung ở dưới cùng bảng
     const actionContainer = document.createElement('div');
