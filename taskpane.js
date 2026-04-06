@@ -51,21 +51,21 @@ async function initializeApp() {
 
 // --- DATA & STATE ---
 async function loadState() {
-    // Để thấy ngay sự thay đổi từ mock_data.js, ta tạm thời ưu tiên MockData hơn StorageService
+    // Ưu tiên load dữ liệu thực tế từ file Word đang mở (thông qua StorageService)
     const duAnSaved = await StorageService.getProjectData("duAn");
-    state.duAn = MockData.duAn || duAnSaved || state.duAn;
+    if (duAnSaved && Object.keys(duAnSaved).length > 0) state.duAn = duAnSaved;
     
     const nhanSuSaved = await StorageService.getProjectData("nhanSu");
-    state.nhanSu = (MockData.nhanSu && MockData.nhanSu.length > 0) ? MockData.nhanSu : (nhanSuSaved || []);
+    if (nhanSuSaved && nhanSuSaved.length > 0) state.nhanSu = nhanSuSaved;
     
     const mayMocSaved = await StorageService.getProjectData("mayMoc");
-    state.mayMoc = (MockData.mayMoc && MockData.mayMoc.length > 0) ? MockData.mayMoc : (mayMocSaved || []);
+    if (mayMocSaved && mayMocSaved.length > 0) state.mayMoc = mayMocSaved;
     
     const vatLieuSaved = await StorageService.getProjectData("vatLieu");
-    state.vatLieu = (MockData.vatLieu && MockData.vatLieu.length > 0) ? MockData.vatLieu : (vatLieuSaved || []);
+    if (vatLieuSaved && vatLieuSaved.length > 0) state.vatLieu = vatLieuSaved;
     
     const thiNghiemSaved = await StorageService.getProjectData("thiNghiem");
-    state.thiNghiem = (MockData.thiNghiem && MockData.thiNghiem.length > 0) ? MockData.thiNghiem : (thiNghiemSaved || []);
+    if (thiNghiemSaved && thiNghiemSaved.length > 0) state.thiNghiem = thiNghiemSaved;
 }
 
 async function saveState() {
