@@ -579,8 +579,31 @@ async function syncDataToWord() {
 async function onCapNhatClick() {
     try {
         await syncDataToWord();
-        updateLog("Đã CẬP NHẬT dữ liệu thành công!");
-        showToast("Đã cập nhật dữ liệu vào văn bản!", "success");
+        updateLog("Đã cập nhật dữ liệu vào văn bản hiện tại.");
+        let msg = "Đã cập nhật dữ liệu vào bản Word!";
+        
+        // Tự động ghi đè lại file đã xuất nếu có
+        if (state.exportFolderHandle && (state.hasExportedMaster || state.hasSplitFiles)) {
+            updateLog("Bắt đầu cập nhật thay thế các file DOCX bên ngoài thư mục...");
+            if (state.hasExportedMaster) {
+                await WordService.processExport('master', state.duAn.tenDuAn, {
+                    folderHandle: state.exportFolderHandle,
+                    outputMode: state.outputMode
+                });
+                updateLog("✓ Đã cập nhật ghi đè file tổng.");
+            }
+            if (state.hasSplitFiles) {
+                await WordService.processExport('split', state.duAn.tenDuAn, {
+                    folderHandle: state.exportFolderHandle,
+                    outputMode: state.outputMode
+                });
+                updateLog("✓ Đã cập nhật ghi đè file tách.");
+            }
+            msg = "Đã cập nhật Word & ghi đè toàn bộ file đã xuất!";
+        }
+        
+        updateLog("✅ Đã CẬP NHẬT HOÀN TẤT!");
+        showToast(msg, "success");
     } catch (e) {
         updateLog("Lỗi: " + e.message + (e.debugInfo ? "\nDebug: " + JSON.stringify(e.debugInfo) : ""));
         showToast("Có lỗi xảy ra: " + e.message, "error");
@@ -646,6 +669,7 @@ async function onTachClick() {
             folderHandle: state.exportFolderHandle,
             outputMode: state.outputMode
         });
+        state.hasSplitFiles = true;
         
         console.log = originalLog;
         console.warn = originalWarn;
@@ -703,6 +727,7 @@ async function onXuatClick() {
             folderHandle: state.exportFolderHandle,
             outputMode: state.outputMode
         });
+        state.hasExportedMaster = true;
         updateLog("Đã XUẤT HỒ SƠ TỔNG (.docx) thành công!");
         showToast("Đã xuất hồ sơ tổng thành công!", "success");
     } catch (e) {
