@@ -715,10 +715,11 @@ export const WordService = {
         console.log(`✓ Document loaded: ${fullBlob.size} bytes, type: ${fullBlob.type}`);
 
         if (mode === 'master') {
+            const folderName = baseName || 'HoSo';
             const fileName = `HoSoTongHop_${baseName}.docx`;
             if (folderHandle) {
-                await WordService._saveBlobToFolder(folderHandle, fileName, fullBlob);
-                console.log(`✅ Lưu file tổng vào thư mục đã chọn: ${fileName}`);
+                await WordService._saveBlobToFolder(folderHandle, `${folderName}/${fileName}`, fullBlob);
+                console.log(`✅ Lưu file tổng vào thư mục đã chọn: ${folderName}/${fileName}`);
             } else {
                 saveAs(fullBlob, fileName);
             }
@@ -810,8 +811,7 @@ export const WordService = {
                         console.log(`   → Adding to ZIP: ${group.folder}/${group.fileName} (${fileBlob.size} bytes)`);
                         zip.folder(group.folder).file(group.fileName, fileBlob);
                     } else {
-                        const mainFolder = baseName ? `HoSo_${baseName}` : 'HoSo';
-                        const path = `${mainFolder}/${group.folder}/${group.fileName}`;
+                        const path = `${group.folder}/${group.fileName}`;
                         await WordService._saveBlobToFolder(folderHandle, path, fileBlob);
                         console.log(`   → Lưu file vào thư mục: ${path} (${fileBlob.size} bytes)`);
                     }

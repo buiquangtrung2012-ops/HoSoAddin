@@ -197,9 +197,9 @@ function renderList(container, type) {
     const thead = document.createElement('thead');
     let wMap = { stt: '8%' };
     if (type === 'mayMoc') wMap = { name: '28%', unit: '12%', qty: '12%', owner: '28%', status: '12%' };
-    else if (type === 'nhanSu') wMap = { name: '35%', role: '22%', major: '20%', phone: '15%' };
-    else if (type === 'vatLieu') wMap = { name: '35%', standard: '22%', origin: '20%', note: '15%' };
-    else if (type === 'thiNghiem') wMap = { dvtn: '27%', address: '25%', ptn: '25%', func: '15%' };
+    else if (type === 'nhanSu') wMap = { name: '30%', role: '22%', major: '20%', phone: '20%' };
+    else if (type === 'vatLieu') wMap = { name: '28%', standard: '20%', origin: '20%', note: '24%' };
+    else if (type === 'thiNghiem') wMap = { dvtn: '23%', address: '24%', ptn: '19%', func: '26%' };
 
     let headersHtml = `<th class="border px-1 py-2" style="width: 8%;">STT</th>`;
     config.fields.forEach((field, idx) => {
@@ -246,7 +246,7 @@ function renderList(container, type) {
                 inputElement = document.createElement('textarea');
                 inputElement.rows = 2; // Hiển thị sẵn 2 dòng
                 inputElement.spellcheck = false;
-                inputElement.className = 'w-full border border-slate-200 rounded px-2 py-1 text-xs bg-white resize-y';
+                inputElement.className = 'w-full border border-slate-200 rounded px-2 py-1 text-xs bg-white resize-y custom-scrollbar';
                 inputElement.style.minHeight = '3rem';
             }
             
