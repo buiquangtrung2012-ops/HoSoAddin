@@ -257,7 +257,15 @@ function renderList(container, type) {
                 if (!(type === 'mayMoc' && field === 'status')) {
                     let finalVal = e.target.value;
                     if (field === 'qty' && finalVal) finalVal = String(finalVal).padStart(2, '0');
-                    if (field === 'qty') e.target.value = finalVal; // Cập nhật lại UI hiển thị 01,02
+                    if (type === 'nhanSu' && field === 'phone' && finalVal) {
+                        finalVal = finalVal.replace(/(?:0|\+84)[\d\.\-\s]{9,13}/g, match => {
+                            let d = match.replace(/\D/g, '');
+                            if (d.startsWith('84')) d = '0' + d.substring(2);
+                            if (d.length >= 10 && d.startsWith('0')) return d.substring(0, 10).replace(/(\d{4})(\d{3})(\d{3})/, '$1.$2.$3');
+                            return match;
+                        });
+                    }
+                    e.target.value = finalVal; // Cập nhật lại UI thực tế
                     state[type][idx][i] = finalVal;
                 }
 
@@ -377,7 +385,7 @@ function renderExportSettings(container) {
             }
 
             try {
-                const folderHandle = await window.showDirectoryPicker();
+                const folderHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
                 state.exportFolderHandle = folderHandle;
                 state.exportFolderLabel = folderHandle.name || 'Thư mục được chọn';
                 exportFolderLabel.innerText = `Thư mục đã chọn: ${state.exportFolderLabel}`;
@@ -469,7 +477,17 @@ async function saveModal() {
     
     config.fields.forEach((field, i) => {
         if (field === 'stt') return;
-        const val = document.getElementById(`modalInput_${field}`)?.value || "";
+        let val = document.getElementById(`modalInput_${field}`)?.value || "";
+        if (field === 'qty' && val) val = String(val).padStart(2, '0');
+        if (type === 'nhanSu' && field === 'phone' && val) {
+            val = val.replace(/(?:0|\+84)[\d\.\-\s]{9,13}/g, match => {
+                let d = match.replace(/\D/g, '');
+                if (d.startsWith('84')) d = '0' + d.substring(2);
+                if (d.length >= 10 && d.startsWith('0')) return d.substring(0, 10).replace(/(\d{4})(\d{3})(\d{3})/, '$1.$2.$3');
+                return match;
+            });
+            document.getElementById(`modalInput_${field}`).value = val;
+        }
         newEntry[i] = val;
     });
     
@@ -577,7 +595,7 @@ async function requestExportFolder() {
     }
 
     try {
-        const folderHandle = await window.showDirectoryPicker();
+        const folderHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
         if (folderHandle) {
             state.exportFolderHandle = folderHandle;
             state.exportFolderLabel = folderHandle.name || 'Thư mục được chọn';
@@ -719,7 +737,22 @@ function registerEvents() {
 function normalize(s) { 
     if (!s) return "";
     return s.toLowerCase()
-        .replace(/â/g, "a").replace(/ă/g, "a").replace(/đ/g, "d").replace(/ê/g, "e").replace(/ô/g, "o").replace(/ơ/g, "o").replace(/ư/g, "u")
+        .replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g, 'a')
+        .replace(/[èéẹẻẽêềếệểễ]/g, 'e')
+        .replace(/[ìíịỉĩ]/g, 'i')
+        .replace(/[òóọỏõôồốộổỗơờớợởỡ]/g, 'o')
+        .replace(/[ùúụủũưừứựửữ]/g, 'u')
+        .replace(/[ỳýỵỷỹ]/g, 'y')
+        .replace(/đ/g, 'd')
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\bcp\b/g, 'co phan')
+        .replace(/\btnhh\b/g, 'trach nhiem huu han')
+        .replace(/\bcty\b/g, 'cong ty')
+        .replace(/\btm\b/g, 'thuong mai')
+        .replace(/\bdv\b/g, 'dich vu')
+        .replace(/\bxd\b/g, 'xay dung')
+        .replace(/\bjsc\b/g, 'co phan')
+        .replace(/\s+/g, ' ')
         .trim(); 
 }
 
