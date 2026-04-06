@@ -66,6 +66,13 @@ async function loadState() {
     
     const thiNghiemSaved = await StorageService.getProjectData("thiNghiem");
     if (thiNghiemSaved && thiNghiemSaved.length > 0) state.thiNghiem = thiNghiemSaved;
+
+    // Load folder lưu trữ từ IndexedDB
+    const folderHandle = await StorageService.getFolderHandle();
+    if (folderHandle) {
+        state.exportFolderHandle = folderHandle;
+        state.exportFolderLabel = folderHandle.name;
+    }
 }
 
 async function saveState() {
@@ -622,6 +629,9 @@ async function requestExportFolder() {
         if (folderHandle) {
             state.exportFolderHandle = folderHandle;
             state.exportFolderLabel = folderHandle.name || 'Thư mục được chọn';
+            // Lưu handle vào IndexedDB để dùng cho lần sau
+            await StorageService.saveFolderHandle(folderHandle);
+            
             const labelElement = document.getElementById('exportFolderLabel');
             if (labelElement) labelElement.innerText = `Thư mục đã chọn: ${state.exportFolderLabel}`;
             updateLog('Đã chọn thư mục lưu.');

@@ -35,5 +35,53 @@ export const StorageService = {
             console.error("Lỗi giải mã JSON:", e);
             return null;
         }
+    },
+
+    /**
+     * Lưu Directory Handle vào IndexedDB (Vì Office Settings không lưu được Object native)
+     */
+    saveFolderHandle: async (handle) => {
+        try {
+            const db = await StorageService._openDB();
+            const tx = db.transaction("handles", "readwrite");
+            const store = tx.objectStore("handles");
+            await store.put(handle, "exportFolder");
+            return true;
+        } catch (e) {
+            console.error("Lỗi lưu Handle vào IDB:", e);
+            return false;
+        }
+    },
+
+    /**
+     * Lấy Directory Handle từ IndexedDB
+     */
+    getFolderHandle: async () => {
+        try {
+            const db = await StorageService._openDB();
+            const tx = db.transaction("handles", "readonly");
+            const store = tx.objectStore("handles");
+            const request = store.get("exportFolder");
+            return new Promise((resolve) => {
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => resolve(null);
+            });
+        } catch (e) {
+            return null;
+        }
+    },
+
+    _openDB: () => {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open("HoSoAddinDB", 1);
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains("handles")) {
+                    db.createObjectStore("handles");
+                }
+            };
+            request.onsuccess = (e) => resolve(e.target.result);
+            request.onerror = (e) => reject(e.target.error);
+        });
     }
 };
