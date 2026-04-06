@@ -423,9 +423,9 @@ function renderExportSettings(container) {
             state.thiNghiem = [];
 
             await saveState();
-
-            // Xóa dữ liệu trong Word document
-            await WordService.clearDocumentData();
+            
+            // Đồng bộ trạng thái trống vào Word để xóa hết placeholder/bảng
+            await syncDataToWord();
 
             switchTab('duAn');
             updateLog("✅ Đã khởi tạo lại dữ liệu thành công! Sẵn sàng cho dự án mới.");
