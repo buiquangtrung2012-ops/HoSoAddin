@@ -811,7 +811,7 @@ export const WordService = {
                         console.log(`   → Adding to ZIP: ${group.folder}/${group.fileName} (${fileBlob.size} bytes)`);
                         zip.folder(group.folder).file(group.fileName, fileBlob);
                     } else {
-                        const path = `${group.folder}/${group.fileName}`;
+                        const path = `${rootFolderName}/${group.folder}/${group.fileName}`;
                         await WordService._saveBlobToFolder(folderHandle, path, fileBlob);
                         console.log(`   → Lưu file vào thư mục: ${path} (${fileBlob.size} bytes)`);
                     }

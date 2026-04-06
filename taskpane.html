@@ -28,7 +28,7 @@
 
     <!-- Header -->
     <header class="p-4 bg-white border-b border-slate-100 flex items-center justify-between z-10 shadow-sm">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" onclick="window.location.href = window.location.pathname.split('?')[0] + '?t=' + new Date().getTime()" title="Click vào đây để ép tải lại bản mới nhất (Bỏ qua Cache Github)">
             <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
                 <i data-lucide="layers" size="18"></i>
             </div>
