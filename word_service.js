@@ -286,50 +286,42 @@ export const WordService = {
                     });
                     await context.sync();
 
-                    // Bước 4: Căn lề thông minh dựa trên Text của Header (Phiên bản cưỡng bức)
+                    // Bước 4: Căn lề thông minh - Cấp độ Paragraph (Nuclear V3)
                     const headerRow = targetTable.rows.getFirst();
-                    headerRow.cells.load("items/values");
+                    headerRow.cells.load("items/body/text");
                     await context.sync();
                     
-                    const headerCells = headerRow.cells.items;
-                    const colAlignments = headerCells.map(cell => {
-                        const cellText = WordService.normalizeTextForSearch(cell.values[0][0] || "");
+                    const colAlignments = headerRow.cells.items.map(cell => {
+                        const cellText = WordService.normalizeTextForSearch(cell.body.text || "");
                         
-                        // Danh sách từ khóa ưu tiên Căn đều (Justified)
-                        const justifiedKws = [
-                            "ho va ten", "ten thiet bi", "xe may", "ten vat tu", "tieu chuan", 
-                            "dac tinh", "chuyen nganh", "chu so huu", "ghi chu", "dac diem",
-                            "nguon goc", "vat lieu chinh", "noi dung", "chuc danh"
-                        ];
-                        // Danh sách từ khóa ưu tiên Căn giữa (Centered)
-                        const centeredKws = [
-                            "stt", "dvt", "so luong", "don vi tinh", "so dien thoai", "hinh thuc", "loai"
-                        ];
+                        const justifiedKws = ["ho va ten", "ten thiet bi", "xe may", "ten vat tu", "tieu chuan", "chuyen nganh", "chu so huu", "ghi chu", "dac diem", "nguon goc", "vat lieu chinh", "noi dung", "chuc danh"];
+                        const centeredKws = ["stt", "dvt", "so luong", "don vi tinh", "so dien thoai", "hinh thuc", "loai"];
                         
                         if (justifiedKws.some(kw => cellText.includes(kw))) return "Justified";
                         if (centeredKws.some(kw => cellText.includes(kw))) return "Centered";
                         return "Left";
                     });
 
-                    // Tải lại toàn bộ hàng và ô để áp dụng định dạng
+                    // Tải lại rows và cell body paragraphs
                     targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx > 0) {
                             row.font.bold = false;
-                            row.cells.load("items");
+                            row.cells.load("items/body/paragraphs");
                         }
                     });
                     await context.sync();
 
-                    // Áp dụng căn lề trực tiếp vào ParagraphFormat của Body ô
+                    // Áp dụng định dạng cho từng Paragraph trong từng ô
                     targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx === 0) return;
                         row.cells.items.forEach((cell, cIdx) => {
                             const alignment = colAlignments[cIdx] || "Left";
-                            try {
-                                // Sử dụng paragraphFormat trên body để đảm bảo áp dụng cho toàn bộ nội dung cell
-                                cell.body.paragraphFormat.alignment = alignment;
-                                cell.verticalAlignment = "Center";
-                            } catch (e) {}
+                            cell.verticalAlignment = "Center";
+                            
+                            // Căn lề cưỡng bức cho mọi Paragraph bên trong ô
+                            cell.body.paragraphs.items.forEach(p => {
+                                p.alignment = alignment;
+                            });
                         });
                     });
                     await context.sync();
