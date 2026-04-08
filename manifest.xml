@@ -7,7 +7,7 @@
     <Version>1.0.0.8</Version>
     <ProviderName>HoSoAddin</ProviderName>
     <DefaultLocale>en-US</DefaultLocale>
-    <DisplayName DefaultValue="Quản Lý Hồ Sơ (NEW)" />
+    <DisplayName DefaultValue="Quản Lý Hồ Sơ" />
     <Description DefaultValue="Quản lý hồ sơ Office JS." />
     <Hosts>
         <Host Name="Document" />
