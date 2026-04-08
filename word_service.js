@@ -297,13 +297,14 @@ export const WordService = {
                             if (cIdx === 0) alignment = "Centered";
                             
                             // 2. Các cột nội dung quan trọng cần Căn đều (Justified) theo yêu cầu User
-                            if (colName.includes("họ và tên")) {
+                            // Sử dụng từ khóa Bookmark không dấu để nhận diện chính xác loại bảng
+                            if (colName.includes("nhansu")) {
                                 if (cIdx === 1) alignment = "Justified"; // Cột Họ và tên
                                 else alignment = "Centered";
-                            } else if (colName.includes("thiết bị")) {
+                            } else if (colName.includes("maymoc")) {
                                 if (cIdx === 1 || cIdx === 4) alignment = "Justified"; // Tên thiết bị và Đặc tính
                                 else if (cIdx === 2 || cIdx === 3 || cIdx === 5) alignment = "Centered";
-                            } else if (colName.includes("vật tư") || colName.includes("thí nghiệm")) {
+                            } else if (colName.includes("vatlieu") || colName.includes("thinnghiem")) {
                                 if (cIdx === 1 || cIdx === 2) alignment = "Justified"; // Tên vật tư và Tiêu chuẩn
                                 else if (cIdx === 3 || cIdx === 4) alignment = "Centered";
                             }
