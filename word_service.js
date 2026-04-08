@@ -286,45 +286,53 @@ export const WordService = {
                     });
                     await context.sync();
 
-                    // Bước 4: Căn lề thông minh dựa trên Text của Header (Độ chính xác 100%)
+                    // Bước 4: Căn lề thông minh dựa trên Text của Header (Phiên bản cưỡng bức)
                     const headerRow = targetTable.rows.getFirst();
                     headerRow.cells.load("items/values");
                     await context.sync();
                     
                     const headerCells = headerRow.cells.items;
                     const colAlignments = headerCells.map(cell => {
-                        const cellText = WordService.normalizeTextForSearch(cell.values[0][0]);
+                        const cellText = WordService.normalizeTextForSearch(cell.values[0][0] || "");
                         
-                        // Định nghĩa quy tắc căn lề dựa trên từ khóa trong Header
-                        // Căn đều (Justified) cho các cột nội dung dài
-                        const justifiedKeywords = ["ho va ten", "ten thiet bi", "xe may", "ten vat tu", "tieu chuan", "dac tinh", "chuyen nganh", "chu so huu", "ghi chu", "dac diem"];
-                        // Căn giữa (Centered) cho các cột thông số ngắn
-                        const centeredKeywords = ["stt", "dvt", "so luong", "don vi tinh", "so dien thoai", "hinh thuc", "loai"];
+                        // Danh sách từ khóa ưu tiên Căn đều (Justified)
+                        const justifiedKws = [
+                            "ho va ten", "ten thiet bi", "xe may", "ten vat tu", "tieu chuan", 
+                            "dac tinh", "chuyên nganh", "chu so huu", "ghi chu", "dac diem",
+                            "nguon goc", "vat lieu chinh", "noi dung"
+                        ];
+                        // Danh sách từ khóa ưu tiên Căn giữa (Centered)
+                        const centeredKws = [
+                            "stt", "dvt", "so luong", "don vi tinh", "so dien thoai", "hinh thuc", "loai"
+                        ];
                         
-                        if (justifiedKeywords.some(kw => cellText.includes(kw))) return "Justified";
-                        if (centeredKeywords.some(kw => cellText.includes(kw))) return "Centered";
+                        if (justifiedKws.some(kw => cellText.includes(kw))) return "Justified";
+                        if (centeredKws.some(kw => cellText.includes(kw))) return "Centered";
                         return "Left";
                     });
 
-                    targetTable.rows.items.forEach((currentRow, rIdx) => {
-                        if (rIdx === 0) return; // Bỏ qua header khi thiết lập font
-                        currentRow.font.bold = false;
-                        
-                        // Căn lề từng cell dựa trên bản đồ colAlignments đã tính ở trên
-                        currentRow.cells.load("items");
+                    // Tải lại toàn bộ hàng và ô để áp dụng định dạng
+                    targetTable.rows.items.forEach((row, rIdx) => {
+                        if (rIdx > 0) {
+                            row.font.bold = false;
+                            row.cells.load("items");
+                        }
                     });
                     await context.sync();
 
-                    targetTable.rows.items.forEach((currentRow, rIdx) => {
+                    // Áp dụng căn lề trực tiếp vào ParagraphFormat của Body ô
+                    targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx === 0) return;
-                        currentRow.cells.items.forEach((cell, cIdx) => {
+                        row.cells.items.forEach((cell, cIdx) => {
                             const alignment = colAlignments[cIdx] || "Left";
                             try {
-                                cell.getRange().paragraphFormat.alignment = alignment;
+                                // Sử dụng paragraphFormat trên body để đảm bảo áp dụng cho toàn bộ nội dung cell
+                                cell.body.paragraphFormat.alignment = alignment;
                                 cell.verticalAlignment = "Center";
                             } catch (e) {}
                         });
                     });
+                    await context.sync();
                 }
 
                 await context.sync();
