@@ -411,9 +411,6 @@ function renderExportSettings(container) {
                 <div id="exportFolderLabel" class="text-[12px] text-slate-500">${state.exportFolderLabel ? `Thư mục đã chọn: ${state.exportFolderLabel}` : 'Chưa chọn thư mục lưu. Nếu không chọn, hệ thống sẽ yêu cầu lưu tệp.'}</div>
                 <div class="text-[11px] text-slate-400">Lưu ý: Chức năng chọn thư mục chỉ hoạt động nếu trình duyệt/hệ thống hỗ trợ API File System Access.</div>
             </div>
-            <button id="btnResetData" class="w-full mt-4 h-12 bg-red-50 text-red-600 font-bold rounded-xl border border-red-200 hover:bg-red-100 transition-all flex items-center justify-center gap-2">
-                <i data-lucide="alert-triangle" size="18"></i> KHỞI TẠO LẠI DỮ LIỆU
-            </button>
         </div>
     `;
     
@@ -461,36 +458,8 @@ function renderExportSettings(container) {
             }
         };
     }
-
-    document.getElementById('btnResetData').onclick = async () => {
-        const confirmed = await openResetDataModal();
-        if (!confirmed) {
-            updateLog("Đã hủy thao tác khởi tạo lại dữ liệu.");
-            return;
-        }
-
-        updateLog("Đang khởi tạo lại dữ liệu...");
-
-        try {
-            // Reset to empty state
-            state.duAn = { tenDuAn: "", goiThau: "", dvtc: "", daiDienCDT: "", tvgs: "", ngayKhoiCong: "", ngayHoanThanh: "" };
-            state.nhanSu = [];
-            state.mayMoc = [];
-            state.vatLieu = [];
-            state.thiNghiem = [];
-
-            await saveState();
-            
-            // Đồng bộ trạng thái trống vào Word để xóa hết placeholder/bảng
-            await syncDataToWord();
-
-            switchTab('duAn');
-            updateLog("✅ Đã khởi tạo lại dữ liệu thành công! Sẵn sàng cho dự án mới.");
-        } catch (e) {
-            updateLog("❌ Lỗi khi khởi tạo lại dữ liệu: " + e.message);
-        }
-    };
 }
+
 
 // --- MODAL & CRUD ---
 function openEditModal(index = -1) {
@@ -868,11 +837,40 @@ function registerEvents() {
     document.getElementById('btnModalCancel').onclick = closeModal;
     document.getElementById('btnModalSave').onclick = saveModal;
     
-    // Nút chức năng giống VBA
+    // Nút chức năng Footer (IDs đã được cập nhật bản 1.0.0.20)
     document.getElementById('btnCapNhat').onclick = onCapNhatClick;
-    document.getElementById('btnTach').onclick = onTachClick;
-    document.getElementById('btnXuat').onclick = onXuatClick;
-    document.getElementById('btnImportFromDoc').onclick = onImportFromDocClick;
+    document.getElementById('btnSplit').onclick = onTachClick;
+    document.getElementById('btnExport').onclick = onXuatClick;
+    document.getElementById('btnImportDoc').onclick = onImportFromDocClick;
+    
+    document.getElementById('btnResetFooter').onclick = async () => {
+        const confirmed = await openResetDataModal();
+        if (!confirmed) {
+            updateLog("Đã hủy thao tác khởi tạo lại dữ liệu.");
+            return;
+        }
+
+        updateLog("Đang khởi tạo lại dữ liệu...");
+        try {
+            // Reset to empty state
+            state.duAn = { tenDuAn: "", goiThau: "", dvtc: "", daiDienCDT: "", tvgs: "", ngayKhoiCong: "", ngayHoanThanh: "" };
+            state.nhanSu = [];
+            state.mayMoc = [];
+            state.vatLieu = [];
+            state.thiNghiem = [];
+            state.soHDForExport = "";
+            state.hasExportedMaster = false;
+            state.hasSplitFiles = false;
+            
+            await saveState();
+            renderContent();
+            lucide.createIcons();
+            showToast("Đã xóa sạch dữ liệu Add-in!", "success");
+            updateLog("✓ Đã hoàn thành khởi tạo lại dữ liệu dự án.");
+        } catch (err) {
+            showToast("Lỗi khi xóa dữ liệu: " + err.message, "error");
+        }
+    };
 
     // Tự động thay đổi chiều cao textarea khi nhập liệu
     document.addEventListener('input', function(e) {
