@@ -733,12 +733,12 @@ export const WordService = {
                 {
                     folder: "1. To trinh Nhan su thi cong",
                     bookmarks: ["TT_BCH"],
-                    fileName: "QD thanh lap BCH.docx"
+                    fileName: "1. QD thanh lap BCH.docx"
                 },
                 {
                     folder: "1. To trinh Nhan su thi cong",
                     bookmarks: ["TT_NhanSu"],
-                    fileName: "To trinh Nhan su thi cong.docx"
+                    fileName: "2. To trinh Nhan su thi cong.docx"
                 },
                 {
                     folder: "2. To trinh May moc thiet bi",
