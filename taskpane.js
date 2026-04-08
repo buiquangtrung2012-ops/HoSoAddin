@@ -663,6 +663,13 @@ async function onImportFromDocClick() {
             data.inventory.tags.slice(0, 5).forEach(t => {
                 updateLog(`[Thẻ] ${t.tag}: ${t.text.substring(0, 20)}...`);
             });
+
+            if (data.inventory.variables && data.inventory.variables.length > 0) {
+                updateLog(`--- QUÉT THẤY ${data.inventory.variables.length} BIẾN ẨN (VARS) ---`);
+                data.inventory.variables.slice(0, 3).forEach(v => {
+                    updateLog(`[Biến] ${v.name}: ${v.value.substring(0, 20)}...`);
+                });
+            }
             
             data.inventory.tables.forEach(t => {
                 updateLog(`[Bảng] ${t.header.substring(0, 30)}...`);
