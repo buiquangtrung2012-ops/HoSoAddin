@@ -73,6 +73,15 @@ async function loadState() {
         state.exportFolderHandle = folderHandle;
         state.exportFolderLabel = folderHandle.name;
     }
+
+    // Load trạng thái đồng bộ (cờ Xuất/Tách, chế độ nén, số HĐ)
+    const syncState = await StorageService.getProjectData("syncState");
+    if (syncState) {
+        state.hasExportedMaster = syncState.hasExportedMaster || false;
+        state.hasSplitFiles = syncState.hasSplitFiles || false;
+        state.outputMode = syncState.outputMode || 'multiple';
+        state.soHDForExport = syncState.soHDForExport || "";
+    }
 }
 
 async function saveState() {
@@ -81,6 +90,14 @@ async function saveState() {
     await StorageService.setProjectData("mayMoc", state.mayMoc);
     await StorageService.setProjectData("vatLieu", state.vatLieu);
     await StorageService.setProjectData("thiNghiem", state.thiNghiem);
+    
+    // Lưu trạng thái cờ và cấu hình xuất
+    await StorageService.setProjectData("syncState", {
+        hasExportedMaster: state.hasExportedMaster,
+        hasSplitFiles: state.hasSplitFiles,
+        outputMode: state.outputMode,
+        soHDForExport: state.soHDForExport
+    });
 }
 
 // --- UI CONTROLLER ---
@@ -384,11 +401,17 @@ function renderExportSettings(container) {
 
     const radioInputs = container.querySelectorAll('input[type="radio"]');
     radioInputs.forEach(input => {
-        input.onchange = () => { state.outputMode = input.value; };
+        input.onchange = async () => { 
+            state.outputMode = input.value; 
+            await saveState();
+        };
     });
 
     const soHDField = container.querySelector('#soHDInput');
-    soHDField.onchange = () => { state.soHDForExport = soHDField.value; };
+    soHDField.onchange = async () => { 
+        state.soHDForExport = soHDField.value; 
+        await saveState();
+    };
 
     const btnChooseFolder = container.querySelector('#btnChooseFolder');
     const exportFolderLabel = container.querySelector('#exportFolderLabel');
@@ -688,6 +711,7 @@ async function onTachClick() {
             outputMode: state.outputMode
         });
         state.hasSplitFiles = true;
+        await saveState();
         
         console.log = originalLog;
         console.warn = originalWarn;
@@ -746,6 +770,7 @@ async function onXuatClick() {
             outputMode: state.outputMode
         });
         state.hasExportedMaster = true;
+        await saveState();
         updateLog("Đã XUẤT HỒ SƠ TỔNG (.docx) thành công!");
         showToast("Đã xuất hồ sơ tổng thành công!", "success");
     } catch (e) {
