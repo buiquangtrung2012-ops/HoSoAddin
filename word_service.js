@@ -297,15 +297,25 @@ export const WordService = {
                     });
 
                     // CRITICAL FIX: Tải đúng Paragraph Items
-                    // Đợi tất cả rows được load
+                    // Load text từ tất cả data rows
                     targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx > 0) {
-                            row.cells.load("items/body");
+                            row.cells.load("items/body/text");
                         }
                     });
                     await context.sync();
 
-                    // Bây giờ áp dụng alignment trên cell range
+                    // Load paragraphs cho tất cả data rows
+                    targetTable.rows.items.forEach((row, rIdx) => {
+                        if (rIdx > 0) {
+                            row.cells.items.forEach(cell => {
+                                cell.body.paragraphs.load("items");
+                            });
+                        }
+                    });
+                    await context.sync();
+
+                    // Giờ có thể access cell.body.text và paragraphs.items
                     targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx === 0) return;
                         row.cells.items.forEach((cell, cIdx) => {
@@ -339,13 +349,12 @@ export const WordService = {
 
                             try {
                                 cell.verticalAlignment = "Center";
-                                // Lấy toàn bộ range của cell body rồi set alignment trên đó
-                                const cellRange = cell.body.getRange("Whole");
-                                cellRange.paragraphs.load("items");
-                                // Set alignment sẽ được apply sau sync
-                                cellRange.paragraphs.items.forEach(p => {
-                                    p.alignment = alignment;
-                                });
+                                // Giờ có thể apply alignment vì paragraphs đã được load
+                                if (cell.body.paragraphs.items && cell.body.paragraphs.items.length > 0) {
+                                    cell.body.paragraphs.items.forEach(p => {
+                                        p.alignment = alignment;
+                                    });
+                                }
                             } catch (e) {
                                 console.error(`Lỗi format cell[${cIdx}]:`, e.message);
                             }
