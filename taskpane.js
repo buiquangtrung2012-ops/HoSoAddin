@@ -110,7 +110,9 @@ function renderContent() {
     setTimeout(() => {
         document.querySelectorAll('textarea').forEach(ta => {
             ta.style.height = 'auto';
-            ta.style.height = ta.scrollHeight + 'px';
+            const newHeight = Math.min(ta.scrollHeight, 150);
+            ta.style.height = newHeight + 'px';
+            ta.style.overflowY = ta.scrollHeight > 150 ? 'auto' : 'hidden';
         });
     }, 50);
 }
@@ -259,6 +261,7 @@ function renderList(container, type) {
                 inputElement.spellcheck = false;
                 inputElement.className = 'w-full border border-slate-200 rounded px-2 py-1 text-xs bg-white resize-y custom-scrollbar';
                 inputElement.style.minHeight = '3rem';
+                inputElement.style.maxHeight = '150px';
             }
             
             inputElement.value = val;
@@ -769,7 +772,9 @@ function registerEvents() {
     document.addEventListener('input', function(e) {
         if (e.target.tagName && e.target.tagName.toLowerCase() === 'textarea') {
             e.target.style.height = 'auto';
-            e.target.style.height = e.target.scrollHeight + 'px';
+            const newHeight = Math.min(e.target.scrollHeight, 150);
+            e.target.style.height = newHeight + 'px';
+            e.target.style.overflowY = e.target.scrollHeight > 150 ? 'auto' : 'hidden';
         }
     });
 }
