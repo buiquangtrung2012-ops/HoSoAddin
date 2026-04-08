@@ -298,8 +298,8 @@ export const WordService = {
                         // Danh sách từ khóa ưu tiên Căn đều (Justified)
                         const justifiedKws = [
                             "ho va ten", "ten thiet bi", "xe may", "ten vat tu", "tieu chuan", 
-                            "dac tinh", "chuyên nganh", "chu so huu", "ghi chu", "dac diem",
-                            "nguon goc", "vat lieu chinh", "noi dung"
+                            "dac tinh", "chuyen nganh", "chu so huu", "ghi chu", "dac diem",
+                            "nguon goc", "vat lieu chinh", "noi dung", "chuc danh"
                         ];
                         // Danh sách từ khóa ưu tiên Căn giữa (Centered)
                         const centeredKws = [
