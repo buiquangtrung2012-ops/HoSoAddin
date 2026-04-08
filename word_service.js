@@ -292,7 +292,7 @@ export const WordService = {
                     await context.sync();
                     headerRow.cells.items.forEach(cell => {
                         cell.body.paragraphs.items.forEach(p => {
-                            p.alignment = "Center";
+                            p.alignment = "centered";
                         });
                     });
 
@@ -316,31 +316,31 @@ export const WordService = {
                     targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx === 0) return;
                         row.cells.items.forEach((cell, cIdx) => {
-                            let alignment = "Left"; // Left = Mặc định
+                            let alignment = "left"; // left = Mặc định
                             const cellTextRaw = cell.body.text || "";
                             const cellTextNorm = WordService.normalizeTextForSearch(cellTextRaw);
                             const headerText = headerTexts[cIdx] || "";
 
                             if (cIdx === 0 || headerText === "stt" || headerText === "tt") {
-                                alignment = "Center";
+                                alignment = "centered";
                             } else if (bmLower.includes("nhansu") && cIdx === 1) {
-                                alignment = "Center";
+                                alignment = "centered";
                             } else if (bmLower.includes("maymoc") && cIdx === 1) {
-                                alignment = "Center";
+                                alignment = "centered";
                             } else if (bmLower.includes("vatlieu") && (cIdx === 1 || cIdx === 2)) {
-                                alignment = "Center";
+                                alignment = "centered";
                             } else if (cellTextRaw.length > 25) {
-                                alignment = "Justified";
+                                alignment = "justified";
                             } else if (bmLower.includes("nhansu") && (cIdx === 2 || cIdx === 3)) {
-                                alignment = "Justified";
+                                alignment = "justified";
                             } else if (bmLower.includes("maymoc") && cIdx === 4) {
-                                alignment = "Justified";
+                                alignment = "justified";
                             } else if ((bmLower.includes("vatlieu") || bmLower.includes("thinnghiem")) && (cIdx === 1 || cIdx === 2)) {
-                                alignment = "Justified";
+                                alignment = "justified";
                             } else {
                                 const justifiedKws = ["xe may", "chuc danh", "chuyen nganh", "chu so huu", "ghi chu"];
                                 if (justifiedKws.some(kw => headerText.includes(kw) || cellTextNorm.includes(kw))) {
-                                    alignment = "Justified";
+                                    alignment = "justified";
                                 }
                             }
 
@@ -349,7 +349,9 @@ export const WordService = {
                                 cell.body.paragraphs.items.forEach(p => {
                                     p.alignment = alignment;
                                 });
-                            } catch (e) {}
+                            } catch (e) {
+                                console.error(`Lỗi set alignment cho cell[${cIdx}]:`, e.message);
+                            }
                         });
                     });
                     await context.sync();
