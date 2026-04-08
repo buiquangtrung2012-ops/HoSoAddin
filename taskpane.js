@@ -599,12 +599,12 @@ async function syncDataToWord() {
     await WordService.replaceTag("bmTenDuAn", state.duAn.tenDuAn || "---");
     
     // 2. Cập nhật Bảng (Table Syncs), ưu tiên Bookmark nếu có
-    await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu");
-    await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu2");
-    await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu3");
-    await WordService.xuatBang(state.mayMoc, "Tên thiết bị|Xe máy|Máy móc|Thiết bị", "bmMayMoc");
-    await WordService.xuatBang(state.vatLieu, "Tên vật tư", "bmVatLieu");
-    await WordService.xuatBang(state.thiNghiem, "Đơn vị thí nghiệm", "bmThiNghiem");
+    await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu", updateLog);
+    await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu2", updateLog);
+    await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu3", updateLog);
+    await WordService.xuatBang(state.mayMoc, "Tên thiết bị|Xe máy|Máy móc|Thiết bị", "bmMayMoc", updateLog);
+    await WordService.xuatBang(state.vatLieu, "Tên vật tư", "bmVatLieu", updateLog);
+    await WordService.xuatBang(state.thiNghiem, "Đơn vị thí nghiệm", "bmThiNghiem", updateLog);
     
     await WordService.applyModernStyleToDocument();
 }
