@@ -231,7 +231,13 @@ function renderList(container, type) {
     else if (type === 'vatLieu') wMap = { name: '28%', standard: '20%', origin: '20%', note: '24%' };
     else if (type === 'thiNghiem') wMap = { dvtn: '23%', address: '24%', ptn: '19%', func: '26%' };
 
-    let headersHtml = `<th class="border px-1 py-2" style="width: 8%;">STT</th>`;
+    let headersHtml = `
+        <th class="border px-1 py-1" style="width: 8%;">
+            <div class="flex flex-col items-center gap-1">
+                <input type="checkbox" id="selectAll_${type}" class="w-3.5 h-3.5 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer" title="Chọn tất cả">
+                <span class="text-[9px]">STT</span>
+            </div>
+        </th>`;
     config.fields.forEach((field, idx) => {
         if (field === 'stt') return;
         headersHtml += `<th class="border px-1 py-2" style="width: ${wMap[field] || 'auto'};">${config.labels[idx]}</th>`;
@@ -240,14 +246,25 @@ function renderList(container, type) {
     thead.innerHTML = `<tr class="bg-slate-100 text-slate-600 uppercase text-[9px] font-bold">${headersHtml}</tr>`;
     table.appendChild(thead);
 
+    // Lắng nghe sự kiện "Chọn tất cả"
+    setTimeout(() => {
+        const chkSelectAll = thead.querySelector(`#selectAll_${type}`);
+        if (chkSelectAll) {
+            chkSelectAll.onchange = (e) => {
+                const checkboxes = tbody.querySelectorAll(`input[name="selectRow_${type}"]`);
+                checkboxes.forEach(cb => { cb.checked = e.target.checked; });
+            };
+        }
+    }, 0);
+
     const tbody = document.createElement('tbody');
     items.forEach((item, idx) => {
         const row = document.createElement('tr');
         row.className = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50';
 
         row.innerHTML = `<td class="border px-1 py-1 text-center font-bold">
-            <label class="cursor-pointer flex items-center justify-center gap-1 group" title="Click để chọn xóa">
-               <input type="radio" name="selectRow_${type}" value="${idx}" class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer">
+            <label class="cursor-pointer flex items-center justify-center gap-1.5 group" title="Click để chọn xóa">
+               <input type="checkbox" name="selectRow_${type}" value="${idx}" class="w-3.5 h-3.5 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer">
                <span class="group-hover:text-indigo-600 text-[10px]">${item[0]}</span>
             </label>
         </td>`;
@@ -348,17 +365,26 @@ function renderList(container, type) {
     btnDelBottom.className = 'w-24 h-10 border-2 border-dashed border-red-200 text-red-500 rounded-xl hover:bg-red-50 hover:border-red-400 hover:text-red-700 transition-all font-bold text-xs flex items-center justify-center gap-2';
     btnDelBottom.innerHTML = '<i data-lucide="trash-2" size="14"></i> XÓA';
     btnDelBottom.onclick = async () => {
-        const selectedRadio = container.querySelector(`input[name="selectRow_${type}"]:checked`);
-        if (!selectedRadio) {
-            showToast('Kiểm tra bảng: Vui lòng click chọn 1 dòng ở cột STT để xóa!', 'warning');
+        const checkedBoxes = container.querySelectorAll(`input[name="selectRow_${type}"]:checked`);
+        if (checkedBoxes.length === 0) {
+            showToast('Kiểm tra bảng: Vui lòng tích chọn các dòng ở cột STT để xóa!', 'warning');
             return;
         }
-        const delIdx = parseInt(selectedRadio.value, 10);
-        state[type].splice(delIdx, 1);
+
+        // Lấy danh sách index cần xóa và sắp xếp giảm dần (để splice không bị lệch index)
+        const indicesToDelete = Array.from(checkedBoxes).map(cb => parseInt(cb.value, 10)).sort((a, b) => b - a);
+        
+        indicesToDelete.forEach(idx => {
+            state[type].splice(idx, 1);
+        });
+
+        // Đánh lại STT cho toàn bảng
         state[type].forEach((itemRow, i2) => { itemRow[0] = (i2 + 1).toString(); });
+        
         await saveState();
         renderContent();
         lucide.createIcons();
+        showToast(`Đã xóa ${indicesToDelete.length} dòng dữ liệu!`, "success");
     };
     
     actionContainer.appendChild(btnAddBottom);
