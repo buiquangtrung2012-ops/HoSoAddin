@@ -297,26 +297,19 @@ export const WordService = {
                     });
 
                     // CRITICAL FIX: Tải đúng Paragraph Items
+                    // Đợi tất cả rows được load
                     targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx > 0) {
-                            row.font.bold = false;
-                            row.cells.load("items");
-                        }
-                    });
-                    await context.sync();
-                    targetTable.rows.items.forEach((row, rIdx) => {
-                        if (rIdx > 0) {
-                            row.cells.items.forEach(cell => {
-                                cell.body.paragraphs.load("items");
-                            });
+                            row.cells.load("items/body");
                         }
                     });
                     await context.sync();
 
+                    // Bây giờ áp dụng alignment trên cell range
                     targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx === 0) return;
                         row.cells.items.forEach((cell, cIdx) => {
-                            let alignment = "left"; // left = Mặc định
+                            let alignment = "left";
                             const cellTextRaw = cell.body.text || "";
                             const cellTextNorm = WordService.normalizeTextForSearch(cellTextRaw);
                             const headerText = headerTexts[cIdx] || "";
@@ -346,11 +339,15 @@ export const WordService = {
 
                             try {
                                 cell.verticalAlignment = "Center";
-                                cell.body.paragraphs.items.forEach(p => {
+                                // Lấy toàn bộ range của cell body rồi set alignment trên đó
+                                const cellRange = cell.body.getRange("Whole");
+                                cellRange.paragraphs.load("items");
+                                // Set alignment sẽ được apply sau sync
+                                cellRange.paragraphs.items.forEach(p => {
                                     p.alignment = alignment;
                                 });
                             } catch (e) {
-                                console.error(`Lỗi set alignment cho cell[${cIdx}]:`, e.message);
+                                console.error(`Lỗi format cell[${cIdx}]:`, e.message);
                             }
                         });
                     });
