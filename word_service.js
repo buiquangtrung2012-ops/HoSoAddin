@@ -933,30 +933,41 @@ export const WordService = {
             async function getValuesFromBookmark(bmName) {
                 try {
                     const bm = context.document.bookmarks.getItemOrNullObject(bmName);
-                    if (bm) {
-                        const range = bm.getRange();
-                        const tab = range.tables.getFirstOrNullObject();
-                        tab.load("values");
-                        await context.sync();
-                        if (tab && !tab.isNullObject) return tab.values;
-                    }
-                } catch (e) { console.log("BM table error", e); }
+                    const range = bm.getRange();
+                    
+                    // Thử lấy bảng trực tiếp trong range
+                    let tab = range.tables.getFirstOrNullObject();
+                    tab.load("values,isNullObject");
+                    await context.sync();
+                    
+                    if (tab && !tab.isNullObject) return tab.values;
+
+                    // Nếu không thấy, thử tìm bảng bao quanh (parent table) nếu bookmark nằm trong ô
+                    const parentTab = range.parentTable.load("values,isNullObject");
+                    await context.sync();
+                    if (parentTab && !parentTab.isNullObject) return parentTab.values;
+
+                } catch (e) { 
+                    console.log(`Lỗi tìm Bookmark ${bmName}:`, e.message); 
+                }
                 return null;
             }
 
             // Ưu tiên lấy Nhân Sự từ bmNhanSu3
+            let nsFoundFromBookmark = false;
             const nsValues = await getValuesFromBookmark("bmNhanSu3");
             if (nsValues && nsValues.length > 1) {
                 inventory.tables.push({ index: "bmNhanSu3", header: nsValues[0].join(" ") });
                 for (let r = 1; r < nsValues.length; r++) {
                     const row = nsValues[r];
-                    if (row[1] && row[1].trim() !== "") {
+                    if (row[1] && row[1].trim() !== "" && row[1].length > 1) {
                         result.nhanSu.push([
                             row[0] || (result.nhanSu.length + 1).toString(),
                             row[1] || "", row[2] || "", row[3] || "", row[4] || ""
                         ]);
                     }
                 }
+                if (result.nhanSu.length > 0) nsFoundFromBookmark = true;
             }
 
             await context.sync();
@@ -973,10 +984,10 @@ export const WordService = {
                 const normHeader = WordService.normalizeTextForSearch(headerRowText);
 
                 // Dấu hiệu nhận biết bảng Nhân sự
-                const isNhanSuTable = normHeader.includes("ho va ten") || normHeader.includes("ten nhan su") || normHeader.includes("ho ten") || normHeader.includes("chuc danh");
+                const isNhanSuTable = (normHeader.includes("ho va ten") || normHeader.includes("ten nhan su") || normHeader.includes("ho ten")) && normHeader.includes("chuc danh");
 
-                // Nếu đã có dữ liệu nhân sự (từ bmNhanSu3 hoặc bảng trước đó), hãy bỏ qua tất cả các bảng nhân sự khác
-                if (result.nhanSu.length > 0 && isNhanSuTable) {
+                // NEU DA TIM THAY TU BOOKMARK HOAC DA CO DU LIEU, TU CHOI CAC BANG NHAN SU KHAC
+                if ((nsFoundFromBookmark || result.nhanSu.length > 0) && isNhanSuTable) {
                     continue; 
                 }
 
