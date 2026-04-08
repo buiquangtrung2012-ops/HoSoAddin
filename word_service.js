@@ -292,7 +292,7 @@ export const WordService = {
                     await context.sync();
                     headerRow.cells.items.forEach(cell => {
                         cell.body.paragraphs.items.forEach(p => {
-                            p.alignment = 1; // Centered
+                            p.alignment = "Center";
                         });
                     });
 
@@ -316,31 +316,36 @@ export const WordService = {
                     targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx === 0) return;
                         row.cells.items.forEach((cell, cIdx) => {
-                            let alignment = 0; // 0 = Left (Mặc định)
+                            let alignment = "Left"; // Left = Mặc định
                             const cellTextRaw = cell.body.text || "";
                             const cellTextNorm = WordService.normalizeTextForSearch(cellTextRaw);
                             const headerText = headerTexts[cIdx] || "";
-                            
-                            // HEURISTIC QUYẾT ĐỊNH CĂN LỀ
+
                             if (cIdx === 0 || headerText === "stt" || headerText === "tt") {
-                                alignment = 1; // Centered
-                            } else if (["ho va ten", "ten thiet bi", "ten vat tu", "tieu chuan"].some(kw => headerText.includes(kw))) {
-                                alignment = 1; // Centered
+                                alignment = "Center";
+                            } else if (bmLower.includes("nhansu") && cIdx === 1) {
+                                alignment = "Center";
+                            } else if (bmLower.includes("maymoc") && cIdx === 1) {
+                                alignment = "Center";
+                            } else if (bmLower.includes("vatlieu") && (cIdx === 1 || cIdx === 2)) {
+                                alignment = "Center";
                             } else if (cellTextRaw.length > 25) {
-                                alignment = 4; // Justified
-                            } else if (bmLower.includes("nhansu") && (cIdx === 2 || cIdx === 3)) alignment = 4;
-                            else if (bmLower.includes("maymoc") && cIdx === 4) alignment = 4;
-                            else if ((bmLower.includes("vatlieu") || bmLower.includes("thinnghiem")) && (cIdx === 1 || cIdx === 2)) alignment = 4;
-                            else {
+                                alignment = "Justified";
+                            } else if (bmLower.includes("nhansu") && (cIdx === 2 || cIdx === 3)) {
+                                alignment = "Justified";
+                            } else if (bmLower.includes("maymoc") && cIdx === 4) {
+                                alignment = "Justified";
+                            } else if ((bmLower.includes("vatlieu") || bmLower.includes("thinnghiem")) && (cIdx === 1 || cIdx === 2)) {
+                                alignment = "Justified";
+                            } else {
                                 const justifiedKws = ["xe may", "chuc danh", "chuyen nganh", "chu so huu", "ghi chu"];
                                 if (justifiedKws.some(kw => headerText.includes(kw) || cellTextNorm.includes(kw))) {
-                                    alignment = 4; // Justified
+                                    alignment = "Justified";
                                 }
                             }
 
                             try {
                                 cell.verticalAlignment = "Center";
-                                // Bắn phá định dạng: sử dụng số enum cho ParagraphAlignment
                                 cell.body.paragraphs.items.forEach(p => {
                                     p.alignment = alignment;
                                 });
