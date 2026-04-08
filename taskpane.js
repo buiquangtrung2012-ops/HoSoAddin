@@ -135,7 +135,7 @@ function renderProjectForm(container) {
         } else {
             div.innerHTML = `
                 <label class="text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">${config.labels[i]}</label>
-                <textarea spellcheck="false" data-field="${field}" class="input-field project-input resize-y py-2 w-full" style="height: auto; min-height: 3.5rem;" rows="2">${state.duAn[field] || ''}</textarea>
+                <textarea spellcheck="false" data-field="${field}" class="input-field project-input resize-y py-2 w-full" style="height: auto; min-height: 2.5rem;" rows="1">${state.duAn[field] || ''}</textarea>
             `;
         }
         form.appendChild(div);
@@ -257,10 +257,10 @@ function renderList(container, type) {
             } else {
                 // Sử dụng Textarea cho tất cả các trường nhập liệu để hỗ trợ multiline
                 inputElement = document.createElement('textarea');
-                inputElement.rows = 2; // Hiển thị sẵn 2 dòng
+                inputElement.rows = 1; // Hiển thị sẵn 1 dòng
                 inputElement.spellcheck = false;
-                inputElement.className = 'w-full border border-slate-200 rounded px-2 py-1 text-xs bg-white resize-y custom-scrollbar';
-                inputElement.style.minHeight = '3rem';
+                inputElement.className = 'w-full border border-slate-200 rounded px-1 py-1 text-xs bg-white resize-y custom-scrollbar';
+                inputElement.style.minHeight = '1.75rem';
                 inputElement.style.maxHeight = '150px';
             }
             
@@ -462,7 +462,7 @@ function openEditModal(index = -1) {
         const div = document.createElement("div");
         const inputHtml = (field === 'qty') 
             ? `<input type="number" min="0" id="modalInput_${field}" value="${existingData[i] || ''}" class="input-field w-full">`
-            : `<textarea spellcheck="false" id="modalInput_${field}" class="input-field resize-y py-2 w-full" style="height: auto; min-height: 4rem;" rows="2">${existingData[i] || ''}</textarea>`;
+            : `<textarea spellcheck="false" id="modalInput_${field}" class="input-field resize-y py-2 w-full" style="height: auto; min-height: 2.5rem;" rows="1">${existingData[i] || ''}</textarea>`;
 
         div.innerHTML = `
             <label class="text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">${config.labels[i]}</label>
