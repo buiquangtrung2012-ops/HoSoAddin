@@ -22,6 +22,8 @@
         .card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); border-color: #e2e8f0; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .flatpickr-calendar { transform: scale(0.9); transform-origin: top left; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important; border: 1px solid #e2e8f0 !important; }
+        .flatpickr-day { height: 30px !important; line-height: 30px !important; }
     </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden">
@@ -33,7 +35,8 @@
                 <i data-lucide="layers" size="18"></i>
             </div>
             <h1 class="text-sm font-black uppercase tracking-tighter text-slate-800" style="font-family: inherit;">Hồ Sơ Dự Án</h1>
-        <div id="statusInfo" class="text-[10px] font-bold px-2 py-1 bg-slate-100 rounded-full text-slate-500 uppercase tracking-widest">v08042026.1001</div>
+            <div id="statusInfo" class="text-[10px] font-bold px-2 py-1 bg-slate-100 rounded-full text-slate-500 uppercase tracking-widest">v08042026.1010</div>
+        </div>
     </header>
 
     <!-- Navigation Tabs (Horizontal Scrollable) -->
@@ -119,7 +122,7 @@
             </div>
         </div>
     </div>
-    <script type="module" src="taskpane.js?v=08042026.1001"></script>
+    <script type="module" src="taskpane.js?v=08042026.1010"></script>
     <script>lucide.createIcons();</script>
 </body>
 </html>
