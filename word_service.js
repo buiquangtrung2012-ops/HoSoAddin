@@ -284,83 +284,14 @@ export const WordService = {
                     const bmLower = (bookmarkName || "").toLowerCase();
 
                     // Căn giữa các tiêu đề cột mặc định, nhất là Họ và tên / Tên thiết bị / Tên vật tư / Tiêu chuẩn
-                    headerRow.cells.load("items");
-                    await context.sync();
                     headerRow.cells.items.forEach(cell => {
-                        cell.body.paragraphs.load("items");
-                    });
-                    await context.sync();
-                    headerRow.cells.items.forEach(cell => {
-                        cell.body.paragraphs.items.forEach(p => {
-                            p.alignment = "centered";
-                        });
-                    });
-
-                    // CRITICAL FIX: Tải đúng Paragraph Items
-                    // Load text từ tất cả data rows
-                    targetTable.rows.items.forEach((row, rIdx) => {
-                        if (rIdx > 0) {
-                            row.cells.load("items/body/text");
-                        }
-                    });
-                    await context.sync();
-
-                    // Load paragraphs cho tất cả data rows
-                    targetTable.rows.items.forEach((row, rIdx) => {
-                        if (rIdx > 0) {
-                            row.cells.items.forEach(cell => {
-                                cell.body.paragraphs.load("items");
+                        try {
+                            cell.body.paragraphs.items.forEach(p => {
+                                p.alignment = "centered";
                             });
-                        }
+                        } catch (e) {}
                     });
-                    await context.sync();
 
-                    // Giờ có thể access cell.body.text và paragraphs.items
-                    targetTable.rows.items.forEach((row, rIdx) => {
-                        if (rIdx === 0) return;
-                        row.cells.items.forEach((cell, cIdx) => {
-                            let alignment = "left";
-                            const cellTextRaw = cell.body.text || "";
-                            const cellTextNorm = WordService.normalizeTextForSearch(cellTextRaw);
-                            const headerText = headerTexts[cIdx] || "";
-
-                            if (cIdx === 0 || headerText === "stt" || headerText === "tt") {
-                                alignment = "centered";
-                            } else if (bmLower.includes("nhansu") && cIdx === 1) {
-                                alignment = "centered";
-                            } else if (bmLower.includes("maymoc") && cIdx === 1) {
-                                alignment = "centered";
-                            } else if (bmLower.includes("vatlieu") && (cIdx === 1 || cIdx === 2)) {
-                                alignment = "centered";
-                            } else if (cellTextRaw.length > 25) {
-                                alignment = "justified";
-                            } else if (bmLower.includes("nhansu") && (cIdx === 2 || cIdx === 3)) {
-                                alignment = "justified";
-                            } else if (bmLower.includes("maymoc") && cIdx === 4) {
-                                alignment = "justified";
-                            } else if ((bmLower.includes("vatlieu") || bmLower.includes("thinnghiem")) && (cIdx === 1 || cIdx === 2)) {
-                                alignment = "justified";
-                            } else {
-                                const justifiedKws = ["xe may", "chuc danh", "chuyen nganh", "chu so huu", "ghi chu"];
-                                if (justifiedKws.some(kw => headerText.includes(kw) || cellTextNorm.includes(kw))) {
-                                    alignment = "justified";
-                                }
-                            }
-
-                            try {
-                                cell.verticalAlignment = "Center";
-                                // Giờ có thể apply alignment vì paragraphs đã được load
-                                if (cell.body.paragraphs.items && cell.body.paragraphs.items.length > 0) {
-                                    cell.body.paragraphs.items.forEach(p => {
-                                        p.alignment = alignment;
-                                    });
-                                }
-                            } catch (e) {
-                                console.error(`Lỗi format cell[${cIdx}]:`, e.message);
-                            }
-                        });
-                    });
-                    await context.sync();
                     logger(`✓ Hoàn tất định dạng ${bookmarkName}`);
                 }
 
@@ -373,6 +304,73 @@ export const WordService = {
                 if (typeof updateLog === "function") {
                     updateLog(`⚠️ Lỗi tại bảng ${bookmarkName || keyword}: ${globalTableErr.message}`);
                 }
+            }
+        });
+    },
+
+    /**
+     * Format căn lề bảng sau khi đã có dữ liệu
+     */
+    applyTableAlignment: async () => {
+        await Word.run(async (context) => {
+            try {
+                const tables = context.document.tables;
+                tables.load("items");
+                await context.sync();
+
+                for (let tIdx = 0; tIdx < tables.items.length; tIdx++) {
+                    const table = tables.items[tIdx];
+                    const firstRow = table.rows.getFirst();
+                    firstRow.cells.load("items/body/text");
+                    await context.sync();
+
+                    const headerTexts = firstRow.cells.items.map(cell => 
+                        WordService.normalizeTextForSearch(cell.body.text || "")
+                    );
+
+                    // Load tất cả rows và paragraphs
+                    table.rows.load("items");
+                    await context.sync();
+
+                    table.rows.items.forEach((row, rIdx) => {
+                        row.cells.load("items");
+                    });
+                    await context.sync();
+
+                    table.rows.items.forEach((row, rIdx) => {
+                        row.cells.items.forEach(cell => {
+                            cell.body.paragraphs.load("items");
+                        });
+                    });
+                    await context.sync();
+
+                    // Áp dụng alignment
+                    table.rows.items.forEach((row, rIdx) => {
+                        row.cells.items.forEach((cell, cIdx) => {
+                            let alignment = "left";
+                            const headerText = headerTexts[cIdx] || "";
+                            const cellText = cell.body.text || "";
+
+                            // Căn giữa cột STT và các cột tên
+                            if (cIdx === 0 || headerText === "stt" || headerText === "tt") {
+                                alignment = "centered";
+                            } else if (["ho va ten", "ten thiet bi", "ten vat tu", "tieu chuan"].some(kw => headerText.includes(kw))) {
+                                alignment = "centered";
+                            } else if (cellText.length > 25) {
+                                alignment = "justified";
+                            }
+
+                            try {
+                                cell.body.paragraphs.items.forEach(p => {
+                                    p.alignment = alignment;
+                                });
+                            } catch (e) {}
+                        });
+                    });
+                    await context.sync();
+                }
+            } catch (e) {
+                console.error("applyTableAlignment error:", e.message);
             }
         });
     },
