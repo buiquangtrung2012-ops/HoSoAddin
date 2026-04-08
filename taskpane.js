@@ -653,20 +653,38 @@ async function onImportFromDocClick() {
         updateLog("Đang quét nội dung văn bản...");
         const data = await WordService.importDataFromDoc();
         
+        // --- LOG CHẨN ĐOÁN (DIAGNOSTIC) ---
+        if (data.inventory) {
+            console.log("Word Inventory:", data.inventory);
+            let diagMsg = `--- QUÉT THẤY ${data.inventory.tags.length} TAGS & ${data.inventory.tables.length} BẢNG ---`;
+            updateLog(diagMsg);
+            
+            // Log 3 tag đầu tiên để chẩn đoán nhanh nếu có lỗi
+            data.inventory.tags.slice(0, 5).forEach(t => {
+                updateLog(`[Thẻ] ${t.tag}: ${t.text.substring(0, 20)}...`);
+            });
+            
+            data.inventory.tables.forEach(t => {
+                updateLog(`[Bảng] ${t.header.substring(0, 30)}...`);
+            });
+        }
+
         // Cập nhật state
+        let updateCount = 0;
         if (Object.keys(data.duAn).length > 0) {
             state.duAn = { ...state.duAn, ...data.duAn };
+            updateCount += Object.keys(data.duAn).length;
         }
         
-        if (data.nhanSu.length > 0) state.nhanSu = data.nhanSu;
-        if (data.mayMoc.length > 0) state.mayMoc = data.mayMoc;
-        if (data.vatLieu.length > 0) state.vatLieu = data.vatLieu;
-        if (data.thiNghiem.length > 0) state.thiNghiem = data.thiNghiem;
+        if (data.nhanSu.length > 0) { state.nhanSu = data.nhanSu; updateCount++; }
+        if (data.mayMoc.length > 0) { state.mayMoc = data.mayMoc; updateCount++; }
+        if (data.vatLieu.length > 0) { state.vatLieu = data.vatLieu; updateCount++; }
+        if (data.thiNghiem.length > 0) { state.thiNghiem = data.thiNghiem; updateCount++; }
 
         await saveState();
         renderContent();
         
-        updateLog("✓ Đã nhập dữ liệu từ văn bản thành công!");
+        updateLog(`✓ Đã nhập thành công ${updateCount} nhóm dữ liệu!`);
         showToast("Đã khôi phục dữ liệu từ văn bản!", "success");
     } catch (e) {
         updateLog("Lỗi nhập liệu: " + e.message);
