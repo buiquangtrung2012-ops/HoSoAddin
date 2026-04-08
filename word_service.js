@@ -262,6 +262,7 @@ export const WordService = {
             targetTable.rows.items.forEach((currentRow, rIdx) => {
                 if (rIdx === 0) {
                     currentRow.font.bold = true;
+                    targetTable.headerRowCount = 1; // Ép lặp lại tiêu đề cho mọi bảng
                     currentRow.cells.items.forEach(cell => {
                         cell.horizontalAlignment = "Centered";
                         cell.verticalAlignment = "Center";
@@ -272,10 +273,13 @@ export const WordService = {
                         const colName = keyword.toLowerCase();
                         let alignment = "Left";
                         if (cIdx === 0) alignment = "Centered";
+                        
                         if (colName.includes("thiết bị")) {
                             if (cIdx === 2 || cIdx === 3 || cIdx === 5) alignment = "Centered";
+                            if (cIdx === 4) alignment = "Justified"; // Căn đều Chủ sở hữu
                         } else if (colName.includes("vật tư") || colName.includes("thí nghiệm")) {
-                            if (cIdx === 2 || cIdx === 3 || cIdx === 4) alignment = "Centered";
+                            if (cIdx === 3 || cIdx === 4) alignment = "Centered";
+                            if (cIdx === 2) alignment = "Justified"; // Căn đều Tiêu chuẩn
                         } else if (colName.includes("họ và tên")) {
                             if (cIdx === 2 || cIdx === 3 || cIdx === 4) alignment = "Centered";
                         }
