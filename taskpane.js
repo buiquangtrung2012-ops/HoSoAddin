@@ -650,9 +650,6 @@ async function onCapNhatClick() {
 
 async function onImportFromDocClick() {
     try {
-        const confirm = window.confirm("Bạn có muốn ghi đè toàn bộ dữ liệu hiện tại bằng nội dung đọc từ văn bản Word không?");
-        if (!confirm) return;
-
         updateLog("Đang quét nội dung văn bản...");
         const data = await WordService.importDataFromDoc();
         
