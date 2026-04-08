@@ -850,6 +850,124 @@ export const WordService = {
     },
 
     /**
+     * Nhập dữ liệu ngược từ văn bản vào Add-in
+     */
+    importDataFromDoc: async () => {
+        return await Word.run(async (context) => {
+            const result = {
+                duAn: {},
+                nhanSu: [],
+                mayMoc: [],
+                vatLieu: [],
+                thiNghiem: []
+            };
+
+            // 1. Đọc Content Controls (Thông tin dự án)
+            const controls = context.document.contentControls;
+            controls.load("items/tag,items/text");
+            await context.sync();
+
+            const tagMap = {
+                "DuAn": "tenDuAn",
+                "GoiThau": "tenGoiThau",
+                "DVTC": "dvtc",
+                "DaiDienCDT": "chuDauTu",
+                "TVGS": "tuVanGiamSat",
+                "NgayKhoiCong": "ngayKhoiCong",
+                "NgayHoanThanh": "ngayHoanThanh"
+            };
+
+            controls.items.forEach(ctrl => {
+                const key = tagMap[ctrl.tag];
+                if (key && ctrl.text && ctrl.text.trim().length > 0) {
+                    result.duAn[key] = ctrl.text.trim();
+                }
+            });
+
+            // 2. Đọc Tables (Danh sách dữ liệu)
+            const tables = context.document.tables;
+            tables.load("items");
+            await context.sync();
+
+            for (let i = 0; i < tables.items.length; i++) {
+                const table = tables.items[i];
+                table.load("values");
+                await context.sync();
+
+                const values = table.values;
+                if (values.length < 2) continue; // Bảng rỗng (chỉ có header hoặc không có gì)
+
+                const headerRow = values[0].join(" ");
+                const normHeader = WordService.normalizeTextForSearch(headerRow);
+
+                // Nhận diện bảng Nhân sự
+                if (normHeader.includes("ho va ten")) {
+                    for (let r = 1; r < values.length; r++) {
+                        const row = values[r];
+                        if (row[1]) {
+                            result.nhanSu.push({
+                                stt: row[0] || (result.nhanSu.length + 1).toString(),
+                                name: row[1] || "",
+                                role: row[2] || "",
+                                major: row[3] || "",
+                                phone: row[4] || ""
+                            });
+                        }
+                    }
+                }
+                // Nhận diện bảng Máy móc
+                else if (normHeader.includes("thiet bi") || normHeader.includes("xe may") || normHeader.includes("may moc")) {
+                    for (let r = 1; r < values.length; r++) {
+                        const row = values[r];
+                        if (row[1]) {
+                            result.mayMoc.push({
+                                stt: row[0] || (result.mayMoc.length + 1).toString(),
+                                name: row[1] || "",
+                                unit: row[2] || "",
+                                qty: row[3] || "",
+                                owner: row[4] || "",
+                                status: row[5] || ""
+                            });
+                        }
+                    }
+                }
+                // Nhận diện bảng Vật tư
+                else if (normHeader.includes("vat tu") || normHeader.includes("vat lieu")) {
+                    for (let r = 1; r < values.length; r++) {
+                        const row = values[r];
+                        if (row[1]) {
+                            result.vatLieu.push({
+                                stt: row[0] || (result.vatLieu.length + 1).toString(),
+                                name: row[1] || "",
+                                standard: row[2] || "",
+                                origin: row[3] || "",
+                                note: row[4] || ""
+                            });
+                        }
+                    }
+                }
+                // Nhận diện bảng Thí nghiệm
+                else if (normHeader.includes("thi nghiem")) {
+                    for (let r = 1; r < values.length; r++) {
+                        const row = values[r];
+                        if (row[1]) {
+                            result.thiNghiem.push({
+                                stt: row[0] || (result.thiNghiem.length + 1).toString(),
+                                target: row[1] || "",
+                                name: row[2] || "",
+                                method: row[3] || "",
+                                unit: row[4] || ""
+                            });
+                        }
+                    }
+                }
+            }
+
+            return result;
+        });
+    },
+
+    /**
      * Đồng bộ Style Toàn Document
      */
     applyModernStyleToDocument: async () => {
