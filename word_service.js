@@ -869,10 +869,10 @@ export const WordService = {
 
             const tagMap = {
                 "DuAn": "tenDuAn",
-                "GoiThau": "tenGoiThau",
+                "GoiThau": "goiThau",
                 "DVTC": "dvtc",
-                "DaiDienCDT": "chuDauTu",
-                "TVGS": "tuVanGiamSat",
+                "DaiDienCDT": "daiDienCDT",
+                "TVGS": "tvgs",
                 "NgayKhoiCong": "ngayKhoiCong",
                 "NgayHoanThanh": "ngayHoanThanh"
             };
@@ -900,18 +900,19 @@ export const WordService = {
                 const headerRow = values[0].join(" ");
                 const normHeader = WordService.normalizeTextForSearch(headerRow);
 
+                // Lưu ý: State hiện tại dùng Array of Arrays cho các list
                 // Nhận diện bảng Nhân sự
                 if (normHeader.includes("ho va ten")) {
                     for (let r = 1; r < values.length; r++) {
                         const row = values[r];
                         if (row[1]) {
-                            result.nhanSu.push({
-                                stt: row[0] || (result.nhanSu.length + 1).toString(),
-                                name: row[1] || "",
-                                role: row[2] || "",
-                                major: row[3] || "",
-                                phone: row[4] || ""
-                            });
+                            result.nhanSu.push([
+                                row[0] || (result.nhanSu.length + 1).toString(),
+                                row[1] || "",
+                                row[2] || "",
+                                row[3] || "",
+                                row[4] || ""
+                            ]);
                         }
                     }
                 }
@@ -920,14 +921,14 @@ export const WordService = {
                     for (let r = 1; r < values.length; r++) {
                         const row = values[r];
                         if (row[1]) {
-                            result.mayMoc.push({
-                                stt: row[0] || (result.mayMoc.length + 1).toString(),
-                                name: row[1] || "",
-                                unit: row[2] || "",
-                                qty: row[3] || "",
-                                owner: row[4] || "",
-                                status: row[5] || ""
-                            });
+                            result.mayMoc.push([
+                                row[0] || (result.mayMoc.length + 1).toString(),
+                                row[1] || "",
+                                row[2] || "",
+                                row[3] || "",
+                                row[4] || "",
+                                row[5] || ""
+                            ]);
                         }
                     }
                 }
@@ -936,13 +937,13 @@ export const WordService = {
                     for (let r = 1; r < values.length; r++) {
                         const row = values[r];
                         if (row[1]) {
-                            result.vatLieu.push({
-                                stt: row[0] || (result.vatLieu.length + 1).toString(),
-                                name: row[1] || "",
-                                standard: row[2] || "",
-                                origin: row[3] || "",
-                                note: row[4] || ""
-                            });
+                            result.vatLieu.push([
+                                row[0] || (result.vatLieu.length + 1).toString(),
+                                row[1] || "",
+                                row[2] || "",
+                                row[3] || "",
+                                row[4] || ""
+                            ]);
                         }
                     }
                 }
@@ -951,13 +952,13 @@ export const WordService = {
                     for (let r = 1; r < values.length; r++) {
                         const row = values[r];
                         if (row[1]) {
-                            result.thiNghiem.push({
-                                stt: row[0] || (result.thiNghiem.length + 1).toString(),
-                                target: row[1] || "",
-                                name: row[2] || "",
-                                method: row[3] || "",
-                                unit: row[4] || ""
-                            });
+                            result.thiNghiem.push([
+                                row[0] || (result.thiNghiem.length + 1).toString(),
+                                row[1] || "",
+                                row[2] || "",
+                                row[3] || "",
+                                row[4] || ""
+                            ]);
                         }
                     }
                 }
