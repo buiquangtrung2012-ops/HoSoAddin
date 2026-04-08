@@ -286,26 +286,26 @@ export const WordService = {
                     });
                     await context.sync();
 
+                    // Căn lề an toàn và thẩm mỹ (Justified cho nội dung dài)
                     targetTable.rows.items.forEach((currentRow, rIdx) => {
                         if (rIdx === 0) return;
                         currentRow.cells.items.forEach((cell, cIdx) => {
                             const colName = keyword.toLowerCase();
                             let alignment = "Left";
-                            // Căn giữa STT (cột 0)
-                            if (cIdx === 0) alignment = "Centered"; 
-                            // Bảng nhân sự (Họ tên, Chức vụ, Chuyên ngành, SĐT)
+                            
+                            // 1. Cột STT luôn căn giữa
+                            if (cIdx === 0) alignment = "Centered";
+                            
+                            // 2. Các cột nội dung quan trọng cần Căn đều (Justified) theo yêu cầu User
                             if (colName.includes("họ và tên")) {
-                                if (cIdx >= 2) alignment = "Centered";
-                            } 
-                            // Bảng Vật liệu (TT, Tên, Tiêu chuẩn, Nguồn gốc, Ghi chú)
-                            else if (colName.includes("vật tư")) {
-                                if (cIdx === 1 || cIdx === 2) alignment = "Justified"; // Cột Tên, Tiêu chuẩn
-                                else if (cIdx === 3 || cIdx === 4) alignment = "Centered"; // Nguồn gốc, Ghi chú
-                            }
-                            // Bảng Máy móc (TT, Tên, ĐVT, SL, Chủ sở hữu, Hình thức)
-                            else if (colName.includes("thiết bị")) {
-                                if (cIdx === 4) alignment = "Justified"; // Cột Đặc tính kỹ thuật
+                                if (cIdx === 1) alignment = "Justified"; // Cột Họ và tên
+                                else alignment = "Centered";
+                            } else if (colName.includes("thiết bị")) {
+                                if (cIdx === 1 || cIdx === 4) alignment = "Justified"; // Tên thiết bị và Đặc tính
                                 else if (cIdx === 2 || cIdx === 3 || cIdx === 5) alignment = "Centered";
+                            } else if (colName.includes("vật tư") || colName.includes("thí nghiệm")) {
+                                if (cIdx === 1 || cIdx === 2) alignment = "Justified"; // Tên vật tư và Tiêu chuẩn
+                                else if (cIdx === 3 || cIdx === 4) alignment = "Centered";
                             }
                             
                             try {
