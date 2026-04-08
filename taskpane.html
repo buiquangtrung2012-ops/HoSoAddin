@@ -66,7 +66,7 @@
                 <i data-lucide="layers" size="18"></i>
             </div>
             <h1 class="text-sm font-black uppercase tracking-tighter text-slate-800" style="font-family: inherit;">Hồ Sơ Dự Án</h1>
-            <div id="statusInfo" class="text-[10px] font-bold px-2 py-1 bg-slate-100 rounded-full text-slate-500 uppercase tracking-widest">v08042026.1130</div>
+            <div id="statusInfo" class="text-[10px] font-bold px-2 py-1 bg-slate-100 rounded-full text-slate-500 uppercase tracking-widest">v08042026.1135</div>
         </div>
     </header>
 
@@ -86,7 +86,7 @@
         <div id="tabContent" class="space-y-4">
             <!-- Dynamic Content -->
         </div>
-        <Version>1.0.0.12</Version>
+        <Version>1.0.0.13</Version>
     </main>
 
     <!-- Footer Action -->
@@ -102,22 +102,16 @@
                 </button>
             </div>
             
-            <button id="btnXuat" class="btn-modern btn-accent-modern w-full">
-                <i data-lucide="file-text" size="18"></i> XUẤT HỒ SƠ TỔNG (MASTER)
-            </button>
-
-            <div class="flex items-center gap-2 py-2">
-                <div class="h-px bg-slate-200 flex-1"></div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tiện ích khôi phục</span>
-                <div class="h-px bg-slate-200 flex-1"></div>
+            <div class="flex gap-2">
+                <button id="btnXuat" class="btn-modern btn-accent-modern flex-1">
+                    <i data-lucide="file-text" size="18"></i> XUẤT MASTER
+                </button>
+                <button id="btnImportFromDoc" class="btn-modern btn-success-modern flex-1">
+                    <i data-lucide="download-cloud" size="18"></i> NHẬP DỮ LIỆU
+                </button>
             </div>
 
-            <button id="btnImportFromDoc" class="btn-modern btn-success-modern w-full">
-                <i data-lucide="download-cloud" size="18"></i> NHẬP DỮ LIỆU TỪ VĂN BẢN
-            </button>
-        </div>
-        
-        <div id="logMsg" class="mt-3 text-[11px] text-slate-400 font-semibold italic text-center tracking-wide">Hệ thống sẵn sàng</div>
+            <div id="logMsg" class="mt-3 text-[11px] text-slate-400 font-semibold italic text-center tracking-wide">Hệ thống sẵn sàng</div>
     </footer>
 
     <!-- Universal Modal Form -->
@@ -172,7 +166,7 @@
             </div>
         </div>
     </div>
-    <script type="module" src="taskpane.js?v=08042026.1130"></script>
+    <script type="module" src="taskpane.js?v=08042026.1135"></script>
     <script>lucide.createIcons();</script>
 </body>
 </html>
