@@ -926,9 +926,39 @@ export const WordService = {
                 console.log("DocVars not supported or empty");
             }
 
-            // 2. Đọc Tables (Danh sách dữ liệu)
+            // 2. Đọc Tables (Danh sách dữ liệu) - ƯU TIÊN bmNhanSu3 cho Nhân sự
             const tables = context.document.tables;
             tables.load("items");
+            
+            async function getValuesFromBookmark(bmName) {
+                try {
+                    const bm = context.document.bookmarks.getItemOrNullObject(bmName);
+                    if (bm) {
+                        const range = bm.getRange();
+                        const tab = range.tables.getFirstOrNullObject();
+                        tab.load("values");
+                        await context.sync();
+                        if (tab && !tab.isNullObject) return tab.values;
+                    }
+                } catch (e) { console.log("BM table error", e); }
+                return null;
+            }
+
+            // Ưu tiên lấy Nhân Sự từ bmNhanSu3
+            const nsValues = await getValuesFromBookmark("bmNhanSu3");
+            if (nsValues && nsValues.length > 1) {
+                inventory.tables.push({ index: "bmNhanSu3", header: nsValues[0].join(" ") });
+                for (let r = 1; r < nsValues.length; r++) {
+                    const row = nsValues[r];
+                    if (row[1] && row[1].trim() !== "") {
+                        result.nhanSu.push([
+                            row[0] || (result.nhanSu.length + 1).toString(),
+                            row[1] || "", row[2] || "", row[3] || "", row[4] || ""
+                        ]);
+                    }
+                }
+            }
+
             await context.sync();
 
             for (let i = 0; i < tables.items.length; i++) {
@@ -940,21 +970,23 @@ export const WordService = {
                 if (values.length < 2) continue;
 
                 const headerRowText = values[0].join(" ");
-                inventory.tables.push({ index: i, header: headerRowText });
-
                 const normHeader = WordService.normalizeTextForSearch(headerRowText);
 
-                // Nhận diện bảng Nhân sự (Duyệt Array of Arrays)
+                // Nếu đã lấy từ bmNhanSu3 rồi thì thôi không lấy bảng Nhân sự tự động nữa
+                if (result.nhanSu.length > 0 && (normHeader.includes("ho va ten") || normHeader.includes("ho ten"))) {
+                    continue; 
+                }
+
+                inventory.tables.push({ index: i, header: headerRowText });
+
+                // Nhận diện bảng Nhân sự (Nếu bmNhanSu3 không có mới quét tự động)
                 if (normHeader.includes("ho va ten") || normHeader.includes("ten nhan su") || normHeader.includes("ho ten")) {
                     for (let r = 1; r < values.length; r++) {
                         const row = values[r];
                         if (row[1] && row[1].trim() !== "") {
                             result.nhanSu.push([
                                 row[0] || (result.nhanSu.length + 1).toString(),
-                                row[1] || "",
-                                row[2] || "",
-                                row[3] || "",
-                                row[4] || ""
+                                row[1] || "", row[2] || "", row[3] || "", row[4] || ""
                             ]);
                         }
                     }
