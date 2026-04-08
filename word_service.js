@@ -344,19 +344,16 @@ export const WordService = {
                     });
                     await context.sync();
 
-                    // Áp dụng alignment
+                    // Áp dụng alignment - căn đều (justified) chỉ cho 5 cột yêu cầu
+                    const justifiedColumns = ["ho va ten", "ten thiet bi", "ten vat tu", "tieu chuan", "don vi thi nghiem"];
+                    
                     table.rows.items.forEach((row, rIdx) => {
                         row.cells.items.forEach((cell, cIdx) => {
-                            let alignment = "left";
+                            let alignment = "left"; // Default: left
                             const headerText = headerTexts[cIdx] || "";
-                            const cellText = cell.body.text || "";
 
-                            // Căn giữa cột STT và các cột tên
-                            if (cIdx === 0 || headerText === "stt" || headerText === "tt") {
-                                alignment = "centered";
-                            } else if (["ho va ten", "ten thiet bi", "ten vat tu", "tieu chuan"].some(kw => headerText.includes(kw))) {
-                                alignment = "centered";
-                            } else if (cellText.length > 25) {
+                            // Căn justified chỉ cho 5 cột yêu cầu
+                            if (justifiedColumns.some(kw => headerText.includes(kw))) {
                                 alignment = "justified";
                             }
 
