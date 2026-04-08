@@ -286,23 +286,41 @@ export const WordService = {
                     });
                     await context.sync();
 
-                    // Bước 4: Căn lề thông minh - Cấp độ Paragraph (Nuclear V3)
+                    // Bước 4: Căn lề thông minh - Ưu tiên Bookmark (Nuclear V4)
                     const headerRow = targetTable.rows.getFirst();
                     headerRow.cells.load("items/body/text");
                     await context.sync();
                     
-                    const colAlignments = headerRow.cells.items.map(cell => {
-                        const cellText = WordService.normalizeTextForSearch(cell.body.text || "");
+                    const bmLower = (bookmarkName || "").toLowerCase();
+                    const colAlignments = headerRow.cells.items.map((cell, cIdx) => {
+                        // 1. Quy tắc cố định theo Index của từng loại Bookmark (Độ ưu tiên cao nhất)
+                        if (cIdx === 0) return "Centered"; // Luôn căn giữa cột STT
                         
-                        const justifiedKws = ["ho va ten", "ten thiet bi", "xe may", "ten vat tu", "tieu chuan", "chuyen nganh", "chu so huu", "ghi chu", "dac diem", "nguon goc", "vat lieu chinh", "noi dung", "chuc danh"];
-                        const centeredKws = ["stt", "dvt", "so luong", "don vi tinh", "so dien thoai", "hinh thuc", "loai"];
+                        if (bmLower.includes("nhansu")) {
+                            if (cIdx === 1 || cIdx === 2 || cIdx === 3) return "Justified";
+                            return "Centered";
+                        }
+                        if (bmLower.includes("maymoc")) {
+                            if (cIdx === 1 || cIdx === 4) return "Justified";
+                            return "Centered";
+                        }
+                        if (bmLower.includes("vatlieu") || bmLower.includes("thinnghiem")) {
+                            if (cIdx === 1 || cIdx === 2) return "Justified";
+                            return "Centered";
+                        }
+
+                        // 2. Dự phòng: Nhận diện theo từ khóa Header (Nếu bookmark lạ)
+                        const cellText = WordService.normalizeTextForSearch(cell.body.text || "");
+                        const justifiedKws = ["ho va ten", "ten thiet bi", "xe may", "ten vat tu", "tieu chuan", "chuc danh", "chuyen nganh", "chu so huu", "ghi chu", "dac diem", "nguon goc", "vat lieu chinh"];
+                        const centeredKws = ["stt", "dvt", "so luong", "don vi tinh", "so dien thoai"];
                         
                         if (justifiedKws.some(kw => cellText.includes(kw))) return "Justified";
                         if (centeredKws.some(kw => cellText.includes(kw))) return "Centered";
+                        
                         return "Left";
                     });
 
-                    // Tải lại rows và cell body paragraphs
+                    // Tải lại rows và cell body paragraphs để áp dụng định dạng cưỡng bức
                     targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx > 0) {
                             row.font.bold = false;
@@ -311,14 +329,13 @@ export const WordService = {
                     });
                     await context.sync();
 
-                    // Áp dụng định dạng cho từng Paragraph trong từng ô
+                    // Áp dụng định dạng Paragraph-by-Paragraph
                     targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx === 0) return;
                         row.cells.items.forEach((cell, cIdx) => {
                             const alignment = colAlignments[cIdx] || "Left";
                             cell.verticalAlignment = "Center";
                             
-                            // Căn lề cưỡng bức cho mọi Paragraph bên trong ô
                             cell.body.paragraphs.items.forEach(p => {
                                 p.alignment = alignment;
                             });
