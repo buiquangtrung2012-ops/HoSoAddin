@@ -277,7 +277,7 @@ export const WordService = {
                         } else if (colName.includes("vật tư") || colName.includes("thí nghiệm")) {
                             if (cIdx === 2 || cIdx === 3 || cIdx === 4) alignment = "Centered";
                         } else if (colName.includes("họ và tên")) {
-                            if (cIdx === 2 || cIdx === 3) alignment = "Centered";
+                            if (cIdx === 2 || cIdx === 3 || cIdx === 4) alignment = "Centered";
                         }
                         cell.horizontalAlignment = alignment;
                         cell.verticalAlignment = "Center";
