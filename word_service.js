@@ -862,25 +862,43 @@ export const WordService = {
                 thiNghiem: []
             };
 
-            // 1. Đọc Content Controls (Thông tin dự án)
+            // 1. Đọc Content Controls (Thông tin dự án) với bộ lọc Alias thông minh
             const controls = context.document.contentControls;
             controls.load("items/tag,items/text");
             await context.sync();
 
-            const tagMap = {
-                "DuAn": "tenDuAn",
-                "GoiThau": "goiThau",
-                "DVTC": "dvtc",
-                "DaiDienCDT": "daiDienCDT",
-                "TVGS": "tvgs",
-                "NgayKhoiCong": "ngayKhoiCong",
-                "NgayHoanThanh": "ngayHoanThanh"
+            // Mở rộng tên thay thế (Aliases) cho các trường
+            const fullTagMap = {
+                "DuAn": ["DuAn", "tenDuAn", "TenDuAn", "Project"],
+                "GoiThau": ["GoiThau", "goiThau", "tenGoiThau", "Package"],
+                "DVTC": ["DVTC", "dvtc", "donViThiCong", "Contractor"],
+                "DaiDienCDT": ["DaiDienCDT", "daiDienCDT", "chuDauTu", "CDT", "Client"],
+                "TVGS": ["TVGS", "tvgs", "tuVanGiamSat", "Supervisor"],
+                "NgayKhoiCong": ["NgayKhoiCong", "ngayKhoiCong", "NgayKC", "StartDate"],
+                "NgayHoanThanh": ["NgayHoanThanh", "ngayHoanThanh", "NgayHT", "EndDate"]
             };
 
+            const inventory = { tags: [], tables: [] };
+
             controls.items.forEach(ctrl => {
-                const key = tagMap[ctrl.tag];
-                if (key && ctrl.text && ctrl.text.trim().length > 0) {
-                    result.duAn[key] = ctrl.text.trim();
+                inventory.tags.push({ tag: ctrl.tag, text: ctrl.text });
+                
+                // Khớp dữ liệu dự án qua bộ lọc Alias
+                for (const [key, aliases] of Object.entries(fullTagMap)) {
+                    if (aliases.some(a => a.toLowerCase() === (ctrl.tag || "").toLowerCase())) {
+                        if (ctrl.text && ctrl.text.trim().length > 0) {
+                            const internalKey = {
+                                "DuAn": "tenDuAn",
+                                "GoiThau": "goiThau",
+                                "DVTC": "dvtc",
+                                "DaiDienCDT": "daiDienCDT",
+                                "TVGS": "tvgs",
+                                "NgayKhoiCong": "ngayKhoiCong",
+                                "NgayHoanThanh": "ngayHoanThanh"
+                            }[key];
+                            result.duAn[internalKey] = ctrl.text.trim();
+                        }
+                    }
                 }
             });
 
@@ -895,17 +913,18 @@ export const WordService = {
                 await context.sync();
 
                 const values = table.values;
-                if (values.length < 2) continue; // Bảng rỗng (chỉ có header hoặc không có gì)
+                if (values.length < 2) continue;
 
-                const headerRow = values[0].join(" ");
-                const normHeader = WordService.normalizeTextForSearch(headerRow);
+                const headerRowText = values[0].join(" ");
+                inventory.tables.push({ index: i, header: headerRowText });
 
-                // Lưu ý: State hiện tại dùng Array of Arrays cho các list
-                // Nhận diện bảng Nhân sự
-                if (normHeader.includes("ho va ten")) {
+                const normHeader = WordService.normalizeTextForSearch(headerRowText);
+
+                // Nhận diện bảng Nhân sự (Duyệt Array of Arrays)
+                if (normHeader.includes("ho va ten") || normHeader.includes("ten nhan su") || normHeader.includes("ho ten")) {
                     for (let r = 1; r < values.length; r++) {
                         const row = values[r];
-                        if (row[1]) {
+                        if (row[1] && row[1].trim() !== "") {
                             result.nhanSu.push([
                                 row[0] || (result.nhanSu.length + 1).toString(),
                                 row[1] || "",
@@ -920,7 +939,7 @@ export const WordService = {
                 else if (normHeader.includes("thiet bi") || normHeader.includes("xe may") || normHeader.includes("may moc")) {
                     for (let r = 1; r < values.length; r++) {
                         const row = values[r];
-                        if (row[1]) {
+                        if (row[1] && row[1].trim() !== "") {
                             result.mayMoc.push([
                                 row[0] || (result.mayMoc.length + 1).toString(),
                                 row[1] || "",
@@ -932,11 +951,11 @@ export const WordService = {
                         }
                     }
                 }
-                // Nhận diện bảng Vật tư
+                // Nhận diện bảng Vật liệu
                 else if (normHeader.includes("vat tu") || normHeader.includes("vat lieu")) {
                     for (let r = 1; r < values.length; r++) {
                         const row = values[r];
-                        if (row[1]) {
+                        if (row[1] && row[1].trim() !== "") {
                             result.vatLieu.push([
                                 row[0] || (result.vatLieu.length + 1).toString(),
                                 row[1] || "",
