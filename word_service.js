@@ -122,9 +122,10 @@ export const WordService = {
     },
 
     /**
-     * Xuất dữ liệu vào bảng (Căn chỉnh 1:1 theo logic VBA Column Alignment)
+     * Xuất dữ liệu vào bảng (Nuclear V5 - Heuristic & UI Logging)
      */
-    xuatBang: async (data, keyword, bookmarkName = null) => {
+    xuatBang: async (data, keyword, bookmarkName = null, logCallback) => {
+        const logger = (msg) => { if (logCallback) logCallback(msg); console.log(msg); };
         await Word.run(async (context) => {
             let targetTable = null;
             let targetColCount = 0;
@@ -217,8 +218,8 @@ export const WordService = {
                     }
                 }
 
-                if (!targetTable) {
-                    console.warn(`xuatBang: bảng đích không tìm thấy cho bookmark="${bookmarkName}" keyword="${keyword}"`);
+                if (!targetTable || targetTable.isNullObject) {
+                    logger(`✖ Không tìm thấy bảng đích cho ${bookmarkName}`);
                     return;
                 }
 
@@ -226,36 +227,35 @@ export const WordService = {
                 await context.sync();
                 const rowCount = targetTable.rowCount;
 
-                // Xóa dữ liệu cũ (giữ Header) - Xử lý an toàn cho bảng phức tạp
+                logger(`→ Đang xử lý bảng ${bookmarkName} (${data.length} dòng)...`);
+
+                // Bước 1: Giữ lại Header, xóa dữ liệu cũ
                 if (rowCount > 1) {
                     try {
                         targetTable.deleteRows(1, rowCount - 1);
                         await context.sync();
                     } catch (err) {
-                        console.warn(`xuatBang: deleteRows failed, switching to granular delete for ${bookmarkName}`);
+                        logger(`⚠ deleteRows lỗi trên ${bookmarkName}, đang chuyển sang xóa thủ công...`);
                         targetTable.load("rows/items");
                         await context.sync();
                         for (let j = rowCount - 1; j >= 1; j--) {
                             try { 
                                 targetTable.rows.items[j].delete(); 
-                                await context.sync(); // Sync từng dòng để tránh lỗi gom nhóm
-                            } catch (e) {
-                                console.warn(`xuatBang: skip row ${j} delete failure`);
-                            }
+                                await context.sync();
+                            } catch (e) { }
                         }
                     }
                 }
 
                 if (!data || data.length === 0) return;
 
-                // Bước 3: Chuẩn bị dữ liệu và Ghi vào bảng
+                // Bước 2: Thêm dữ liệu mới
                 const colCount = targetColCount || data[0].length;
                 const newRowsValues = data
-                    .filter(row => row && row.length > 0 && String(row[1] || "").trim() !== "") // Chỉ lấy dòng có dữ liệu
+                    .filter(row => row && row.length > 0 && String(row[1] || "").trim() !== "")
                     .map(row => {
                         const normalizedRow = [];
                         for (let j = 0; j < colCount; j++) {
-                            // Xử lý giá trị an toàn, thay undefined/null bằng ""
                             let val = row[j];
                             if (val === null || val === undefined) val = "";
                             normalizedRow.push(String(val));
@@ -265,83 +265,68 @@ export const WordService = {
 
                 if (newRowsValues.length > 0) {
                     targetTable.addRows("End", newRowsValues.length, newRowsValues);
-                    targetTable.headerRowCount = 1; // Ép lặp lại tiêu đề
+                    targetTable.headerRowCount = 1;
                     
                     targetTable.load("rows/items");
                     await context.sync();
 
                     targetTable.rows.items.forEach((currentRow, rIdx) => {
                         if (!currentRow) return;
-                        if (rIdx === 0) {
-                            currentRow.font.bold = true;
-                        } else {
-                            currentRow.font.bold = false;
-                        }
+                        currentRow.font.bold = (rIdx === 0);
                     });
 
-                    // Căn lề an toàn
-                    targetTable.rows.items.forEach((currentRow, rIdx) => {
-                        if (rIdx === 0) return;
-                        currentRow.cells.load("items");
-                    });
-                    await context.sync();
-
-                    // Bước 4: Căn lề thông minh - Ưu tiên Bookmark (Nuclear V4)
+                    // Bước 3: Căn lề an toàn - Ưu tiên Bookmark (Nuclear V5)
                     const headerRow = targetTable.rows.getFirst();
                     headerRow.cells.load("items/body/text");
                     await context.sync();
                     
+                    const headerTexts = headerRow.cells.items.map(cell => WordService.normalizeTextForSearch(cell.body.text || ""));
                     const bmLower = (bookmarkName || "").toLowerCase();
-                    const colAlignments = headerRow.cells.items.map((cell, cIdx) => {
-                        // 1. Quy tắc cố định theo Index của từng loại Bookmark (Độ ưu tiên cao nhất)
-                        if (cIdx === 0) return "Centered"; // Luôn căn giữa cột STT
-                        
-                        if (bmLower.includes("nhansu")) {
-                            if (cIdx === 1 || cIdx === 2 || cIdx === 3) return "Justified";
-                            return "Centered";
-                        }
-                        if (bmLower.includes("maymoc")) {
-                            if (cIdx === 1 || cIdx === 4) return "Justified";
-                            return "Centered";
-                        }
-                        if (bmLower.includes("vatlieu") || bmLower.includes("thinnghiem")) {
-                            if (cIdx === 1 || cIdx === 2) return "Justified";
-                            return "Centered";
-                        }
 
-                        // 2. Dự phòng: Nhận diện theo từ khóa Header (Nếu bookmark lạ)
-                        const cellText = WordService.normalizeTextForSearch(cell.body.text || "");
-                        const justifiedKws = ["ho va ten", "ten thiet bi", "xe may", "ten vat tu", "tieu chuan", "chuc danh", "chuyen nganh", "chu so huu", "ghi chu", "dac diem", "nguon goc", "vat lieu chinh"];
-                        const centeredKws = ["stt", "dvt", "so luong", "don vi tinh", "so dien thoai"];
-                        
-                        if (justifiedKws.some(kw => cellText.includes(kw))) return "Justified";
-                        if (centeredKws.some(kw => cellText.includes(kw))) return "Centered";
-                        
-                        return "Left";
-                    });
-
-                    // Tải lại rows và cell body paragraphs để áp dụng định dạng cưỡng bức
+                    // CRITICAL FIX: Tải đúng Paragraph Items
                     targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx > 0) {
                             row.font.bold = false;
-                            row.cells.load("items/body/paragraphs");
+                            row.cells.load("items/body/paragraphs/items");
                         }
                     });
                     await context.sync();
 
-                    // Áp dụng định dạng Paragraph-by-Paragraph
                     targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx === 0) return;
                         row.cells.items.forEach((cell, cIdx) => {
-                            const alignment = colAlignments[cIdx] || "Left";
-                            cell.verticalAlignment = "Center";
+                            let alignment = "Left"; 
+                            const cellTextRaw = cell.body.text || "";
+                            const cellTextNorm = WordService.normalizeTextForSearch(cellTextRaw);
+                            const headerText = headerTexts[cIdx] || "";
                             
-                            cell.body.paragraphs.items.forEach(p => {
-                                p.alignment = alignment;
-                            });
+                            // HEURISTIC QUYẾT ĐỊNH CĂN LỀ:
+                            if (cIdx === 0 || headerText === "stt" || headerText === "tt") {
+                                alignment = "Centered";
+                            } 
+                            else if (cellTextRaw.length > 25) { 
+                                alignment = "Justified";
+                            }
+                            else if (bmLower.includes("nhansu") && (cIdx === 1 || cIdx === 2 || cIdx === 3)) alignment = "Justified";
+                            else if (bmLower.includes("maymoc") && (cIdx === 1 || cIdx === 4)) alignment = "Justified";
+                            else if ((bmLower.includes("vatlieu") || bmLower.includes("thinnghiem")) && (cIdx === 1 || cIdx === 2)) alignment = "Justified";
+                            else {
+                                const justifiedKws = ["ho va ten", "ten thiet bi", "xe may", "ten vat tu", "tieu chuan", "chuc danh", "chuyen nganh", "chu so huu", "ghi chu"];
+                                if (justifiedKws.some(kw => headerText.includes(kw) || cellTextNorm.includes(kw))) {
+                                    alignment = "Justified";
+                                }
+                            }
+
+                            try {
+                                cell.verticalAlignment = "Center";
+                                cell.body.paragraphs.items.forEach(p => {
+                                    p.alignment = alignment;
+                                });
+                            } catch (e) {}
                         });
                     });
                     await context.sync();
+                    logger(`✓ Hoàn tất định dạng ${bookmarkName}`);
                 }
 
                 await context.sync();
