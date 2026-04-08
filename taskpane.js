@@ -642,9 +642,9 @@ async function syncDataToWord() {
 
 async function onCapNhatClick() {
     try {
+        updateLog("--- Bắt đầu Cập nhật dữ liệu ---");
         await syncDataToWord();
-        updateLog("Đã cập nhật dữ liệu vào văn bản hiện tại.");
-        let msg = "Đã cập nhật dữ liệu vào bản Word!";
+        updateLog("✓ Hoàn tất cập nhật dữ liệu vào văn bản.");
         
         // Tự động ghi đè lại file đã xuất nếu có
         if (state.exportFolderHandle && (state.hasExportedMaster || state.hasSplitFiles)) {
@@ -667,10 +667,13 @@ async function onCapNhatClick() {
         }
         
         updateLog("✅ Đã CẬP NHẬT HOÀN TẤT!");
-        showToast(msg, "success");
+        showToast("Đã cập nhật dữ liệu thành công!", "success");
     } catch (e) {
-        updateLog("Lỗi: " + e.message + (e.debugInfo ? "\nDebug: " + JSON.stringify(e.debugInfo) : ""));
-        showToast("Có lỗi xảy ra khi cập nhật", "error");
+        console.error("onCapNhatClick Error:", e);
+        const errorDetail = e.message || "Lỗi không xác định";
+        updateLog(`❌ LỖI CẬP NHẬT: ${errorDetail}`);
+        if (e.stack) console.log(e.stack);
+        showToast("Có lỗi xảy ra khi cập nhật (Xem Nhật ký bên dưới)", "error");
     }
 }
 
