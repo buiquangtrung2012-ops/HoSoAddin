@@ -290,21 +290,23 @@ export const WordService = {
                     targetTable.rows.items.forEach((currentRow, rIdx) => {
                         if (rIdx === 0) return;
                         currentRow.cells.items.forEach((cell, cIdx) => {
-                            // Nhận diện loại bảng dựa trên Bookmark name hoặc keyword
+                            // Nhận diện loại bảng dựa trên Bookmark name hoặc keyword hiển thị
                             const catName = (bookmarkName || keyword || "").toLowerCase();
+                            const normKeyword = WordService.normalizeTextForSearch(catName);
                             let alignment = "Left";
                             
                             // 1. Cột STT luôn căn giữa
                             if (cIdx === 0) alignment = "Centered";
                             
                             // 2. Các cột nội dung quan trọng cần Căn đều (Justified) theo yêu cầu User
-                            if (catName.includes("nhansu")) {
+                            // Kiểm tra theo từ khóa đã chuẩn hóa
+                            if (normKeyword.includes("nhansu") || normKeyword.includes("ho va ten")) {
                                 if (cIdx === 1) alignment = "Justified"; // Cột Họ và tên
                                 else alignment = "Centered";
-                            } else if (catName.includes("maymoc")) {
+                            } else if (normKeyword.includes("maymoc") || normKeyword.includes("thiet bi") || normKeyword.includes("xe may")) {
                                 if (cIdx === 1 || cIdx === 4) alignment = "Justified"; // Tên thiết bị và Đặc tính
                                 else if (cIdx === 2 || cIdx === 3 || cIdx === 5) alignment = "Centered";
-                            } else if (catName.includes("vatlieu") || catName.includes("thinnghiem")) {
+                            } else if (normKeyword.includes("vatlieu") || normKeyword.includes("ten vat tu") || normKeyword.includes("thinnghiem")) {
                                 if (cIdx === 1 || cIdx === 2) alignment = "Justified"; // Tên vật tư và Tiêu chuẩn
                                 else if (cIdx === 3 || cIdx === 4) alignment = "Centered";
                             }
