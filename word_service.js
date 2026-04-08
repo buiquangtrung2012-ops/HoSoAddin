@@ -283,6 +283,15 @@ export const WordService = {
                     const headerTexts = headerRow.cells.items.map(cell => WordService.normalizeTextForSearch(cell.body.text || ""));
                     const bmLower = (bookmarkName || "").toLowerCase();
 
+                    // Căn giữa các tiêu đề cột mặc định, nhất là Họ và tên / Tên thiết bị / Tên vật tư / Tiêu chuẩn
+                    headerRow.cells.load("items/body/paragraphs/items");
+                    await context.sync();
+                    headerRow.cells.items.forEach(cell => {
+                        cell.body.paragraphs.items.forEach(p => {
+                            p.alignment = 1;
+                        });
+                    });
+
                     // CRITICAL FIX: Tải đúng Paragraph Items
                     targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx > 0) {
@@ -295,30 +304,31 @@ export const WordService = {
                     targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx === 0) return;
                         row.cells.items.forEach((cell, cIdx) => {
-                            let alignment = "Left"; 
+                            let alignment = 0; // 0 = Left (Mặc định)
                             const cellTextRaw = cell.body.text || "";
                             const cellTextNorm = WordService.normalizeTextForSearch(cellTextRaw);
                             const headerText = headerTexts[cIdx] || "";
                             
-                            // HEURISTIC QUYẾT ĐỊNH CĂN LỀ:
+                            // HEURISTIC QUYẾT ĐỊNH CĂN LỀ (RAW ENUM VERSION):
                             if (cIdx === 0 || headerText === "stt" || headerText === "tt") {
-                                alignment = "Centered";
-                            } 
-                            else if (cellTextRaw.length > 25) { 
-                                alignment = "Justified";
-                            }
-                            else if (bmLower.includes("nhansu") && (cIdx === 1 || cIdx === 2 || cIdx === 3)) alignment = "Justified";
-                            else if (bmLower.includes("maymoc") && (cIdx === 1 || cIdx === 4)) alignment = "Justified";
-                            else if ((bmLower.includes("vatlieu") || bmLower.includes("thinnghiem")) && (cIdx === 1 || cIdx === 2)) alignment = "Justified";
+                                alignment = 1; // 1 = Centered
+                            } else if (["ho va ten", "ten thiet bi", "ten vat tu", "tieu chuan"].some(kw => headerText.includes(kw))) {
+                                alignment = 1; // Căn giữa các cột tên chính xác yêu cầu
+                            } else if (cellTextRaw.length > 25) {
+                                alignment = 4; // 4 = Justified
+                            } else if (bmLower.includes("nhansu") && (cIdx === 2 || cIdx === 3)) alignment = 4;
+                            else if (bmLower.includes("maymoc") && cIdx === 4) alignment = 4;
+                            else if ((bmLower.includes("vatlieu") || bmLower.includes("thinnghiem")) && (cIdx === 1 || cIdx === 2)) alignment = 4;
                             else {
-                                const justifiedKws = ["ho va ten", "ten thiet bi", "xe may", "ten vat tu", "tieu chuan", "chuc danh", "chuyen nganh", "chu so huu", "ghi chu"];
+                                const justifiedKws = ["xe may", "chuc danh", "chuyen nganh", "chu so huu", "ghi chu"];
                                 if (justifiedKws.some(kw => headerText.includes(kw) || cellTextNorm.includes(kw))) {
-                                    alignment = "Justified";
+                                    alignment = 4; // 4 = Justified
                                 }
                             }
 
                             try {
                                 cell.verticalAlignment = "Center";
+                                // Bắn phá định dạng: Sử dụng Mã số (Enum Index) để cưỡng bức Core Word
                                 cell.body.paragraphs.items.forEach(p => {
                                     p.alignment = alignment;
                                 });
