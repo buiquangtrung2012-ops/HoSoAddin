@@ -291,16 +291,21 @@ export const WordService = {
                         currentRow.cells.items.forEach((cell, cIdx) => {
                             const colName = keyword.toLowerCase();
                             let alignment = "Left";
-                            if (cIdx === 0) alignment = "Centered";
-                            
-                            if (colName.includes("thiết bị")) {
-                                if (cIdx === 2 || cIdx === 3 || cIdx === 5) alignment = "Centered";
-                                if (cIdx === 4) alignment = "Justified";
-                            } else if (colName.includes("vật tư") || colName.includes("thí nghiệm")) {
-                                if (cIdx === 3 || cIdx === 4) alignment = "Centered";
-                                if (cIdx === 2) alignment = "Justified";
-                            } else if (colName.includes("họ và tên")) {
-                                if (cIdx === 2 || cIdx === 3 || cIdx === 4) alignment = "Centered";
+                            // Căn giữa STT (cột 0)
+                            if (cIdx === 0) alignment = "Centered"; 
+                            // Bảng nhân sự (Họ tên, Chức vụ, Chuyên ngành, SĐT)
+                            if (colName.includes("họ và tên")) {
+                                if (cIdx >= 2) alignment = "Centered";
+                            } 
+                            // Bảng Vật liệu (TT, Tên, Tiêu chuẩn, Nguồn gốc, Ghi chú)
+                            else if (colName.includes("vật tư")) {
+                                if (cIdx === 1 || cIdx === 2) alignment = "Justified"; // Cột Tên, Tiêu chuẩn
+                                else if (cIdx === 3 || cIdx === 4) alignment = "Centered"; // Nguồn gốc, Ghi chú
+                            }
+                            // Bảng Máy móc (TT, Tên, ĐVT, SL, Chủ sở hữu, Hình thức)
+                            else if (colName.includes("thiết bị")) {
+                                if (cIdx === 4) alignment = "Justified"; // Cột Đặc tính kỹ thuật
+                                else if (cIdx === 2 || cIdx === 3 || cIdx === 5) alignment = "Centered";
                             }
                             
                             try {
