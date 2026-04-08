@@ -933,6 +933,11 @@ export const WordService = {
             async function getValuesFromBookmark(bmName) {
                 try {
                     const bm = context.document.bookmarks.getItemOrNullObject(bmName);
+                    bm.load("isNullObject");
+                    await context.sync();
+                    
+                    if (bm.isNullObject) return null;
+
                     const range = bm.getRange();
                     
                     // Thử lấy bảng trực tiếp trong range
@@ -981,10 +986,13 @@ export const WordService = {
                 if (values.length < 2) continue;
 
                 const headerRowText = values[0].join(" ");
+                const columnCount = values[0].length;
                 const normHeader = WordService.normalizeTextForSearch(headerRowText);
 
-                // Dấu hiệu nhận biết bảng Nhân sự
-                const isNhanSuTable = (normHeader.includes("ho va ten") || normHeader.includes("ten nhan su") || normHeader.includes("ho ten")) && normHeader.includes("chuc danh");
+                // Dấu hiệu nhận biết bảng Nhân sự (Phải có ít nhất 4 cột để tránh bảng tóm tắt ở trang 1)
+                const isNhanSuTable = (normHeader.includes("ho va ten") || normHeader.includes("ten nhan su") || normHeader.includes("ho ten")) 
+                                      && normHeader.includes("chuc danh") 
+                                      && columnCount >= 4;
 
                 // NEU DA TIM THAY TU BOOKMARK HOAC DA CO DU LIEU, TU CHOI CAC BANG NHAN SU KHAC
                 if ((nsFoundFromBookmark || result.nhanSu.length > 0) && isNhanSuTable) {
