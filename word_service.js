@@ -284,11 +284,15 @@ export const WordService = {
                     const bmLower = (bookmarkName || "").toLowerCase();
 
                     // Căn giữa các tiêu đề cột mặc định, nhất là Họ và tên / Tên thiết bị / Tên vật tư / Tiêu chuẩn
-                    headerRow.cells.load("items/body/paragraphs/items");
+                    headerRow.cells.load("items");
+                    await context.sync();
+                    headerRow.cells.items.forEach(cell => {
+                        cell.body.paragraphs.load("items");
+                    });
                     await context.sync();
                     headerRow.cells.items.forEach(cell => {
                         cell.body.paragraphs.items.forEach(p => {
-                            p.alignment = "Center";
+                            p.alignment = 1; // Centered
                         });
                     });
 
@@ -296,7 +300,15 @@ export const WordService = {
                     targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx > 0) {
                             row.font.bold = false;
-                            row.cells.load("items/body/paragraphs/items");
+                            row.cells.load("items");
+                        }
+                    });
+                    await context.sync();
+                    targetTable.rows.items.forEach((row, rIdx) => {
+                        if (rIdx > 0) {
+                            row.cells.items.forEach(cell => {
+                                cell.body.paragraphs.load("items");
+                            });
                         }
                     });
                     await context.sync();
@@ -304,31 +316,31 @@ export const WordService = {
                     targetTable.rows.items.forEach((row, rIdx) => {
                         if (rIdx === 0) return;
                         row.cells.items.forEach((cell, cIdx) => {
-                            let alignment = "Left"; // Left = Mặc định
+                            let alignment = 0; // 0 = Left (Mặc định)
                             const cellTextRaw = cell.body.text || "";
                             const cellTextNorm = WordService.normalizeTextForSearch(cellTextRaw);
                             const headerText = headerTexts[cIdx] || "";
                             
                             // HEURISTIC QUYẾT ĐỊNH CĂN LỀ
                             if (cIdx === 0 || headerText === "stt" || headerText === "tt") {
-                                alignment = "Center";
+                                alignment = 1; // Centered
                             } else if (["ho va ten", "ten thiet bi", "ten vat tu", "tieu chuan"].some(kw => headerText.includes(kw))) {
-                                alignment = "Center";
+                                alignment = 1; // Centered
                             } else if (cellTextRaw.length > 25) {
-                                alignment = "Justified";
-                            } else if (bmLower.includes("nhansu") && (cIdx === 2 || cIdx === 3)) alignment = "Justified";
-                            else if (bmLower.includes("maymoc") && cIdx === 4) alignment = "Justified";
-                            else if ((bmLower.includes("vatlieu") || bmLower.includes("thinnghiem")) && (cIdx === 1 || cIdx === 2)) alignment = "Justified";
+                                alignment = 4; // Justified
+                            } else if (bmLower.includes("nhansu") && (cIdx === 2 || cIdx === 3)) alignment = 4;
+                            else if (bmLower.includes("maymoc") && cIdx === 4) alignment = 4;
+                            else if ((bmLower.includes("vatlieu") || bmLower.includes("thinnghiem")) && (cIdx === 1 || cIdx === 2)) alignment = 4;
                             else {
                                 const justifiedKws = ["xe may", "chuc danh", "chuyen nganh", "chu so huu", "ghi chu"];
                                 if (justifiedKws.some(kw => headerText.includes(kw) || cellTextNorm.includes(kw))) {
-                                    alignment = "Justified";
+                                    alignment = 4; // Justified
                                 }
                             }
 
                             try {
                                 cell.verticalAlignment = "Center";
-                                // Bắn phá định dạng: Sử dụng enum tên để tương thích Word JS API
+                                // Bắn phá định dạng: sử dụng số enum cho ParagraphAlignment
                                 cell.body.paragraphs.items.forEach(p => {
                                     p.alignment = alignment;
                                 });
