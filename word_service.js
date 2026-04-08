@@ -255,6 +255,8 @@ export const WordService = {
             });
 
             targetTable.addRows("End", newRowsValues.length, newRowsValues);
+            targetTable.headerRowCount = 1; // Ép lặp lại tiêu đề ngay sau khi thêm hàng
+            
             targetTable.load("rows/items");
             targetTable.load("rows/cells/items");
             await context.sync();
@@ -262,7 +264,6 @@ export const WordService = {
             targetTable.rows.items.forEach((currentRow, rIdx) => {
                 if (rIdx === 0) {
                     currentRow.font.bold = true;
-                    targetTable.headerRowCount = 1; // Ép lặp lại tiêu đề cho mọi bảng
                     currentRow.cells.items.forEach(cell => {
                         cell.horizontalAlignment = "Centered";
                         cell.verticalAlignment = "Center";
@@ -276,14 +277,16 @@ export const WordService = {
                         
                         if (colName.includes("thiết bị")) {
                             if (cIdx === 2 || cIdx === 3 || cIdx === 5) alignment = "Centered";
-                            if (cIdx === 4) alignment = "Justified"; // Căn đều Chủ sở hữu
+                            if (cIdx === 4) alignment = "Justified";
                         } else if (colName.includes("vật tư") || colName.includes("thí nghiệm")) {
                             if (cIdx === 3 || cIdx === 4) alignment = "Centered";
-                            if (cIdx === 2) alignment = "Justified"; // Căn đều Tiêu chuẩn
+                            if (cIdx === 2) alignment = "Justified";
                         } else if (colName.includes("họ và tên")) {
                             if (cIdx === 2 || cIdx === 3 || cIdx === 4) alignment = "Centered";
                         }
-                        cell.horizontalAlignment = alignment;
+                        
+                        // Áp dụng căn lề thông qua ParagraphFormat để có hiệu lực cao nhất
+                        cell.getRange().paragraphFormat.alignment = (alignment === "Centered") ? "Centered" : alignment;
                         cell.verticalAlignment = "Center";
                     });
                 }
