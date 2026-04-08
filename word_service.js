@@ -128,172 +128,199 @@ export const WordService = {
         await Word.run(async (context) => {
             let targetTable = null;
             let targetColCount = 0;
-
-            // Bước 1: Thử tìm bảng trực tiếp trong vùng Bookmark
-            if (bookmarkName) {
-                try {
-                    const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
-                    bm.load("isNullObject");
-                    await context.sync();
-
-                    if (!bm.isNullObject) {
-                        const bmRange = bm.range;
-                        const tablesInRange = bmRange.tables;
-                        tablesInRange.load("items");
+            try {
+                // Bước 1: Tìm bảng (ưu tiên Bookmark)
+                if (bookmarkName) {
+                    try {
+                        const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
+                        bm.load("isNullObject");
                         await context.sync();
 
-                        if (tablesInRange.items.length > 0) {
-                            targetTable = tablesInRange.items[0];
-                            const firstRow = targetTable.rows.getFirst();
-                            firstRow.load("values");
-                            await context.sync();
-                            targetColCount = firstRow.values[0].length;
-                            console.log(`xuatBang: bookmark ${bookmarkName} found table with ${targetColCount} cols in range`);
-                        } else {
-                            // Bookmark nằm trước bảng – tìm bảng tiếp theo sau bookmark
-                            const allTables = context.document.tables;
-                            allTables.load("items");
+                        if (!bm.isNullObject) {
+                            const bmRange = bm.getRange();
+                            const tablesInRange = bmRange.tables;
+                            tablesInRange.load("items");
                             await context.sync();
 
-                            for (let t = 0; t < allTables.items.length; t++) {
-                                const table = allTables.items[t];
-                                const tableRange = table.getRange();
-                                const relation = tableRange.compareLocationWith(bmRange);
+                            if (tablesInRange.items.length > 0) {
+                                targetTable = tablesInRange.items[0];
+                                const firstRow = targetTable.rows.getFirst();
+                                firstRow.load("values");
+                                await context.sync();
+                                targetColCount = firstRow.values[0].length;
+                                console.log(`xuatBang: bookmark ${bookmarkName} found table with ${targetColCount} cols in range`);
+                            } else {
+                                // Bookmark nằm trước bảng – tìm bảng tiếp theo sau bookmark
+                                const allTables = context.document.tables;
+                                allTables.load("items");
                                 await context.sync();
 
-                                if (relation.value === "After" || relation.value === "AdjacentAfter") {
-                                    targetTable = table;
-                                    const firstRow = targetTable.rows.getFirst();
-                                    firstRow.load("values");
+                                for (let t = 0; t < allTables.items.length; t++) {
+                                    const table = allTables.items[t];
+                                    const tableRange = table.getRange();
+                                    const relation = tableRange.compareLocationWith(bmRange);
                                     await context.sync();
-                                    targetColCount = firstRow.values[0].length;
-                                    console.log(`xuatBang: bookmark ${bookmarkName} fallback to next table #${t}`);
-                                    break;
+
+                                    if (relation.value === "After" || relation.value === "AdjacentAfter") {
+                                        targetTable = table;
+                                        const firstRow = targetTable.rows.getFirst();
+                                        firstRow.load("values");
+                                        await context.sync();
+                                        targetColCount = firstRow.values[0].length;
+                                        console.log(`xuatBang: bookmark ${bookmarkName} fallback to next table #${t}`);
+                                        break;
+                                    }
                                 }
                             }
                         }
-                    } else {
-                        console.warn(`xuatBang: không tìm bookmark ${bookmarkName}, sẽ tìm theo keyword`);
+                    } catch (err) {
+                        console.warn(`xuatBang@bookmark(${bookmarkName})`, err.message);
                     }
-                } catch (err) {
-                    console.warn("xuatBang@bookmark", err);
                 }
-            }
 
-            // Bước 2: Fallback – quét tất cả bảng, chọn bảng theo số thứ tự từ tên bookmark
-            if (!targetTable) {
-                const tables = context.document.tables;
-                tables.load("items");
-                await context.sync();
-
-                const matchedTables = [];
-                for (let i = 0; i < tables.items.length; i++) {
-                    const table = tables.items[i];
-                    const firstRow = table.rows.getFirst();
-                    firstRow.load("values");
+                // Bước 2: Fallback – quét tất cả bảng, chọn bảng theo số thứ tự từ tên bookmark
+                if (!targetTable) {
+                    const tables = context.document.tables;
+                    tables.load("items");
                     await context.sync();
 
-                    const rowText = firstRow.values[0].join(" ");
-                    const normRow = WordService.normalizeTextForSearch(rowText);
-                    const keywords = keyword.split('|').map(k => WordService.normalizeTextForSearch(k));
+                    const matchedTables = [];
+                    for (let i = 0; i < tables.items.length; i++) {
+                        const table = tables.items[i];
+                        const firstRow = table.rows.getFirst();
+                        firstRow.load("values");
+                        await context.sync();
 
-                    if (keywords.some(k => normRow.includes(k))) {
-                        matchedTables.push({ table, colCount: firstRow.values[0].length });
-                    }
-                }
+                        const rowText = firstRow.values[0].join(" ");
+                        const normRow = WordService.normalizeTextForSearch(rowText);
+                        const keywords = keyword.split('|').map(k => WordService.normalizeTextForSearch(k));
 
-                if (matchedTables.length > 0) {
-                    let matchIndex = 0;
-                    if (bookmarkName) {
-                        const match = bookmarkName.match(/(\d+)$/);
-                        if (match) {
-                            matchIndex = parseInt(match[1], 10) - 1;
+                        if (keywords.some(k => normRow.includes(k))) {
+                            matchedTables.push({ table, colCount: firstRow.values[0].length });
                         }
                     }
-                    if (matchIndex >= matchedTables.length) matchIndex = matchedTables.length - 1;
-                    if (matchIndex < 0) matchIndex = 0;
 
-                    targetTable = matchedTables[matchIndex].table;
-                    targetColCount = matchedTables[matchIndex].colCount;
-                    console.log(`xuatBang: fallback tìm thấy ${matchedTables.length} bảng, chọn bảng số ${matchIndex + 1} cho ${bookmarkName}`);
+                    if (matchedTables.length > 0) {
+                        let matchIndex = 0;
+                        if (bookmarkName) {
+                            const match = bookmarkName.match(/(\d+)$/);
+                            if (match) {
+                                matchIndex = parseInt(match[1], 10) - 1;
+                            }
+                        }
+                        if (matchIndex >= matchedTables.length) matchIndex = matchedTables.length - 1;
+                        if (matchIndex < 0) matchIndex = 0;
+
+                        targetTable = matchedTables[matchIndex].table;
+                        targetColCount = matchedTables[matchIndex].colCount;
+                        console.log(`xuatBang: fallback tìm thấy ${matchedTables.length} bảng, chọn bảng số ${matchIndex + 1} cho ${bookmarkName}`);
+                    }
                 }
-            }
 
-            if (!targetTable) {
-                console.warn(`xuatBang: bảng đích không tìm thấy cho bookmark="${bookmarkName}" keyword="${keyword}"`);
-                return;
-            }
+                if (!targetTable) {
+                    console.warn(`xuatBang: bảng đích không tìm thấy cho bookmark="${bookmarkName}" keyword="${keyword}"`);
+                    return;
+                }
 
-            targetTable.load("rowCount");
-            await context.sync();
-            const rowCount = targetTable.rowCount;
+                targetTable.load("rowCount");
+                await context.sync();
+                const rowCount = targetTable.rowCount;
 
-            // Xóa dữ liệu cũ (giữ Header)
-            if (rowCount > 1) {
-                try {
-                    targetTable.deleteRows(1, rowCount - 1);
-                    await context.sync();
-                } catch (err) {
+                // Xóa dữ liệu cũ (giữ Header) - Xử lý an toàn cho bảng phức tạp
+                if (rowCount > 1) {
+                    try {
+                        targetTable.deleteRows(1, rowCount - 1);
+                        await context.sync();
+                    } catch (err) {
+                        console.warn(`xuatBang: deleteRows failed, switching to granular delete for ${bookmarkName}`);
+                        targetTable.load("rows/items");
+                        await context.sync();
+                        for (let j = rowCount - 1; j >= 1; j--) {
+                            try { 
+                                targetTable.rows.items[j].delete(); 
+                                await context.sync(); // Sync từng dòng để tránh lỗi gom nhóm
+                            } catch (e) {
+                                console.warn(`xuatBang: skip row ${j} delete failure`);
+                            }
+                        }
+                    }
+                }
+
+                if (!data || data.length === 0) return;
+
+                // Bước 3: Chuẩn bị dữ liệu và Ghi vào bảng
+                const colCount = targetColCount || data[0].length;
+                const newRowsValues = data
+                    .filter(row => row && row.length > 0 && String(row[1] || "").trim() !== "") // Chỉ lấy dòng có dữ liệu
+                    .map(row => {
+                        const normalizedRow = [];
+                        for (let j = 0; j < colCount; j++) {
+                            // Xử lý giá trị an toàn, thay undefined/null bằng ""
+                            let val = row[j];
+                            if (val === null || val === undefined) val = "";
+                            normalizedRow.push(String(val));
+                        }
+                        return normalizedRow;
+                    });
+
+                if (newRowsValues.length > 0) {
+                    targetTable.addRows("End", newRowsValues.length, newRowsValues);
+                    targetTable.headerRowCount = 1; // Ép lặp lại tiêu đề
+                    
                     targetTable.load("rows/items");
                     await context.sync();
-                    for (let j = rowCount - 1; j >= 1; j--) {
-                        try { targetTable.rows.items[j].delete(); } catch (e) {}
-                    }
+
+                    targetTable.rows.items.forEach((currentRow, rIdx) => {
+                        if (!currentRow) return;
+                        if (rIdx === 0) {
+                            currentRow.font.bold = true;
+                        } else {
+                            currentRow.font.bold = false;
+                        }
+                    });
+
+                    // Căn lề an toàn
+                    targetTable.rows.items.forEach((currentRow, rIdx) => {
+                        if (rIdx === 0) return;
+                        currentRow.cells.load("items");
+                    });
                     await context.sync();
+
+                    targetTable.rows.items.forEach((currentRow, rIdx) => {
+                        if (rIdx === 0) return;
+                        currentRow.cells.items.forEach((cell, cIdx) => {
+                            const colName = keyword.toLowerCase();
+                            let alignment = "Left";
+                            if (cIdx === 0) alignment = "Centered";
+                            
+                            if (colName.includes("thiết bị")) {
+                                if (cIdx === 2 || cIdx === 3 || cIdx === 5) alignment = "Centered";
+                                if (cIdx === 4) alignment = "Justified";
+                            } else if (colName.includes("vật tư") || colName.includes("thí nghiệm")) {
+                                if (cIdx === 3 || cIdx === 4) alignment = "Centered";
+                                if (cIdx === 2) alignment = "Justified";
+                            } else if (colName.includes("họ và tên")) {
+                                if (cIdx === 2 || cIdx === 3 || cIdx === 4) alignment = "Centered";
+                            }
+                            
+                            try {
+                                cell.getRange().paragraphFormat.alignment = (alignment === "Centered") ? "Centered" : alignment;
+                                cell.verticalAlignment = "Center";
+                            } catch (e) {}
+                        });
+                    });
+                }
+
+                await context.sync();
+                console.log(`xuatBang: Hoàn tất cập nhật bảng ${bookmarkName || keyword}`);
+
+            } catch (globalTableErr) {
+                console.error(`xuatBang FATAL error for ${bookmarkName || keyword}:`, globalTableErr.message);
+                // Cập nhật Nhật ký lỗi để người dùng biết
+                if (typeof updateLog === "function") {
+                    updateLog(`⚠️ Lỗi tại bảng ${bookmarkName || keyword}: ${globalTableErr.message}`);
                 }
             }
-
-            if (!data || data.length === 0) return;
-
-            const colCount = targetColCount || data[0].length;
-            const newRowsValues = data.map(row => {
-                const normalizedRow = [];
-                for (let j = 0; j < colCount; j++) {
-                    normalizedRow.push(row[j] || "");
-                }
-                return normalizedRow;
-            });
-
-            targetTable.addRows("End", newRowsValues.length, newRowsValues);
-            targetTable.headerRowCount = 1; // Ép lặp lại tiêu đề ngay sau khi thêm hàng
-            
-            targetTable.load("rows/items");
-            targetTable.load("rows/cells/items");
-            await context.sync();
-
-            targetTable.rows.items.forEach((currentRow, rIdx) => {
-                if (rIdx === 0) {
-                    currentRow.font.bold = true;
-                    currentRow.cells.items.forEach(cell => {
-                        cell.horizontalAlignment = "Centered";
-                        cell.verticalAlignment = "Center";
-                    });
-                } else {
-                    currentRow.font.bold = false;
-                    currentRow.cells.items.forEach((cell, cIdx) => {
-                        const colName = keyword.toLowerCase();
-                        let alignment = "Left";
-                        if (cIdx === 0) alignment = "Centered";
-                        
-                        if (colName.includes("thiết bị")) {
-                            if (cIdx === 2 || cIdx === 3 || cIdx === 5) alignment = "Centered";
-                            if (cIdx === 4) alignment = "Justified";
-                        } else if (colName.includes("vật tư") || colName.includes("thí nghiệm")) {
-                            if (cIdx === 3 || cIdx === 4) alignment = "Centered";
-                            if (cIdx === 2) alignment = "Justified";
-                        } else if (colName.includes("họ và tên")) {
-                            if (cIdx === 2 || cIdx === 3 || cIdx === 4) alignment = "Centered";
-                        }
-                        
-                        // Áp dụng căn lề thông qua ParagraphFormat để có hiệu lực cao nhất
-                        cell.getRange().paragraphFormat.alignment = (alignment === "Centered") ? "Centered" : alignment;
-                        cell.verticalAlignment = "Center";
-                    });
-                }
-            });
-
-            // (Không ghi đè font/size để giữ nguyên thiết lập của người dùng)
-            await context.sync();
         });
     },
 
