@@ -290,21 +290,21 @@ export const WordService = {
                     targetTable.rows.items.forEach((currentRow, rIdx) => {
                         if (rIdx === 0) return;
                         currentRow.cells.items.forEach((cell, cIdx) => {
-                            const colName = keyword.toLowerCase();
+                            // Nhận diện loại bảng dựa trên Bookmark name hoặc keyword
+                            const catName = (bookmarkName || keyword || "").toLowerCase();
                             let alignment = "Left";
                             
                             // 1. Cột STT luôn căn giữa
                             if (cIdx === 0) alignment = "Centered";
                             
                             // 2. Các cột nội dung quan trọng cần Căn đều (Justified) theo yêu cầu User
-                            // Sử dụng từ khóa Bookmark không dấu để nhận diện chính xác loại bảng
-                            if (colName.includes("nhansu")) {
+                            if (catName.includes("nhansu")) {
                                 if (cIdx === 1) alignment = "Justified"; // Cột Họ và tên
                                 else alignment = "Centered";
-                            } else if (colName.includes("maymoc")) {
+                            } else if (catName.includes("maymoc")) {
                                 if (cIdx === 1 || cIdx === 4) alignment = "Justified"; // Tên thiết bị và Đặc tính
                                 else if (cIdx === 2 || cIdx === 3 || cIdx === 5) alignment = "Centered";
-                            } else if (colName.includes("vatlieu") || colName.includes("thinnghiem")) {
+                            } else if (catName.includes("vatlieu") || catName.includes("thinnghiem")) {
                                 if (cIdx === 1 || cIdx === 2) alignment = "Justified"; // Tên vật tư và Tiêu chuẩn
                                 else if (cIdx === 3 || cIdx === 4) alignment = "Centered";
                             }
