@@ -972,15 +972,18 @@ export const WordService = {
                 const headerRowText = values[0].join(" ");
                 const normHeader = WordService.normalizeTextForSearch(headerRowText);
 
-                // Nếu đã lấy từ bmNhanSu3 rồi thì thôi không lấy bảng Nhân sự tự động nữa
-                if (result.nhanSu.length > 0 && (normHeader.includes("ho va ten") || normHeader.includes("ho ten"))) {
+                // Dấu hiệu nhận biết bảng Nhân sự
+                const isNhanSuTable = normHeader.includes("ho va ten") || normHeader.includes("ten nhan su") || normHeader.includes("ho ten") || normHeader.includes("chuc danh");
+
+                // Nếu đã có dữ liệu nhân sự (từ bmNhanSu3 hoặc bảng trước đó), hãy bỏ qua tất cả các bảng nhân sự khác
+                if (result.nhanSu.length > 0 && isNhanSuTable) {
                     continue; 
                 }
 
                 inventory.tables.push({ index: i, header: headerRowText });
 
-                // Nhận diện bảng Nhân sự (Nếu bmNhanSu3 không có mới quét tự động)
-                if (normHeader.includes("ho va ten") || normHeader.includes("ten nhan su") || normHeader.includes("ho ten")) {
+                // Nhận diện bảng Nhân sự (Nếu chưa có dữ liệu mới quét)
+                if (isNhanSuTable) {
                     for (let r = 1; r < values.length; r++) {
                         const row = values[r];
                         if (row[1] && row[1].trim() !== "") {
@@ -990,6 +993,7 @@ export const WordService = {
                             ]);
                         }
                     }
+                    continue; // Đã lấy xong nhân sự, chuyển sang bảng khác
                 }
                 // Nhận diện bảng Máy móc
                 else if (normHeader.includes("thiet bi") || normHeader.includes("xe may") || normHeader.includes("may moc")) {
