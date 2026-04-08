@@ -644,7 +644,36 @@ async function onCapNhatClick() {
         showToast(msg, "success");
     } catch (e) {
         updateLog("Lỗi: " + e.message + (e.debugInfo ? "\nDebug: " + JSON.stringify(e.debugInfo) : ""));
-        showToast("Có lỗi xảy ra: " + e.message, "error");
+        showToast("Có lỗi xảy ra khi cập nhật", "error");
+    }
+}
+
+async function onImportFromDocClick() {
+    try {
+        const confirm = window.confirm("Bạn có muốn ghi đè toàn bộ dữ liệu hiện tại bằng nội dung đọc từ văn bản Word không?");
+        if (!confirm) return;
+
+        updateLog("Đang quét nội dung văn bản...");
+        const data = await WordService.importDataFromDoc();
+        
+        // Cập nhật state
+        if (Object.keys(data.duAn).length > 0) {
+            state.duAn = { ...state.duAn, ...data.duAn };
+        }
+        
+        if (data.nhanSu.length > 0) state.nhanSu = data.nhanSu;
+        if (data.mayMoc.length > 0) state.mayMoc = data.mayMoc;
+        if (data.vatLieu.length > 0) state.vatLieu = data.vatLieu;
+        if (data.thiNghiem.length > 0) state.thiNghiem = data.thiNghiem;
+
+        await saveState();
+        renderContent();
+        
+        updateLog("✓ Đã nhập dữ liệu từ văn bản thành công!");
+        showToast("Đã khôi phục dữ liệu từ văn bản!", "success");
+    } catch (e) {
+        updateLog("Lỗi nhập liệu: " + e.message);
+        showToast("Không thể nhập dữ liệu từ văn bản", "error");
     }
 }
 
@@ -792,6 +821,7 @@ function registerEvents() {
     document.getElementById('btnCapNhat').onclick = onCapNhatClick;
     document.getElementById('btnTach').onclick = onTachClick;
     document.getElementById('btnXuat').onclick = onXuatClick;
+    document.getElementById('btnImportFromDoc').onclick = onImportFromDocClick;
 
     // Tự động thay đổi chiều cao textarea khi nhập liệu
     document.addEventListener('input', function(e) {
