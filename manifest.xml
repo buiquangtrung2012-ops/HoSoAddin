@@ -4,7 +4,7 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
     xsi:type="TaskPaneApp">
     <Id>f3e2d1c0-b9a8-47d6-8421-5a6b7c8d9e0f</Id>
-    <Version>1.0.0.11</Version>
+    <Version>1.0.0.12</Version>
     <ProviderName>HoSoAddin</ProviderName>
     <DefaultLocale>en-US</DefaultLocale>
     <DisplayName DefaultValue="Quản Lý Hồ Sơ (NEW)" />
