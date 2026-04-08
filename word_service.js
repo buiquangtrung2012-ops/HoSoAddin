@@ -878,7 +878,7 @@ export const WordService = {
                 "NgayHoanThanh": ["NgayHoanThanh", "ngayHoanThanh", "NgayHT", "EndDate"]
             };
 
-            const inventory = { tags: [], tables: [] };
+            const inventory = { tags: [], tables: [], variables: [] };
 
             controls.items.forEach(ctrl => {
                 inventory.tags.push({ tag: ctrl.tag, text: ctrl.text });
@@ -886,7 +886,7 @@ export const WordService = {
                 // Khớp dữ liệu dự án qua bộ lọc Alias
                 for (const [key, aliases] of Object.entries(fullTagMap)) {
                     if (aliases.some(a => a.toLowerCase() === (ctrl.tag || "").toLowerCase())) {
-                        if (ctrl.text && ctrl.text.trim().length > 0) {
+                        if (ctrl.text && ctrl.text.trim().length > 0 && ctrl.text.trim() !== " " && !ctrl.text.includes("<<")) {
                             const internalKey = {
                                 "DuAn": "tenDuAn",
                                 "GoiThau": "goiThau",
@@ -901,6 +901,30 @@ export const WordService = {
                     }
                 }
             });
+
+            // 1.1 Đọc Document Variables (Phòng trường hợp file cũ dùng DOCVARIABLE)
+            try {
+                const docVars = context.document.variables;
+                docVars.load("items/name,items/value");
+                await context.sync();
+                docVars.items.forEach(v => {
+                    inventory.variables.push({ name: v.name, value: v.value });
+                    for (const [key, aliases] of Object.entries(fullTagMap)) {
+                        if (aliases.some(a => a.toLowerCase() === v.name.toLowerCase())) {
+                            const internalKey = {
+                                "DuAn": "tenDuAn", "GoiThau": "goiThau", "DVTC": "dvtc", 
+                                "DaiDienCDT": "daiDienCDT", "TVGS": "tvgs", 
+                                "NgayKhoiCong": "ngayKhoiCong", "NgayHoanThanh": "ngayHoanThanh"
+                            }[key];
+                            if (!result.duAn[internalKey] && v.value && v.value.trim().length > 0) {
+                                result.duAn[internalKey] = v.value.trim();
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.log("DocVars not supported or empty");
+            }
 
             // 2. Đọc Tables (Danh sách dữ liệu)
             const tables = context.document.tables;
