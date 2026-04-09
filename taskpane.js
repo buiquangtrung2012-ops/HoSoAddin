@@ -294,7 +294,8 @@ function renderList(container, type) {
         config.fields.forEach((field, i) => {
             if (field === 'stt') return;
             const val = item[i] || '';
-            const placeholder = MockData[type] && MockData[type][0] && MockData[type][0][i] ? `VD: ${MockData[type][0][i]}` : '';
+            const mockArray = MockData[type] && MockData[type][0] ? MockData[type][0] : [];
+            const placeholder = mockArray[i] ? `VD: ${mockArray[i]}` : config.labels[i];
             
             let inputElement;
             
@@ -878,17 +879,17 @@ function registerEvents() {
             return;
         }
 
-        updateLog("Đang nạp dữ liệu mẫu...");
+        updateLog("Đang xóa trắng và chuẩn bị các ví dụ mờ...");
         try {
-            // Reset to MockData instead of empty
-            if (!MockData || !MockData.duAn) {
-                throw new Error("Dữ liệu mẫu (MockData.duAn) không tồn tại hoặc chưa được nạp.");
-            }
-            state.duAn = JSON.parse(JSON.stringify(MockData.duAn));
-            state.nhanSu = JSON.parse(JSON.stringify(MockData.nhanSu));
-            state.mayMoc = JSON.parse(JSON.stringify(MockData.mayMoc));
-            state.vatLieu = JSON.parse(JSON.stringify(MockData.vatLieu));
-            state.thiNghiem = JSON.parse(JSON.stringify(MockData.thiNghiem));
+            // Thay vì nạp MockData vào state, chúng ta reset state về rỗng
+            // Điều này sẽ làm cho các Placeholder (chữ mờ) hiện lên
+            state.duAn = {
+                tenDuAn: "", goiThau: "", dvtc: "", daiDienCDT: "", tvgs: "", ngayKhoiCong: "", ngayHoanThanh: ""
+            };
+            state.nhanSu = [];
+            state.mayMoc = [];
+            state.vatLieu = [];
+            state.thiNghiem = [];
             
             state.soHDForExport = "";
             state.hasExportedMaster = false;
@@ -897,8 +898,8 @@ function registerEvents() {
             await saveState();
             renderContent();
             lucide.createIcons();
-            showToast("Đã nạp dữ liệu mẫu thành công!", "success");
-            updateLog("✓ Đã hoàn thành nạp lại dữ liệu mẫu.");
+            showToast("Đã làm mới dữ liệu và hiển thị ghi chú mờ!", "success");
+            updateLog("✓ Đã hoàn thành khởi tạo lại giao diện mẫu.");
         } catch (err) {
             showToast("Lỗi khi xóa dữ liệu: " + err.message, "error");
         }
