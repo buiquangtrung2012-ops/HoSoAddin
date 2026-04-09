@@ -44,9 +44,16 @@ Office.onReady(async (info) => {
 });
 
 async function initializeApp() {
-    await loadState();
-    registerEvents();
-    switchTab('duAn');
+    try {
+        updateLog("Đang khởi tạo hệ thống...");
+        await loadState();
+        registerEvents();
+        switchTab('duAn');
+        updateLog("Hệ thống sẵn sàng");
+    } catch (e) {
+        console.error("Lỗi khởi tạo:", e);
+        updateLog("Lỗi khởi tạo: " + e.message);
+    }
 }
 
 // --- DATA & STATE ---
@@ -112,26 +119,37 @@ function switchTab(tabId) {
 }
 
 function renderContent() {
-    const container = document.getElementById('tabContent');
-    container.innerHTML = "";
-    
-    if (state.currentTab === 'duAn') {
-        renderProjectForm(container);
-    } else if (state.currentTab === 'xuatBan') {
-        renderExportSettings(container);
-    } else {
-        renderList(container, state.currentTab);
+    try {
+        const container = document.getElementById('tabContent');
+        if (!container) return;
+        container.innerHTML = "";
+        
+        if (state.currentTab === 'duAn') {
+            renderProjectForm(container);
+        } else if (state.currentTab === 'xuatBan') {
+            renderExportSettings(container);
+        } else {
+            renderList(container, state.currentTab);
+        }
+        
+        // Tự động căn chỉnh lại độ cao cho các textarea khi load dữ liệu
+        setTimeout(() => {
+            document.querySelectorAll('textarea').forEach(ta => {
+                ta.style.height = 'auto';
+                const newHeight = Math.min(ta.scrollHeight, 150);
+                ta.style.height = newHeight + 'px';
+                ta.style.overflowY = ta.scrollHeight > 150 ? 'auto' : 'hidden';
+            });
+        }, 50);
+    } catch (e) {
+        console.error("Lỗi render:", e);
+        const container = document.getElementById('tabContent');
+        if (container) {
+            container.innerHTML = `<div class="p-5 text-red-600 bg-red-50 rounded-xl border border-red-100 text-sm">
+                <strong>Đã xảy ra lỗi khi hiển thị:</strong><br>${e.message}
+            </div>`;
+        }
     }
-    
-    // Tự động căn chỉnh lại độ cao cho các textarea khi load dữ liệu
-    setTimeout(() => {
-        document.querySelectorAll('textarea').forEach(ta => {
-            ta.style.height = 'auto';
-            const newHeight = Math.min(ta.scrollHeight, 150);
-            ta.style.height = newHeight + 'px';
-            ta.style.overflowY = ta.scrollHeight > 150 ? 'auto' : 'hidden';
-        });
-    }, 50);
 }
 
 function renderProjectForm(container) {
@@ -143,7 +161,10 @@ function renderProjectForm(container) {
         const div = document.createElement("div");
         const isDate = field === 'ngayKhoiCong' || field === 'ngayHoanThanh';
         const extraClass = isDate ? 'date-picker-input' : '';
-        const placeholder = `VD: ${MockData.duAn[field] || config.labels[i]}`;
+        
+        // Safety check for MockData
+        const mockVal = (MockData && MockData.duAn) ? MockData.duAn[field] : null;
+        const placeholder = `VD: ${mockVal || config.labels[i]}`;
         
         if (isDate) {
             div.innerHTML = `
@@ -860,6 +881,9 @@ function registerEvents() {
         updateLog("Đang nạp dữ liệu mẫu...");
         try {
             // Reset to MockData instead of empty
+            if (!MockData || !MockData.duAn) {
+                throw new Error("Dữ liệu mẫu (MockData.duAn) không tồn tại hoặc chưa được nạp.");
+            }
             state.duAn = JSON.parse(JSON.stringify(MockData.duAn));
             state.nhanSu = JSON.parse(JSON.stringify(MockData.nhanSu));
             state.mayMoc = JSON.parse(JSON.stringify(MockData.mayMoc));
