@@ -287,7 +287,7 @@ export const WordService = {
                     headerRow.cells.items.forEach(cell => {
                         try {
                             cell.body.paragraphs.items.forEach(p => {
-                                p.alignment = Word.Alignment.centered;
+                                p.alignment = "Centered";
                             });
                         } catch (e) {
                             console.warn("Lỗi căn lề header cell:", e);
@@ -351,18 +351,19 @@ export const WordService = {
                     
                     table.rows.items.forEach((row, rIdx) => {
                         row.cells.items.forEach((cell, cIdx) => {
-                            let alignment = "left"; // Default: left
+                            let cellAlignment = "Left"; 
                             const headerText = headerTexts[cIdx] || "";
 
+                            // Logic: Hàng đầu luôn Center, các hàng sau tùy cột
                             if (rIdx === 0) {
-                                alignment = Word.Alignment.centered;
+                                cellAlignment = "Centered";
                             } else if (justifiedColumns.some(kw => headerText.includes(kw))) {
-                                alignment = Word.Alignment.justified;
+                                cellAlignment = "Justified";
                             }
 
                             try {
                                 cell.body.paragraphs.items.forEach(p => {
-                                    p.alignment = alignment;
+                                    p.alignment = cellAlignment;
                                 });
                             } catch (e) {
                                 console.warn(`Lỗi alignment tại hàng ${rIdx} cột ${cIdx}`, e);
