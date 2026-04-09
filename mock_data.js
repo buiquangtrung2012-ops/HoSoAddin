@@ -16,5 +16,14 @@ export const MockData = {
     ],
     thiNghiem: [
         ["1", "Công ty thí nghiệm", "xã AV, tỉnh BC", "LAS-XD 123  ", "Thí nghiệm xây dựng"],
-    ]
+    ],
+    duAn: {
+        tenDuAn: "Dự án đầu tư xây dựng hạ tầng kỹ thuật Khu đô thị mới Kim Chung - Di Trạch",
+        goiThau: "Gói thầu số 08: Thi công hệ thống thoát nước mưa và xử lý nước thải",
+        dvtc: "Công ty Cổ phần Tập đoàn Xây dựng Minh Hòa",
+        daiDienCDT: "Ban Quản lý dự án đầu tư xây dựng huyện Hoài Đức",
+        tvgs: "Công ty TNHH Tư vấn thiết kế và Giám sát xây dựng Thăng Long",
+        ngayKhoiCong: "01/01/2026",
+        ngayHoanThanh: "31/12/2026"
+    }
 };
