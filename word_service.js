@@ -351,7 +351,7 @@ export const WordService = {
                     
                     table.rows.items.forEach((row, rIdx) => {
                         row.cells.items.forEach((cell, cIdx) => {
-                            let cellAlignment = "Left"; 
+                            let cellAlignment = "Centered"; 
                             const headerText = headerTexts[cIdx] || "";
 
                             // Logic: Hàng đầu luôn Center, các hàng sau tùy cột
