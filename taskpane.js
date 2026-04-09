@@ -143,16 +143,17 @@ function renderProjectForm(container) {
         const div = document.createElement("div");
         const isDate = field === 'ngayKhoiCong' || field === 'ngayHoanThanh';
         const extraClass = isDate ? 'date-picker-input' : '';
+        const placeholder = `VD: ${MockData.duAn[field] || config.labels[i]}`;
         
         if (isDate) {
             div.innerHTML = `
                 <label class="text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">${config.labels[i]}</label>
-                <input type="text" spellcheck="false" data-field="${field}" value="${state.duAn[field] || ''}" class="input-field project-input ${extraClass}" placeholder="Nhấp để chọn ngày">
+                <input type="text" spellcheck="false" data-field="${field}" value="${state.duAn[field] || ''}" class="input-field project-input ${extraClass}" placeholder="${placeholder}">
             `;
         } else {
             div.innerHTML = `
                 <label class="text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">${config.labels[i]}</label>
-                <textarea spellcheck="false" data-field="${field}" class="input-field project-input resize-y py-2 w-full" style="height: auto; min-height: 2.5rem;" rows="1">${state.duAn[field] || ''}</textarea>
+                <textarea spellcheck="false" data-field="${field}" class="input-field project-input resize-y py-2 w-full" style="height: auto; min-height: 2.5rem;" rows="1" placeholder="${placeholder}">${state.duAn[field] || ''}</textarea>
             `;
         }
         form.appendChild(div);
@@ -272,6 +273,7 @@ function renderList(container, type) {
         config.fields.forEach((field, i) => {
             if (field === 'stt') return;
             const val = item[i] || '';
+            const placeholder = MockData[type] && MockData[type][0] && MockData[type][0][i] ? `VD: ${MockData[type][0][i]}` : '';
             
             let inputElement;
             
@@ -288,6 +290,7 @@ function renderList(container, type) {
                 inputElement.type = 'number';
                 inputElement.min = '0';
                 inputElement.className = 'w-full border border-slate-200 rounded px-2 py-1 text-xs bg-white text-center h-8 cursor-pointer';
+                inputElement.placeholder = placeholder;
             } else {
                 // Sử dụng Textarea cho tất cả các trường nhập liệu để hỗ trợ multiline
                 inputElement = document.createElement('textarea');
@@ -296,6 +299,7 @@ function renderList(container, type) {
                 inputElement.className = 'w-full border border-slate-200 rounded px-1 py-1 text-xs bg-white resize-y custom-scrollbar';
                 inputElement.style.minHeight = '1.75rem';
                 inputElement.style.maxHeight = '150px';
+                inputElement.placeholder = placeholder;
             }
             
             inputElement.value = val;
@@ -853,14 +857,15 @@ function registerEvents() {
             return;
         }
 
-        updateLog("Đang khởi tạo lại dữ liệu...");
+        updateLog("Đang nạp dữ liệu mẫu...");
         try {
-            // Reset to empty state
-            state.duAn = { tenDuAn: "", goiThau: "", dvtc: "", daiDienCDT: "", tvgs: "", ngayKhoiCong: "", ngayHoanThanh: "" };
-            state.nhanSu = [];
-            state.mayMoc = [];
-            state.vatLieu = [];
-            state.thiNghiem = [];
+            // Reset to MockData instead of empty
+            state.duAn = JSON.parse(JSON.stringify(MockData.duAn));
+            state.nhanSu = JSON.parse(JSON.stringify(MockData.nhanSu));
+            state.mayMoc = JSON.parse(JSON.stringify(MockData.mayMoc));
+            state.vatLieu = JSON.parse(JSON.stringify(MockData.vatLieu));
+            state.thiNghiem = JSON.parse(JSON.stringify(MockData.thiNghiem));
+            
             state.soHDForExport = "";
             state.hasExportedMaster = false;
             state.hasSplitFiles = false;
@@ -868,8 +873,8 @@ function registerEvents() {
             await saveState();
             renderContent();
             lucide.createIcons();
-            showToast("Đã xóa sạch dữ liệu Add-in!", "success");
-            updateLog("✓ Đã hoàn thành khởi tạo lại dữ liệu dự án.");
+            showToast("Đã nạp dữ liệu mẫu thành công!", "success");
+            updateLog("✓ Đã hoàn thành nạp lại dữ liệu mẫu.");
         } catch (err) {
             showToast("Lỗi khi xóa dữ liệu: " + err.message, "error");
         }
