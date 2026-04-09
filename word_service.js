@@ -277,7 +277,7 @@ export const WordService = {
 
                     // Bước 3: Căn lề an toàn - Ưu tiên Bookmark (Nuclear V5)
                     const headerRow = targetTable.rows.getFirst();
-                    headerRow.cells.load("items/body/text");
+                    headerRow.cells.load("items/body/paragraphs");
                     await context.sync();
                     
                     const headerTexts = headerRow.cells.items.map(cell => WordService.normalizeTextForSearch(cell.body.text || ""));
@@ -287,9 +287,11 @@ export const WordService = {
                     headerRow.cells.items.forEach(cell => {
                         try {
                             cell.body.paragraphs.items.forEach(p => {
-                                p.alignment = "centered";
+                                p.alignment = Word.Alignment.centered;
                             });
-                        } catch (e) {}
+                        } catch (e) {
+                            console.warn("Lỗi căn lề header cell:", e);
+                        }
                     });
 
                     logger(`✓ Hoàn tất định dạng ${bookmarkName}`);
@@ -352,16 +354,19 @@ export const WordService = {
                             let alignment = "left"; // Default: left
                             const headerText = headerTexts[cIdx] || "";
 
-                            // Căn justified chỉ cho 5 cột yêu cầu
-                            if (justifiedColumns.some(kw => headerText.includes(kw))) {
-                                alignment = "justified";
+                            if (rIdx === 0) {
+                                alignment = Word.Alignment.centered;
+                            } else if (justifiedColumns.some(kw => headerText.includes(kw))) {
+                                alignment = Word.Alignment.justified;
                             }
 
                             try {
                                 cell.body.paragraphs.items.forEach(p => {
                                     p.alignment = alignment;
                                 });
-                            } catch (e) {}
+                            } catch (e) {
+                                console.warn(`Lỗi alignment tại hàng ${rIdx} cột ${cIdx}`, e);
+                            }
                         });
                     });
                     await context.sync();
