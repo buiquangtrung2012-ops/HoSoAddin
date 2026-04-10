@@ -1064,14 +1064,26 @@ function updateLog(m, progress = undefined) {
     document.getElementById('logMsg').innerText = m; 
     const progressContainer = document.getElementById('loadingProgressContainer');
     const progressBar = document.getElementById('loadingProgressBar');
+    const progressText = document.getElementById('loadingProgressText');
     if (progressContainer && progressBar) {
         if (progress !== undefined) {
-            progressContainer.style.opacity = '1';
+            progressContainer.classList.remove('hidden');
+            progressContainer.classList.add('flex');
+            // Allow DOM to process the display change before fading in
+            setTimeout(() => { progressContainer.style.opacity = '1'; }, 10);
+            
             progressBar.style.width = `${progress}%`;
+            if (progressText) progressText.innerText = `${Math.floor(progress)}%`;
+            
             if (progress >= 100) {
                 setTimeout(() => {
                     progressContainer.style.opacity = '0';
-                    setTimeout(() => { progressBar.style.width = '0%'; }, 300);
+                    setTimeout(() => { 
+                        progressContainer.classList.remove('flex');
+                        progressContainer.classList.add('hidden');
+                        progressBar.style.width = '0%'; 
+                        if (progressText) progressText.innerText = '0%';
+                    }, 300);
                 }, 2000);
             }
         }
