@@ -316,6 +316,9 @@ export const WordService = {
                                 }
                             }
 
+                            // Đảm bảo màu nền: Chỉ hàng đầu tiên có màu xám nhạt, còn lại là trắng (null)
+                            cell.shadingColor = (rIdx === 0) ? "#F1F5F9" : null;
+
                             try {
                                 cell.body.paragraphs.items.forEach(p => {
                                     p.alignment = cellAlignment;
