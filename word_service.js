@@ -196,49 +196,65 @@ export const WordService = {
                     
                     targetTable.load("rows/items");
                     await context.sync();
-                    targetTable.rows.items.forEach((currentRow, rIdx) => {
-                        if (!currentRow) return;
-                        currentRow.font.bold = (rIdx === 0);
-                    });
 
-                    // Bước 3: Căn lề an toàn (Integrated Alignment) - Chỉ áp dụng cho bảng hiện tại
-                    const justifiedColumns = ["ho va ten", "ten thiet bi", "ten vat tu", "tieu chuan", "don vi thi nghiem"];
+                    // Bước 3: Định dạng nâng cao (Alignment & Styling)
+                    // Danh sách từ khóa để Căn đều (Justified) - Giúp văn bản dài trông chuyên nghiệp hơn
+                    const justifiedKeywords = [
+                        "ho va ten", "nhan su", "thiet bi", "xe may", "vat tu", "vat lieu", 
+                        "tieu chuan", "ghi chu", "don vi", "noi dung", "dia diem", "pham vi"
+                    ];
                     
                     // Load headers để xác định cột nào cần justified
                     const headerRow = targetTable.rows.items[0];
                     headerRow.cells.load("items/body/text");
+                    headerRow.font.bold = true;
                     await context.sync();
+                    
                     const headerTexts = headerRow.cells.items.map(cell => WordService.normalizeTextForSearch(cell.body.text || ""));
 
-                    // Load cells và paragraphs cho toàn bộ các hàng để định dạng
-                    targetTable.rows.items.forEach(row => {
+                    // Áp dụng định dạng cho từng hàng
+                    targetTable.rows.items.forEach((row, rIdx) => {
                         row.cells.load("items/body/paragraphs/items");
+                        // WordTableRow không hỗ trợ verticalAlignment trực tiếp cho tất cả cells, ta sẽ set từng cell
                     });
                     await context.sync();
 
                     targetTable.rows.items.forEach((row, rIdx) => {
                         row.cells.items.forEach((cell, cIdx) => {
+                            // Mặc định: Hàng đầu Center, các hàng sau tùy cột
                             let cellAlignment = "Centered"; 
                             const headerText = headerTexts[cIdx] || "";
+                            
+                            // Căn giữa theo phương dọc cho đẹp
+                            cell.verticalAlignment = "Center"; 
 
-                            // Logic: Hàng đầu luôn Center, các hàng sau tùy theo nội dung cột
                             if (rIdx === 0) {
                                 cellAlignment = "Centered";
-                            } else if (justifiedColumns.some(kw => headerText.includes(kw))) {
-                                cellAlignment = "Justified";
+                                cell.shadingColor = "#F8FAFC"; // Light slate for header
+                            } else {
+                                // Nếu header chứa từ khóa cần căn đều
+                                if (justifiedKeywords.some(kw => headerText.includes(kw))) {
+                                    cellAlignment = "Justified";
+                                } else if (cIdx === 0) {
+                                    cellAlignment = "Centered"; // Cột STT thường căn giữa
+                                } else {
+                                    cellAlignment = "Centered";
+                                }
                             }
 
                             try {
                                 cell.body.paragraphs.items.forEach(p => {
                                     p.alignment = cellAlignment;
+                                    p.spaceBefore = 2; // Khoảng cách nhỏ cho dễ nhìn
+                                    p.spaceAfter = 2;
                                 });
                             } catch (e) {
-                                console.warn(`Lỗi căn lề tại hàng ${rIdx} cột ${cIdx}:`, e);
+                                console.warn(`Lỗi căn lề: ${e.message}`);
                             }
                         });
                     });
 
-                    logger(`✓ Hoàn tất định dạng ${bookmarkName}`);
+                    logger(`✓ Đã định dạng và căn lề bảng ${bookmarkName}`);
                 }
 
                 await context.sync();
