@@ -175,16 +175,18 @@
             .project-grid-container {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
+
             .field-full-width {
                 grid-column: span 2 / span 2;
             }
         }
 
-        /* Khi cửa sổ RỘNG (> 480px): 1 cột duy nhất chiếm trọn chiều ngang */
+        /* Khi cửa sổ RỘNG (> 320px): 1 cột duy nhất chiếm trọn chiều ngang */
         @media (min-width: 321px) {
             .project-grid-container {
                 grid-template-columns: repeat(1, minmax(0, 1fr));
             }
+
             .field-full-width {
                 grid-column: span 1 / span 1;
             }
@@ -195,33 +197,40 @@
 <body class="flex h-screen overflow-hidden bg-white">
 
     <!-- Vertical Navigation Sidebar -->
-    <nav class="w-16 sm:w-20 bg-slate-900 flex flex-col items-center py-6 gap-6 z-20 shadow-xl border-r border-slate-800">
+    <nav
+        class="w-16 sm:w-20 bg-slate-900 flex flex-col items-center py-6 gap-6 z-20 shadow-xl border-r border-slate-800">
         <div class="mb-4 text-indigo-400">
             <i data-lucide="layers" size="28"></i>
         </div>
-        
+
         <div class="flex flex-col gap-2 w-full px-2">
-            <button data-tab="duAn" class="tab-btn active group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
+            <button data-tab="duAn"
+                class="tab-btn active group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
                 <i data-lucide="home" size="20"></i>
                 <span class="text-[9px] font-bold uppercase tracking-tight">Dự án</span>
             </button>
-            <button data-tab="nhanSu" class="tab-btn group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
+            <button data-tab="nhanSu"
+                class="tab-btn group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
                 <i data-lucide="users" size="20"></i>
                 <span class="text-[9px] font-bold uppercase tracking-tight">Nhân sự</span>
             </button>
-            <button data-tab="mayMoc" class="tab-btn group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
+            <button data-tab="mayMoc"
+                class="tab-btn group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
                 <i data-lucide="truck" size="20"></i>
                 <span class="text-[9px] font-bold uppercase tracking-tight">Máy móc</span>
             </button>
-            <button data-tab="vatLieu" class="tab-btn group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
+            <button data-tab="vatLieu"
+                class="tab-btn group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
                 <i data-lucide="package" size="20"></i>
                 <span class="text-[9px] font-bold uppercase tracking-tight">Vật liệu</span>
             </button>
-            <button data-tab="thiNghiem" class="tab-btn group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
+            <button data-tab="thiNghiem"
+                class="tab-btn group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
                 <i data-lucide="microscope" size="20"></i>
                 <span class="text-[9px] font-bold uppercase tracking-tight">Phòng TN</span>
             </button>
-            <button data-tab="xuatBan" class="tab-btn group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
+            <button data-tab="xuatBan"
+                class="tab-btn group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
                 <i data-lucide="settings" size="20"></i>
                 <span class="text-[9px] font-bold uppercase tracking-tight">Cài đặt</span>
             </button>
@@ -235,10 +244,11 @@
             <div class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
                 onclick="window.location.href = window.location.pathname.split('?')[0] + '?t=' + new Date().getTime()"
                 title="Click vào đây để ép tải lại bản mới nhất (Bỏ qua Cache Github)">
-                <h1 class="text-sm font-black uppercase tracking-tighter text-slate-800" style="font-family: inherit;">Hồ Sơ Dự Án</h1>
+                <h1 class="text-sm font-black uppercase tracking-tighter text-slate-800" style="font-family: inherit;">
+                    Hồ Sơ Dự Án</h1>
                 <div id="statusInfo"
                     class="text-[10px] font-bold px-2 py-1 bg-slate-100 rounded-full text-slate-500 uppercase tracking-widest">
-                    v10042026.1522</div>
+                    v10042026.1548</div>
             </div>
         </header>
 
@@ -253,23 +263,28 @@
         <!-- Footer Action -->
         <footer class="bg-white border-t border-slate-100 p-4 shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
             <div class="grid grid-cols-2 gap-3 max-w-sm mx-auto">
-                <button id="btnCapNhat" class="btn-modern bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200">
+                <button id="btnCapNhat"
+                    class="btn-modern bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200">
                     <i data-lucide="refresh-cw" size="18"></i> CẬP NHẬT
                 </button>
-                <button id="btnSplit" class="btn-modern bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200">
+                <button id="btnSplit"
+                    class="btn-modern bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200">
                     <i data-lucide="split" size="18"></i> TÁCH HỒ SƠ
                 </button>
                 <button id="btnExport" class="btn-modern bg-slate-800 text-white hover:bg-slate-900 shadow-slate-200">
                     <i data-lucide="file-text" size="18"></i> XUẤT HỒ SƠ TỔNG
                 </button>
-                <button id="btnImportDoc" class="btn-modern bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200">
+                <button id="btnImportDoc"
+                    class="btn-modern bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200">
                     <i data-lucide="cloud-download" size="18"></i> NHẬP DỮ LIỆU
                 </button>
-                <button id="btnResetFooter" class="btn-modern col-span-2 bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 py-2">
+                <button id="btnResetFooter"
+                    class="btn-modern col-span-2 bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 py-2">
                     <i data-lucide="rotate-ccw" size="16"></i> KHỞI TẠO LẠI DỮ LIỆU
                 </button>
             </div>
-            <div id="logMsg" class="mt-3 text-[11px] text-slate-400 font-semibold italic text-center tracking-wide">Hệ thống sẵn sàng</div>
+            <div id="logMsg" class="mt-3 text-[11px] text-slate-400 font-semibold italic text-center tracking-wide">Hệ
+                thống sẵn sàng</div>
         </footer>
     </div>
 
@@ -290,7 +305,8 @@
                 <button id="btnModalCancel"
                     class="flex-1 h-12 bg-slate-100 text-slate-600 font-bold rounded-xl text-sm hover:bg-slate-200">Hủy</button>
                 <button id="btnModalSave"
-                    class="flex-2 h-12 bg-indigo-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700">LƯU LẠI</button>
+                    class="flex-2 h-12 bg-indigo-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700">LƯU
+                    LẠI</button>
             </div>
         </div>
     </div>
@@ -306,7 +322,8 @@
             <div class="flex justify-end gap-2">
                 <button id="projectNameCancel"
                     class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-bold">Hủy</button>
-                <button id="projectNameConfirm" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-bold">Xác nhận</button>
+                <button id="projectNameConfirm" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-bold">Xác
+                    nhận</button>
             </div>
             <div id="projectNameError" class="mt-2 text-xs text-red-500 hidden">Tên không được để trống.</div>
         </div>
@@ -328,8 +345,10 @@
                 <em>Lưu ý: Thao tác này sẽ ghi đè dữ liệu hiện có trong Add-in.</em>
             </p>
             <div class="flex justify-end gap-2">
-                <button id="resetDataCancel" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-bold">Hủy bỏ</button>
-                <button id="resetDataConfirm" class="px-4 py-2 rounded-lg bg-red-600 text-white font-bold">Khởi tạo lại dữ liệu</button>
+                <button id="resetDataCancel" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-bold">Hủy
+                    bỏ</button>
+                <button id="resetDataConfirm" class="px-4 py-2 rounded-lg bg-red-600 text-white font-bold">Khởi tạo lại
+                    dữ liệu</button>
             </div>
         </div>
     </div>
@@ -338,12 +357,3 @@
 </body>
 
 </html>
-
-
-
-
-
-
-
-
-
