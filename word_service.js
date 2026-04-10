@@ -269,29 +269,46 @@ export const WordService = {
                     
                     targetTable.load("rows/items");
                     await context.sync();
-
                     targetTable.rows.items.forEach((currentRow, rIdx) => {
                         if (!currentRow) return;
                         currentRow.font.bold = (rIdx === 0);
                     });
 
-                    // Bước 3: Căn lề an toàn - Ưu tiên Bookmark (Nuclear V5)
-                    const headerRow = targetTable.rows.getFirst();
-                    headerRow.cells.load("items/body/paragraphs");
-                    await context.sync();
+                    // Bước 3: Căn lề an toàn (Integrated Alignment) - Chỉ áp dụng cho bảng hiện tại
+                    const justifiedColumns = ["ho va ten", "ten thiet bi", "ten vat tu", "tieu chuan", "don vi thi nghiem"];
                     
+                    // Load headers để xác định cột nào cần justified
+                    const headerRow = targetTable.rows.items[0];
+                    headerRow.cells.load("items/body/text");
+                    await context.sync();
                     const headerTexts = headerRow.cells.items.map(cell => WordService.normalizeTextForSearch(cell.body.text || ""));
-                    const bmLower = (bookmarkName || "").toLowerCase();
 
-                    // Căn giữa các tiêu đề cột mặc định, nhất là Họ và tên / Tên thiết bị / Tên vật tư / Tiêu chuẩn
-                    headerRow.cells.items.forEach(cell => {
-                        try {
-                            cell.body.paragraphs.items.forEach(p => {
-                                p.alignment = "Centered";
-                            });
-                        } catch (e) {
-                            console.warn("Lỗi căn lề header cell:", e);
-                        }
+                    // Load cells và paragraphs cho toàn bộ các hàng để định dạng
+                    targetTable.rows.items.forEach(row => {
+                        row.cells.load("items/body/paragraphs/items");
+                    });
+                    await context.sync();
+
+                    targetTable.rows.items.forEach((row, rIdx) => {
+                        row.cells.items.forEach((cell, cIdx) => {
+                            let cellAlignment = "Centered"; 
+                            const headerText = headerTexts[cIdx] || "";
+
+                            // Logic: Hàng đầu luôn Center, các hàng sau tùy theo nội dung cột
+                            if (rIdx === 0) {
+                                cellAlignment = "Centered";
+                            } else if (justifiedColumns.some(kw => headerText.includes(kw))) {
+                                cellAlignment = "Justified";
+                            }
+
+                            try {
+                                cell.body.paragraphs.items.forEach(p => {
+                                    p.alignment = cellAlignment;
+                                });
+                            } catch (e) {
+                                console.warn(`Lỗi căn lề tại hàng ${rIdx} cột ${cIdx}:`, e);
+                            }
+                        });
                     });
 
                     logger(`✓ Hoàn tất định dạng ${bookmarkName}`);
@@ -306,74 +323,6 @@ export const WordService = {
                 if (typeof updateLog === "function") {
                     updateLog(`⚠️ Lỗi tại bảng ${bookmarkName || keyword}: ${globalTableErr.message}`);
                 }
-            }
-        });
-    },
-
-    /**
-     * Format căn lề bảng sau khi đã có dữ liệu
-     */
-    applyTableAlignment: async () => {
-        await Word.run(async (context) => {
-            try {
-                const tables = context.document.tables;
-                tables.load("items");
-                await context.sync();
-
-                for (let tIdx = 0; tIdx < tables.items.length; tIdx++) {
-                    const table = tables.items[tIdx];
-                    const firstRow = table.rows.getFirst();
-                    firstRow.cells.load("items/body/text");
-                    await context.sync();
-
-                    const headerTexts = firstRow.cells.items.map(cell => 
-                        WordService.normalizeTextForSearch(cell.body.text || "")
-                    );
-
-                    // Load tất cả rows và paragraphs
-                    table.rows.load("items");
-                    await context.sync();
-
-                    table.rows.items.forEach((row, rIdx) => {
-                        row.cells.load("items");
-                    });
-                    await context.sync();
-
-                    table.rows.items.forEach((row, rIdx) => {
-                        row.cells.items.forEach(cell => {
-                            cell.body.paragraphs.load("items");
-                        });
-                    });
-                    await context.sync();
-
-                    // Áp dụng alignment - căn đều (justified) chỉ cho 5 cột yêu cầu
-                    const justifiedColumns = ["ho va ten", "ten thiet bi", "ten vat tu", "tieu chuan", "don vi thi nghiem"];
-                    
-                    table.rows.items.forEach((row, rIdx) => {
-                        row.cells.items.forEach((cell, cIdx) => {
-                            let cellAlignment = "Centered"; 
-                            const headerText = headerTexts[cIdx] || "";
-
-                            // Logic: Hàng đầu luôn Center, các hàng sau tùy cột
-                            if (rIdx === 0) {
-                                cellAlignment = "Centered";
-                            } else if (justifiedColumns.some(kw => headerText.includes(kw))) {
-                                cellAlignment = "Justified";
-                            }
-
-                            try {
-                                cell.body.paragraphs.items.forEach(p => {
-                                    p.alignment = cellAlignment;
-                                });
-                            } catch (e) {
-                                console.warn(`Lỗi alignment tại hàng ${rIdx} cột ${cIdx}`, e);
-                            }
-                        });
-                    });
-                    await context.sync();
-                }
-            } catch (e) {
-                console.error("applyTableAlignment error:", e.message);
             }
         });
     },
