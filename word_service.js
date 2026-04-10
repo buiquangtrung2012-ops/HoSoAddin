@@ -6,20 +6,6 @@
 /* global Word, Office, JSZip, saveAs */
 
 export const WordService = {
-    /**
-     * Thay thế Bookmark bằng Text (Dùng Search để tránh lỗi API Bookmark cũ)
-     */
-    replaceTag: async (tagName, newText) => {
-        await Word.run(async (context) => {
-            const results = context.document.search(tagName, { matchCase: false });
-            results.load("items");
-            await context.sync();
-            results.items.forEach((item) => {
-                item.insertText(newText, "Replace");
-            });
-            await context.sync();
-        });
-    },
 
     /**
      * Cập nhật thông tin dự án qua Content Controls (Chuẩn Word 2016 trở lên)
@@ -38,27 +24,6 @@ export const WordService = {
         });
     },
 
-    /**
-     * Thay thế placeholder text trong document (ví dụ <<DuAn>>)
-     */
-    replaceInDocument: async (searchText, replaceText, tag = null) => {
-        await Word.run(async (context) => {
-            const results = context.document.body.search(searchText, { matchCase: false, matchWholeWord: false });
-            results.load("items");
-            await context.sync();
-            results.items.forEach(item => {
-                const textToInsert = (replaceText && replaceText.length > 0) ? replaceText : " ";
-                const textRange = item.insertText(textToInsert, "Replace");
-                if (tag) {
-                    const cc = textRange.insertContentControl();
-                    cc.tag = tag;
-                    cc.title = tag;
-                    cc.appearance = "BoundingBox";
-                }
-            });
-            await context.sync();
-        });
-    },
 
     /**
      * Cập nhật Document Variables
@@ -179,44 +144,6 @@ export const WordService = {
                     }
                 }
 
-                // Bước 2: Fallback – quét tất cả bảng, chọn bảng theo số thứ tự từ tên bookmark
-                if (!targetTable) {
-                    const tables = context.document.tables;
-                    tables.load("items");
-                    await context.sync();
-
-                    const matchedTables = [];
-                    for (let i = 0; i < tables.items.length; i++) {
-                        const table = tables.items[i];
-                        const firstRow = table.rows.getFirst();
-                        firstRow.load("values");
-                        await context.sync();
-
-                        const rowText = firstRow.values[0].join(" ");
-                        const normRow = WordService.normalizeTextForSearch(rowText);
-                        const keywords = keyword.split('|').map(k => WordService.normalizeTextForSearch(k));
-
-                        if (keywords.some(k => normRow.includes(k))) {
-                            matchedTables.push({ table, colCount: firstRow.values[0].length });
-                        }
-                    }
-
-                    if (matchedTables.length > 0) {
-                        let matchIndex = 0;
-                        if (bookmarkName) {
-                            const match = bookmarkName.match(/(\d+)$/);
-                            if (match) {
-                                matchIndex = parseInt(match[1], 10) - 1;
-                            }
-                        }
-                        if (matchIndex >= matchedTables.length) matchIndex = matchedTables.length - 1;
-                        if (matchIndex < 0) matchIndex = 0;
-
-                        targetTable = matchedTables[matchIndex].table;
-                        targetColCount = matchedTables[matchIndex].colCount;
-                        console.log(`xuatBang: fallback tìm thấy ${matchedTables.length} bảng, chọn bảng số ${matchIndex + 1} cho ${bookmarkName}`);
-                    }
-                }
 
                 if (!targetTable || targetTable.isNullObject) {
                     logger(`✖ Không tìm thấy bảng đích cho ${bookmarkName}`);
