@@ -310,10 +310,10 @@ export const WordService = {
                                 }
                             }
 
-                            // Loại bỏ hoàn toàn màu nền (Để tất cả là trắng/không màu)
-                            cell.shadingColor = null;
+                            // Loại bỏ hoàn toàn màu nền (Sử dụng 'Clear' thay vì null để tránh lỗi InvalidArgument)
+                            try { cell.shadingColor = "Clear"; } catch(e){}
                             // Ép buộc in đậm ở mức độ Ô (Cell) - Chỉ cho tiêu đề
-                            cell.font.bold = (rIdx === 0);
+                            try { cell.font.bold = (rIdx === 0); } catch(e){}
 
                             try {
                                 cell.body.paragraphs.items.forEach(p => {
