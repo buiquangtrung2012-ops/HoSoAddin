@@ -267,7 +267,7 @@ export const WordService = {
 
                     const justifiedKeywords = [
                         "ho va ten", "nhan su", "thiet bi", "xe may", "vat tu", "vat lieu",
-                        "tieu chuan", "ghi chu", "don vi", "noi dung", "dia diem", "pham vi"
+                        "tieu chuan", "don vi", "noi dung", "dia diem", "pham vi"
                     ];
 
                     // Định dạng chi tiết sẽ được xử lý trên từng đoạn văn (Paragraph) để tránh lỗi InvalidArgument
