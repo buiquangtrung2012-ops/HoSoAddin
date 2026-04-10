@@ -32,7 +32,7 @@ const categories = {
     duAn: { title: "Dự án", fields: ["tenDuAn", "goiThau", "dvtc", "daiDienCDT", "tvgs", "ngayKhoiCong", "ngayHoanThanh"], labels: ["Tên dự án", "Tên gói thầu", "Đơn vị thi công", "Đại diện CDT", "Tư vấn giám sát", "Ngày khởi công", "Ngày hoàn thành"] },
     nhanSu: { title: "Nhân sự", fields: ["stt", "name", "role", "major", "phone"], labels: ["STT", "Họ và tên", "Chức danh", "Chuyên ngành", "Số điện thoại"] },
     mayMoc: { title: "Máy móc", fields: ["stt", "name", "unit", "qty", "owner", "status"], labels: ["STT", "Tên thiết bị", "Đơn vị tính", "Số lượng", "Chủ sở hữu", "Hình thức"] },
-    vatLieu: { title: "Vật liệu", fields: ["stt", "name", "standard", "origin", "note"], labels: ["STT", "Tên vật tư", "Tiêu chuẩn", "Nguồn gốc", "Ghi chú"] },
+    vatLieu: { title: "Vật liệu", fields: ["stt", "name", "standard", "origin", "note"], labels: ["STT", "Tên vật tư", "Thông số/Tiêu chuẩn", "Nguồn gốc", "Đơn vị cung cấp"] },
     thiNghiem: { title: "Phòng TN", fields: ["stt", "dvtn", "address", "ptn", "func"], labels: ["STT", "Đơn vị TN", "Địa chỉ", "Tên phòng TN", "Chức năng"] }
 };
 
