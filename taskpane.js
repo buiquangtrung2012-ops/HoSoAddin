@@ -1063,7 +1063,8 @@ function openResetDataModal() {
 }
 
 function updateLog(m, progress = undefined) { 
-    document.getElementById('logMsg').innerText = m; 
+    const logMsgElem = document.getElementById('logMsg');
+    if (logMsgElem) logMsgElem.innerText = m; 
     const progressContainer = document.getElementById('loadingProgressContainer');
     const progressBar = document.getElementById('loadingProgressBar');
     const progressText = document.getElementById('loadingProgressText');
