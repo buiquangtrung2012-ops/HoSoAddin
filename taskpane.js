@@ -621,6 +621,8 @@ async function syncDataToWord() {
     // Bookmark bmTenDuAn đã được thay thế hoàn toàn bằng Content Control (tag DuAn)
     
     // 2. Cập nhật Bảng (Table Syncs), ưu tiên Bookmark nếu có
+    updateLog(`📊 Dữ liệu: ${state.nhanSu.length} nhân sự, ${state.mayMoc.length} máy móc, ${state.vatLieu.length} vật liệu, ${state.thiNghiem.length} phòng TN.`);
+    
     await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu", updateLog);
     await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu2", updateLog);
     await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu3", updateLog);
