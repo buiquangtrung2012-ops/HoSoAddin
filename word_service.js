@@ -283,6 +283,11 @@ export const WordService = {
                     });
                     await context.sync();
 
+                    // Reset toàn bộ in đậm của bảng về false trước khi thiết lập lại
+                    targetTable.font.bold = false;
+                    targetTable.rows.items[0].font.bold = true;
+                    await context.sync();
+
                     targetTable.rows.items.forEach((row, rIdx) => {
                         row.cells.items.forEach((cell, cIdx) => {
                             let cellAlignment = "Centered"; 
@@ -293,6 +298,9 @@ export const WordService = {
                             const isJustified = [
                                 "ho va ten", "ten thiet bi", "ten vat tu", "tieu chuan", "don vi thi nghiem", "ghi chu", "noi dung"
                             ].some(kw => headerText.includes(kw));
+                            
+                            // Log để chẩn đoán căn lề (có thể xóa sau)
+                            if (rIdx === 1) console.log(`Col ${cIdx} [${headerText}] -> ${isJustified ? 'JUST' : 'CENTER'}`);
 
                             if (rIdx === 0) {
                                 cellAlignment = "Centered";
@@ -304,7 +312,7 @@ export const WordService = {
                             try {
                                 cell.body.paragraphs.items.forEach(p => {
                                     p.alignment = cellAlignment;
-                                    p.font.bold = (rIdx === 0); // Ép buộc in đậm chỉ cho tiêu đề
+                                    p.font.bold = (rIdx === 0); 
                                     p.spaceBefore = 1.5;
                                     p.spaceAfter = 1.5;
                                 });
