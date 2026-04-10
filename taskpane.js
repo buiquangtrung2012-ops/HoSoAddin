@@ -155,10 +155,17 @@ function renderContent() {
 function renderProjectForm(container) {
     const config = categories.duAn;
     const form = document.createElement("div");
-    form.className = "space-y-4 bg-white p-5 rounded-[1.5rem] border border-slate-100 shadow-sm";
+    // Sử dụng Grid thông minh: 1 cột cho màn hình hẹp, 2 cột cho màn hình rộng
+    form.className = "grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm";
     
     config.fields.forEach((field, i) => {
         const div = document.createElement("div");
+        // Các trường cần độ dài lớn sẽ chiếm trọn 2 cột
+        const colSpan2Fields = ["tenDuAn", "goiThau", "dvtc"];
+        if (colSpan2Fields.includes(field)) {
+            div.className = "sm:col-span-2";
+        }
+
         const isDate = field === 'ngayKhoiCong' || field === 'ngayHoanThanh';
         const extraClass = isDate ? 'date-picker-input' : '';
         
@@ -174,7 +181,7 @@ function renderProjectForm(container) {
         } else {
             div.innerHTML = `
                 <label class="text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">${config.labels[i]}</label>
-                <textarea spellcheck="false" data-field="${field}" class="input-field project-input resize-y py-2 w-full" style="height: auto; min-height: 2.25rem;" rows="1" placeholder="${placeholder}">${state.duAn[field] || ''}</textarea>
+                <textarea spellcheck="false" data-field="${field}" class="input-field project-input resize-y py-2 w-full" style="height: auto; min-height: 2.125rem;" rows="1" placeholder="${placeholder}">${state.duAn[field] || ''}</textarea>
             `;
         }
         form.appendChild(div);
