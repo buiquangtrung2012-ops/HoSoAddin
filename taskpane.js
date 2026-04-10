@@ -632,8 +632,7 @@ async function syncDataToWord() {
     await WordService.xuatBang(state.vatLieu, "Tên vật tư", "bmVatLieu", updateLog);
     await WordService.xuatBang(state.thiNghiem, "Đơn vị thí nghiệm", "bmThiNghiem", updateLog);
     
-    // Format căn lề bảng
-    await WordService.applyTableAlignment();
+    // Format căn lề bảng đã được tích hợp trực tiếp trong xuatBang
     
     await WordService.applyModernStyleToDocument();
 }
