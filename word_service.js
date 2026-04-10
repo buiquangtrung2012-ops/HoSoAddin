@@ -42,6 +42,32 @@ export const WordService = {
     },
 
     /**
+     * Thay thế placeholder text trong document (ví dụ <<DuAn>>)
+     * Kỹ thuật này giúp tương thích với các mẫu tài liệu cũ dùng nhãn văn bản.
+     */
+    replaceInDocument: async (searchText, replaceText, tag = null) => {
+        await Word.run(async (context) => {
+            const results = context.document.body.search(searchText, { matchCase: false, matchWholeWord: false });
+            results.load("items");
+            await context.sync();
+            results.items.forEach(item => {
+                const textToInsert = (replaceText && replaceText.length > 0) ? replaceText : " ";
+                const textRange = item.insertText(textToInsert, "Replace");
+                // Nếu muốn bọc Content Control sau khi thay thế
+                if (tag) {
+                    try {
+                        const cc = textRange.insertContentControl();
+                        cc.tag = tag;
+                        cc.title = tag;
+                        cc.appearance = "BoundingBox";
+                    } catch (e) { /* CC might already exist or fail in some zones */ }
+                }
+            });
+            await context.sync();
+        });
+    },
+
+    /**
      * Cập nhật tất cả field trong document (DOCVARIABLE, DATE, v.v.)
      */
     updateAllFields: async () => {
@@ -139,7 +165,45 @@ export const WordService = {
                 }
 
                 if (!targetTable || targetTable.isNullObject) {
-                    logger(`✖ Không tìm thấy bảng đích cho ${bookmarkName}. Vui lòng kiểm tra lại Bookmark.`);
+                    logger(`🔍 Bookmark thất bại, đang quét tìm bảng theo từ khóa "${keyword}"...`);
+                    // Bước 2: Fallback – quét tất cả bảng, chọn bảng theo từ khóa tiêu đề
+                    const tables = context.document.tables;
+                    tables.load("items");
+                    await context.sync();
+
+                    const matchedTables = [];
+                    for (let i = 0; i < tables.items.length; i++) {
+                        const table = tables.items[i];
+                        const fRow = table.rows.getFirst();
+                        fRow.load("values");
+                        await context.sync();
+
+                        const rowText = fRow.values[0].join(" ");
+                        const normRow = WordService.normalizeTextForSearch(rowText);
+                        const keywords = keyword.split('|').map(k => WordService.normalizeTextForSearch(k));
+
+                        if (keywords.some(k => normRow.includes(k))) {
+                            matchedTables.push({ table, colCount: fRow.values[0].length });
+                        }
+                    }
+
+                    if (matchedTables.length > 0) {
+                        let matchIndex = 0;
+                        if (bookmarkName) {
+                            const match = bookmarkName.match(/(\d+)$/);
+                            if (match) matchIndex = parseInt(match[1], 10) - 1;
+                        }
+                        if (matchIndex >= matchedTables.length) matchIndex = matchedTables.length - 1;
+                        if (matchIndex < 0) matchIndex = 0;
+
+                        targetTable = matchedTables[matchIndex].table;
+                        targetColCount = matchedTables[matchIndex].colCount;
+                        logger(`✓ Tìm thấy bảng qua từ khóa tại vị trí #${matchIndex + 1}`);
+                    }
+                }
+
+                if (!targetTable || targetTable.isNullObject) {
+                    logger(`✖ Không tìm thấy bảng đích cho ${bookmarkName || keyword}.`);
                     return;
                 }
 
