@@ -270,13 +270,8 @@ export const WordService = {
                         "tieu chuan", "ghi chu", "don vi", "noi dung", "dia diem", "pham vi"
                     ];
 
-                    // --- DEEP RESET ĐỊNH DẠNG ---
-                    // 1. Đưa bảng về Style trung tính nhất để xóa sạch các thiết lập của Template
-                    try { targetTable.style = "Table Grid"; } catch (e) { }
-
-                    // 2. Ép buộc Font và cỡ chữ cơ bản (Tránh nhảy font lạ)
-                    targetTable.font.name = "Times New Roman";
-                    targetTable.font.size = 13;
+                    // --- ĐỊNH DẠNG (CHỈ TẬP TRUNG VÀO BOLD/SHADING) ---
+                    // Reset in đậm cho toàn bảng
                     targetTable.font.bold = false;
                     await context.sync();
 
@@ -323,12 +318,9 @@ export const WordService = {
                             try {
                                 cell.body.paragraphs.items.forEach(p => {
                                     p.alignment = cellAlignment;
-                                    // BƯỚC QUAN TRỌNG: Ép lại in đậm ở mức độ đoạn văn
                                     p.font.bold = (rIdx === 0);
-                                    p.font.name = "Times New Roman";
-                                    p.font.size = 13;
-                                    p.spaceBefore = 0;
-                                    p.spaceAfter = 0;
+                                    p.spaceBefore = 1.5;
+                                    p.spaceAfter = 1.5;
                                 });
                             } catch (e) { }
                         });
