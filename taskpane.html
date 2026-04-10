@@ -150,6 +150,33 @@
             height: 30px !important;
             line-height: 30px !important;
         }
+
+        /* Responsive ngược cho Hồ sơ dự án theo yêu cầu của người dùng */
+        .project-grid-container {
+            display: grid;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        /* Khi cửa sổ HẸP (< 480px): Chia 2 cột để tiết kiệm chiều cao */
+        @media (max-width: 480px) {
+            .project-grid-container {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .field-full-width {
+                grid-column: span 2 / span 2;
+            }
+        }
+
+        /* Khi cửa sổ RỘNG (> 480px): 1 cột duy nhất chiếm trọn chiều ngang */
+        @media (min-width: 481px) {
+            .project-grid-container {
+                grid-template-columns: repeat(1, minmax(0, 1fr));
+            }
+            .field-full-width {
+                grid-column: span 1 / span 1;
+            }
+        }
     </style>
 </head>
 
@@ -167,7 +194,7 @@
             <h1 class="text-sm font-black uppercase tracking-tighter text-slate-800" style="font-family: inherit;">Hồ Sơ Dự Án</h1>
             <div id="statusInfo"
                 class="text-[10px] font-bold px-2 py-1 bg-slate-100 rounded-full text-slate-500 uppercase tracking-widest">
-                v10042026.1250</div>
+                v10042026.1254</div>
         </div>
     </header>
 
@@ -282,6 +309,7 @@
 </body>
 
 </html>
+
 
 
 
