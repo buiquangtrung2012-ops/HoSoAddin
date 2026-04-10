@@ -32,21 +32,22 @@
 
         .input-field {
             width: 100%;
-            min-height: 2.25rem;
+            min-height: 2.125rem;
             background-color: #f1f5f9;
-            border: 2px solid transparent;
+            border: 1.5px solid transparent;
             border-radius: 0.75rem;
-            padding: 0.45rem 1rem;
-            font-size: 0.875rem;
+            padding: 0.35rem 0.85rem;
+            font-size: 13px;
             font-family: 'Times New Roman', serif;
             transition: all 0.2s;
+            line-height: 1.4;
         }
 
         .input-field:focus {
             background-color: white;
             border-color: #6366f1;
             outline: none;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.15);
         }
 
         .card {
@@ -166,7 +167,7 @@
             <h1 class="text-sm font-black uppercase tracking-tighter text-slate-800" style="font-family: inherit;">Hồ Sơ Dự Án</h1>
             <div id="statusInfo"
                 class="text-[10px] font-bold px-2 py-1 bg-slate-100 rounded-full text-slate-500 uppercase tracking-widest">
-                v10042026.1149</div>
+                v10042026.1239</div>
         </div>
     </header>
 
@@ -204,7 +205,7 @@
                 <i data-lucide="split" size="18"></i> TÁCH HỒ SƠ
             </button>
             <button id="btnExport" class="btn-modern bg-slate-800 text-white hover:bg-slate-900 shadow-slate-200">
-                <i data-lucide="file-text" size="18"></i> XUẤT HỒ SƠ TỔNG
+                <i data-lucide="file-text" size="18"></i> XUẤT MASTER
             </button>
             <button id="btnImportDoc" class="btn-modern bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200">
                 <i data-lucide="cloud-download" size="18"></i> NHẬP DỮ LIỆU
@@ -281,6 +282,7 @@
 </body>
 
 </html>
+
 
 
 
