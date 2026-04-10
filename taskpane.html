@@ -163,6 +163,17 @@
             line-height: 30px !important;
         }
 
+        .progress-striped {
+            background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.25) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.25) 50%, rgba(255, 255, 255, 0.25) 75%, transparent 75%, transparent);
+            background-size: 1rem 1rem;
+            animation: progress-stripes 1s linear infinite;
+        }
+
+        @keyframes progress-stripes {
+            from { background-position: 1rem 0; }
+            to { background-position: 0 0; }
+        }
+
         /* Responsive ngược cho Hồ sơ dự án theo yêu cầu của người dùng */
         .project-grid-container {
             display: grid;
@@ -248,7 +259,7 @@
                     Hồ Sơ Dự Án</h1>
                 <div id="statusInfo"
                     class="text-[10px] font-bold px-2 py-1 bg-slate-100 rounded-full text-slate-500 uppercase tracking-widest">
-                    v10042026.1739</div>
+                    v10042026.1744</div>
             </div>
         </header>
 
@@ -262,10 +273,7 @@
 
         <!-- Footer Action -->
         <footer class="bg-white border-t border-slate-100 p-4 shadow-[0_-8px_30px_rgb(0,0,0,0.04)] relative">
-            <div id="loadingProgressContainer" class="absolute top-0 left-0 w-full h-1 opacity-0 transition-opacity duration-300 pointer-events-none z-50">
-                <div id="loadingProgressBar" class="bg-indigo-500 h-full transition-all duration-300 ease-out shadow-[0_0_8px_rgba(99,102,241,0.6)]" style="width: 0%"></div>
-            </div>
-            <div class="grid grid-cols-2 gap-3 max-w-sm mx-auto mt-1">
+            <div class="grid grid-cols-2 gap-3 max-w-sm mx-auto">
                 <button id="btnCapNhat"
                     class="btn-modern bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200">
                     <i data-lucide="refresh-cw" size="18"></i> CẬP NHẬT
@@ -286,7 +294,13 @@
                     <i data-lucide="rotate-ccw" size="16"></i> KHỞI TẠO LẠI DỮ LIỆU
                 </button>
             </div>
-            <div class="mt-4 w-full flex flex-col items-center justify-center gap-1.5 min-h-[24px]">
+            <div id="loadingProgressContainer" class="mt-4 w-full flex-col items-center justify-center hidden opacity-0 transition-opacity duration-300">
+                <div class="w-full max-w-[200px] bg-slate-200 rounded-full h-3 overflow-hidden relative mx-auto">
+                    <div id="loadingProgressBar" class="bg-blue-500 h-full rounded-full transition-all duration-300 ease-out progress-striped" style="width: 0%"></div>
+                </div>
+                <div id="loadingProgressText" class="text-[10px] font-bold text-blue-500 mt-1 text-center">0%</div>
+            </div>
+            <div class="mt-3 w-full flex flex-col items-center justify-center gap-1.5 min-h-[24px]">
                 <div id="logMsg" class="text-[11px] text-slate-400 font-semibold italic text-center tracking-wide overflow-hidden text-ellipsis whitespace-nowrap max-w-full px-2">Hệ thống sẵn sàng</div>
             </div>
         </footer>
@@ -361,6 +375,7 @@
 </body>
 
 </html>
+
 
 
 
