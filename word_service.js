@@ -284,6 +284,9 @@ export const WordService = {
                     await context.sync();
 
                     targetTable.rows.items.forEach((row, rIdx) => {
+                        // Thiết lập in đậm: Chỉ dành cho hàng đầu tiên (Header)
+                        row.font.bold = (rIdx === 0);
+                        
                         row.cells.items.forEach((cell, cIdx) => {
                             let cellAlignment = "Centered"; 
                             const headerText = headerTexts[cIdx] || "";
@@ -296,7 +299,7 @@ export const WordService = {
                                 if (justifiedKeywords.some(kw => headerText.includes(kw))) {
                                     cellAlignment = "Justified";
                                 } else {
-                                    cellAlignment = (cIdx === 0) ? "Centered" : "Centered";
+                                    cellAlignment = "Centered";
                                 }
                             }
 
