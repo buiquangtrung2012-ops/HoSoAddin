@@ -583,6 +583,7 @@ function closeModal() {
 // --- CORE FUNCTIONS ---
 async function syncDataToWord() {
     updateLog("Đang đồng bộ dữ liệu vào văn bản...", 5);
+    await new Promise(r => setTimeout(r, 20)); // Nhường luồng cho UI vẽ thanh tiến trình
 
     // 1. Cập nhật Biến văn bản (DocVariables) như VBA và tag cụ thể
     const docVars = {
@@ -597,6 +598,7 @@ async function syncDataToWord() {
     
     try {
         updateLog("Cập nhật thông tin dự án...", 10);
+        await new Promise(r => setTimeout(r, 10));
         // Thử cập nhật Content Controls trước
         await WordService.updateDocVariables(docVars);
     } catch (e) {
@@ -1067,10 +1069,10 @@ function updateLog(m, progress = undefined) {
     const progressText = document.getElementById('loadingProgressText');
     if (progressContainer && progressBar) {
         if (progress !== undefined) {
+            // Hiển thị trực tiếp bằng inline CSS để bẻ gãy mọi rào cản css/tailwind nếu có
             progressContainer.classList.remove('hidden');
-            progressContainer.classList.add('flex');
-            // Allow DOM to process the display change before fading in
-            setTimeout(() => { progressContainer.style.opacity = '1'; }, 10);
+            progressContainer.style.display = 'flex';
+            progressContainer.style.opacity = '1';
             
             progressBar.style.width = `${progress}%`;
             if (progressText) progressText.innerText = `${Math.floor(progress)}%`;
@@ -1079,7 +1081,7 @@ function updateLog(m, progress = undefined) {
                 setTimeout(() => {
                     progressContainer.style.opacity = '0';
                     setTimeout(() => { 
-                        progressContainer.classList.remove('flex');
+                        progressContainer.style.display = 'none';
                         progressContainer.classList.add('hidden');
                         progressBar.style.width = '0%'; 
                         if (progressText) progressText.innerText = '0%';
