@@ -179,7 +179,11 @@ export const WordService = {
                 // Bước 2: Thêm dữ liệu mới
                 const colCount = targetColCount || data[0].length;
                 const newRowsValues = data
-                    .filter(row => row && row.length > 0 && String(row[1] || "").trim() !== "")
+                    .filter(row => {
+                        if (!row || row.length === 0) return false;
+                        // Kiểm tra nếu có ít nhất 1 cột (từ cột thứ 2 trở đi) có nội dung
+                        return row.slice(1).some(cell => cell && String(cell).trim() !== "");
+                    })
                     .map(row => {
                         const normalizedRow = [];
                         for (let j = 0; j < colCount; j++) {
@@ -191,52 +195,51 @@ export const WordService = {
                     });
 
                 if (newRowsValues.length > 0) {
+                    console.log(`xuatBang: Inserting ${newRowsValues.length} rows into ${bookmarkName}`);
                     targetTable.addRows("End", newRowsValues.length, newRowsValues);
+                    
+                    // Kích hoạt lặp lại tiêu đề trang (Repeat Header Rows)
                     targetTable.headerRowCount = 1;
                     
                     targetTable.load("rows/items");
                     await context.sync();
 
-                    // Bước 3: Định dạng nâng cao (Alignment & Styling)
-                    // Danh sách từ khóa để Căn đều (Justified) - Giúp văn bản dài trông chuyên nghiệp hơn
                     const justifiedKeywords = [
                         "ho va ten", "nhan su", "thiet bi", "xe may", "vat tu", "vat lieu", 
                         "tieu chuan", "ghi chu", "don vi", "noi dung", "dia diem", "pham vi"
                     ];
                     
-                    // Load headers để xác định cột nào cần justified
                     const headerRow = targetTable.rows.items[0];
                     headerRow.cells.load("items/body/text");
                     headerRow.font.bold = true;
+                    // Đảm bảo hàng đầu tiên luôn lặp lại trên mỗi trang
+                    targetTable.headerRowCount = 1; 
+                    
                     await context.sync();
                     
                     const headerTexts = headerRow.cells.items.map(cell => WordService.normalizeTextForSearch(cell.body.text || ""));
 
-                    // Áp dụng định dạng cho từng hàng
                     targetTable.rows.items.forEach((row, rIdx) => {
                         row.cells.load("items/body/paragraphs/items");
-                        // WordTableRow không hỗ trợ verticalAlignment trực tiếp cho tất cả cells, ta sẽ set từng cell
                     });
                     await context.sync();
 
                     targetTable.rows.items.forEach((row, rIdx) => {
                         row.cells.items.forEach((cell, cIdx) => {
-                            // Mặc định: Hàng đầu Center, các hàng sau tùy cột
                             let cellAlignment = "Centered"; 
                             const headerText = headerTexts[cIdx] || "";
                             
-                            // Căn giữa theo phương dọc cho đẹp
+                            // Căn giữa theo chiều dọc
                             cell.verticalAlignment = "Center"; 
 
                             if (rIdx === 0) {
                                 cellAlignment = "Centered";
-                                cell.shadingColor = "#F8FAFC"; // Light slate for header
+                                cell.shadingColor = "#F1F5F9"; // Màu nền xám nhạt cho tiêu đề
                             } else {
-                                // Nếu header chứa từ khóa cần căn đều
                                 if (justifiedKeywords.some(kw => headerText.includes(kw))) {
                                     cellAlignment = "Justified";
                                 } else if (cIdx === 0) {
-                                    cellAlignment = "Centered"; // Cột STT thường căn giữa
+                                    cellAlignment = "Centered";
                                 } else {
                                     cellAlignment = "Centered";
                                 }
@@ -245,8 +248,8 @@ export const WordService = {
                             try {
                                 cell.body.paragraphs.items.forEach(p => {
                                     p.alignment = cellAlignment;
-                                    p.spaceBefore = 2; // Khoảng cách nhỏ cho dễ nhìn
-                                    p.spaceAfter = 2;
+                                    p.spaceBefore = 1.5;
+                                    p.spaceAfter = 1.5;
                                 });
                             } catch (e) {
                                 console.warn(`Lỗi căn lề: ${e.message}`);
@@ -254,7 +257,9 @@ export const WordService = {
                         });
                     });
 
-                    logger(`✓ Đã định dạng và căn lề bảng ${bookmarkName}`);
+                    // Đảm bảo thuộc tính lặp lại tiêu đề được thiết lập lần cuối cho chắc chắn
+                    targetTable.headerRowCount = 1;
+                    logger(`✓ Đã cập nhật ${newRowsValues.length} dòng và định dạng ${bookmarkName}`);
                 }
 
                 await context.sync();
