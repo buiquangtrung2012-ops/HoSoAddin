@@ -284,28 +284,27 @@ export const WordService = {
                     await context.sync();
 
                     targetTable.rows.items.forEach((row, rIdx) => {
-                        // Thiết lập in đậm: Chỉ dành cho hàng đầu tiên (Header)
-                        row.font.bold = (rIdx === 0);
-                        
                         row.cells.items.forEach((cell, cIdx) => {
                             let cellAlignment = "Centered"; 
                             const headerText = headerTexts[cIdx] || "";
                             cell.verticalAlignment = "Center"; 
 
+                            // Logic phân loại căn lề: Chỉ căn đều các cột nội dung dài đặc thù
+                            const isJustified = [
+                                "ho va ten", "ten thiet bi", "ten vat tu", "tieu chuan", "don vi thi nghiem", "ghi chu", "noi dung"
+                            ].some(kw => headerText.includes(kw));
+
                             if (rIdx === 0) {
                                 cellAlignment = "Centered";
                                 cell.shadingColor = "#F1F5F9";
                             } else {
-                                if (justifiedKeywords.some(kw => headerText.includes(kw))) {
-                                    cellAlignment = "Justified";
-                                } else {
-                                    cellAlignment = "Centered";
-                                }
+                                cellAlignment = isJustified ? "Justified" : "Centered";
                             }
 
                             try {
                                 cell.body.paragraphs.items.forEach(p => {
                                     p.alignment = cellAlignment;
+                                    p.font.bold = (rIdx === 0); // Ép buộc in đậm chỉ cho tiêu đề
                                     p.spaceBefore = 1.5;
                                     p.spaceAfter = 1.5;
                                 });
