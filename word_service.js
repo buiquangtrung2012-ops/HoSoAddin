@@ -270,15 +270,7 @@ export const WordService = {
                         "tieu chuan", "ghi chu", "don vi", "noi dung", "dia diem", "pham vi"
                     ];
 
-                    // --- ĐỊNH DẠNG (CHỈ TẬP TRUNG VÀO BOLD/SHADING) ---
-                    // Reset in đậm cho toàn bảng
-                    targetTable.font.bold = false;
-                    await context.sync();
-
-                    // 3. Thiết lập in đậm duy nhất cho hàng tiêu đề
-                    const headerRow = targetTable.rows.items[0];
-                    headerRow.font.bold = true;
-                    await context.sync();
+                    // Định dạng chi tiết sẽ được xử lý trên từng đoạn văn (Paragraph) để tránh lỗi InvalidArgument
 
                     targetTable.rows.items.forEach((row, rIdx) => {
                         // Load paragraphs for formatting AND text for header identification
@@ -286,6 +278,7 @@ export const WordService = {
                     });
                     await context.sync();
 
+                    const headerRow = targetTable.rows.items[0];
                     const headerTexts = headerRow.cells.items.map(cell => WordService.normalizeTextForSearch(cell.body.text || ""));
 
                     targetTable.rows.items.forEach((row, rIdx) => {
