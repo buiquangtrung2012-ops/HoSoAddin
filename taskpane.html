@@ -248,7 +248,7 @@
                     Hồ Sơ Dự Án</h1>
                 <div id="statusInfo"
                     class="text-[10px] font-bold px-2 py-1 bg-slate-100 rounded-full text-slate-500 uppercase tracking-widest">
-                    v10042026.1706</div>
+                    v10042026.1736</div>
             </div>
         </header>
 
@@ -283,8 +283,12 @@
                     <i data-lucide="rotate-ccw" size="16"></i> KHỞI TẠO LẠI DỮ LIỆU
                 </button>
             </div>
-            <div id="logMsg" class="mt-3 text-[11px] text-slate-400 font-semibold italic text-center tracking-wide">Hệ
-                thống sẵn sàng</div>
+            <div class="mt-4 w-full flex flex-col items-center justify-center gap-1.5 min-h-[24px]">
+                <div id="loadingProgressContainer" class="w-full max-w-[200px] bg-slate-100 rounded-full h-1.5 hidden relative overflow-hidden">
+                    <div id="loadingProgressBar" class="bg-indigo-500 h-full rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
+                </div>
+                <div id="logMsg" class="text-[11px] text-slate-400 font-semibold italic text-center tracking-wide overflow-hidden text-ellipsis whitespace-nowrap max-w-full px-2">Hệ thống sẵn sàng</div>
+            </div>
         </footer>
     </div>
 
@@ -357,6 +361,7 @@
 </body>
 
 </html>
+
 
 
 
