@@ -155,15 +155,15 @@ function renderContent() {
 function renderProjectForm(container) {
     const config = categories.duAn;
     const form = document.createElement("div");
-    // Sử dụng Grid thông minh: 2 cột mặc định (hẹp) để tiết kiệm chiều cao, 1 cột cho màn hình rộng (sm)
-    form.className = "grid grid-cols-2 sm:grid-cols-1 gap-x-4 gap-y-4 bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm";
+    // Sử dụng class CSS tùy chỉnh (trong taskpane.html) để xử lý Responsive ngược theo ý người dùng
+    form.className = "project-grid-container bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm";
     
     config.fields.forEach((field, i) => {
         const div = document.createElement("div");
-        // Các trường quan trọng luôn chiếm trọn chiều ngang ở cả 2 chế độ
-        const colSpan2Fields = ["tenDuAn", "goiThau", "dvtc"];
-        if (colSpan2Fields.includes(field)) {
-            div.className = "col-span-2 sm:col-span-1";
+        // Các trường quan trọng (Tên dự án, Gói thầu, Đơn vị) luôn chiếm trọn chiều ngang
+        const fullWidthFields = ["tenDuAn", "goiThau", "dvtc"];
+        if (fullWidthFields.includes(field)) {
+            div.className = "field-full-width";
         }
 
         const isDate = field === 'ngayKhoiCong' || field === 'ngayHoanThanh';
