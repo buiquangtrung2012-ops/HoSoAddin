@@ -95,6 +95,8 @@ export const WordService = {
             let targetTable = null;
             let targetColCount = 0;
             try {
+                logger(`🔍 Đang chuẩn bị bảng ${bookmarkName || keyword}...`);
+                
                 // Bước 1: Tìm bảng (ưu tiên Bookmark)
                 if (bookmarkName) {
                     try {
@@ -110,13 +112,9 @@ export const WordService = {
 
                             if (tablesInRange.items.length > 0) {
                                 targetTable = tablesInRange.items[0];
-                                const firstRow = targetTable.rows.getFirst();
-                                firstRow.load("values");
-                                await context.sync();
-                                targetColCount = firstRow.values[0].length;
-                                console.log(`xuatBang: bookmark ${bookmarkName} found table with ${targetColCount} cols in range`);
+                                logger(`✓ Tìm thấy bảng trong vùng Bookmark ${bookmarkName}`);
                             } else {
-                                // Bookmark nằm trước bảng – tìm bảng tiếp theo sau bookmark
+                                // Bookmark nằm trước hoặc sau bảng – quét lân cận
                                 const allTables = context.document.tables;
                                 allTables.load("items");
                                 await context.sync();
@@ -127,13 +125,9 @@ export const WordService = {
                                     const relation = tableRange.compareLocationWith(bmRange);
                                     await context.sync();
 
-                                    if (relation.value === "After" || relation.value === "AdjacentAfter") {
+                                    if (relation.value === "After" || relation.value === "AdjacentAfter" || relation.value === "Overlapping") {
                                         targetTable = table;
-                                        const firstRow = targetTable.rows.getFirst();
-                                        firstRow.load("values");
-                                        await context.sync();
-                                        targetColCount = firstRow.values[0].length;
-                                        console.log(`xuatBang: bookmark ${bookmarkName} fallback to next table #${t}`);
+                                        logger(`✓ Tìm thấy bảng lân cận Bookmark ${bookmarkName}`);
                                         break;
                                     }
                                 }
@@ -144,25 +138,28 @@ export const WordService = {
                     }
                 }
 
-
                 if (!targetTable || targetTable.isNullObject) {
-                    logger(`✖ Không tìm thấy bảng đích cho ${bookmarkName}`);
+                    logger(`✖ Không tìm thấy bảng đích cho ${bookmarkName}. Vui lòng kiểm tra lại Bookmark.`);
                     return;
                 }
 
+                const firstRow = targetTable.rows.getFirst();
+                firstRow.load("values");
                 targetTable.load("rowCount");
                 await context.sync();
+                
+                targetColCount = firstRow.values[0].length;
                 const rowCount = targetTable.rowCount;
+                
+                logger(`→ Xử lý bảng ${bookmarkName}: đang có ${rowCount} hàng, cần chèn ${data ? data.length : 0} dữ liệu.`);
 
-                logger(`→ Đang xử lý bảng ${bookmarkName} (${data.length} dòng)...`);
-
-                // Bước 1: Giữ lại Header, xóa dữ liệu cũ
                 if (rowCount > 1) {
                     try {
+                        logger(`🗑 Đang xóa ${rowCount - 1} hàng cũ...`);
                         targetTable.deleteRows(1, rowCount - 1);
                         await context.sync();
                     } catch (err) {
-                        logger(`⚠ deleteRows lỗi trên ${bookmarkName}, đang chuyển sang xóa thủ công...`);
+                        logger(`⚠ Lỗi xóa hàng nhanh, đang xóa thủ công...`);
                         targetTable.load("rows/items");
                         await context.sync();
                         for (let j = rowCount - 1; j >= 1; j--) {
@@ -174,14 +171,16 @@ export const WordService = {
                     }
                 }
 
-                if (!data || data.length === 0) return;
+                if (!data || data.length === 0) {
+                    logger(`ℹ Không có dữ liệu để chèn cho ${bookmarkName}`);
+                    return;
+                }
 
                 // Bước 2: Thêm dữ liệu mới
                 const colCount = targetColCount || data[0].length;
                 const newRowsValues = data
                     .filter(row => {
                         if (!row || row.length === 0) return false;
-                        // Kiểm tra nếu có ít nhất 1 cột (từ cột thứ 2 trở đi) có nội dung
                         return row.slice(1).some(cell => cell && String(cell).trim() !== "");
                     })
                     .map(row => {
@@ -195,12 +194,10 @@ export const WordService = {
                     });
 
                 if (newRowsValues.length > 0) {
-                    console.log(`xuatBang: Inserting ${newRowsValues.length} rows into ${bookmarkName}`);
+                    logger(`📝 Đang chèn ${newRowsValues.length} hàng mới...`);
                     targetTable.addRows("End", newRowsValues.length, newRowsValues);
                     
-                    // Kích hoạt lặp lại tiêu đề trang (Repeat Header Rows)
                     targetTable.headerRowCount = 1;
-                    
                     targetTable.load("rows/items");
                     await context.sync();
 
@@ -212,11 +209,9 @@ export const WordService = {
                     const headerRow = targetTable.rows.items[0];
                     headerRow.cells.load("items/body/text");
                     headerRow.font.bold = true;
-                    // Đảm bảo hàng đầu tiên luôn lặp lại trên mỗi trang
                     targetTable.headerRowCount = 1; 
                     
                     await context.sync();
-                    
                     const headerTexts = headerRow.cells.items.map(cell => WordService.normalizeTextForSearch(cell.body.text || ""));
 
                     targetTable.rows.items.forEach((row, rIdx) => {
@@ -228,20 +223,16 @@ export const WordService = {
                         row.cells.items.forEach((cell, cIdx) => {
                             let cellAlignment = "Centered"; 
                             const headerText = headerTexts[cIdx] || "";
-                            
-                            // Căn giữa theo chiều dọc
                             cell.verticalAlignment = "Center"; 
 
                             if (rIdx === 0) {
                                 cellAlignment = "Centered";
-                                cell.shadingColor = "#F1F5F9"; // Màu nền xám nhạt cho tiêu đề
+                                cell.shadingColor = "#F1F5F9";
                             } else {
                                 if (justifiedKeywords.some(kw => headerText.includes(kw))) {
                                     cellAlignment = "Justified";
-                                } else if (cIdx === 0) {
-                                    cellAlignment = "Centered";
                                 } else {
-                                    cellAlignment = "Centered";
+                                    cellAlignment = (cIdx === 0) ? "Centered" : "Centered";
                                 }
                             }
 
@@ -251,26 +242,19 @@ export const WordService = {
                                     p.spaceBefore = 1.5;
                                     p.spaceAfter = 1.5;
                                 });
-                            } catch (e) {
-                                console.warn(`Lỗi căn lề: ${e.message}`);
-                            }
+                            } catch (e) { }
                         });
                     });
 
-                    // Đảm bảo thuộc tính lặp lại tiêu đề được thiết lập lần cuối cho chắc chắn
                     targetTable.headerRowCount = 1;
-                    logger(`✓ Đã cập nhật ${newRowsValues.length} dòng và định dạng ${bookmarkName}`);
+                    logger(`✓ Hoàn tất ${bookmarkName} với ${newRowsValues.length} hàng.`);
                 }
 
                 await context.sync();
-                console.log(`xuatBang: Hoàn tất cập nhật bảng ${bookmarkName || keyword}`);
 
             } catch (globalTableErr) {
-                console.error(`xuatBang FATAL error for ${bookmarkName || keyword}:`, globalTableErr.message);
-                // Cập nhật Nhật ký lỗi để người dùng biết
-                if (typeof updateLog === "function") {
-                    updateLog(`⚠️ Lỗi tại bảng ${bookmarkName || keyword}: ${globalTableErr.message}`);
-                }
+                console.error(`xuatBang FATAL:`, globalTableErr);
+                logger(`⚠️ Lỗi tại bảng ${bookmarkName || keyword}: ${globalTableErr.message}`);
             }
         });
     },
