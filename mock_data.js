@@ -12,7 +12,7 @@ export const MockData = {
         ["2", "Máy ủi Komatsu", "Xe", "02", "Công ty CP XYZ", "Đi thuê"],
     ],
     vatLieu: [
-        ["1", "Cát vàng", "Việt Trì, Phú Thọ", "Tình trạng tốt", "Kho bãi A"],
+        ["1", "Cát vàng", "TCVN", "Việt Trì, Phú Thọ", "Công ty cổ phần khai thác"],
     ],
     thiNghiem: [
         ["1", "Công ty thí nghiệm", "xã AV, tỉnh BC", "LAS-XD 123  ", "Thí nghiệm xây dựng"],
