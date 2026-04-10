@@ -1066,12 +1066,12 @@ function updateLog(m, progress = undefined) {
     const progressBar = document.getElementById('loadingProgressBar');
     if (progressContainer && progressBar) {
         if (progress !== undefined) {
-            progressContainer.classList.remove('hidden');
+            progressContainer.style.opacity = '1';
             progressBar.style.width = `${progress}%`;
             if (progress >= 100) {
                 setTimeout(() => {
-                    progressContainer.classList.add('hidden');
-                    progressBar.style.width = '0%';
+                    progressContainer.style.opacity = '0';
+                    setTimeout(() => { progressBar.style.width = '0%'; }, 300);
                 }, 2000);
             }
         }
