@@ -310,17 +310,13 @@ export const WordService = {
                                 }
                             }
 
-                            // Loại bỏ hoàn toàn màu nền (Sử dụng 'Clear' thay vì null để tránh lỗi InvalidArgument)
-                            try { cell.shadingColor = "Clear"; } catch(e){}
-                            // Ép buộc in đậm ở mức độ Ô (Cell) - Chỉ cho tiêu đề
-                            try { cell.font.bold = (rIdx === 0); } catch(e){}
+                            // Sử dụng "#FFFFFF" (Màu trắng) để làm nền an toàn, không dùng "Clear" hay null để tránh InvalidArgument
+                            cell.shadingColor = "#FFFFFF";
 
                             try {
                                 cell.body.paragraphs.items.forEach(p => {
                                     p.alignment = cellAlignment;
                                     p.font.bold = (rIdx === 0);
-                                    p.spaceBefore = 1.5;
-                                    p.spaceAfter = 1.5;
                                 });
                             } catch (e) { }
                         });
