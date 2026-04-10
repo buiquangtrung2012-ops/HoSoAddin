@@ -273,17 +273,16 @@ export const WordService = {
                     // --- DEEP RESET ĐỊNH DẠNG ---
                     // 1. Đưa bảng về Style trung tính nhất để xóa sạch các thiết lập của Template
                     try { targetTable.style = "Table Grid"; } catch (e) { }
-                    
+
                     // 2. Ép buộc Font và cỡ chữ cơ bản (Tránh nhảy font lạ)
                     targetTable.font.name = "Times New Roman";
-                    targetTable.font.size = 11;
+                    targetTable.font.size = 13;
                     targetTable.font.bold = false;
                     await context.sync();
 
                     // 3. Thiết lập in đậm duy nhất cho hàng tiêu đề
                     const headerRow = targetTable.rows.items[0];
                     headerRow.font.bold = true;
-                    //headerRow.shadingColor = "#F1F5F9";
                     await context.sync();
 
                     targetTable.rows.items.forEach((row, rIdx) => {
@@ -296,15 +295,15 @@ export const WordService = {
 
                     targetTable.rows.items.forEach((row, rIdx) => {
                         row.cells.items.forEach((cell, cIdx) => {
-                            let cellAlignment = "Centered"; 
+                            let cellAlignment = "Centered";
                             const headerText = headerTexts[cIdx] || "";
-                            cell.verticalAlignment = "Center"; 
+                            cell.verticalAlignment = "Center";
 
                             // Chỉ căn đều (Justified) các cột nội dung dài đặc thù
                             const isJustified = [
                                 "ho va ten", "ten thiet bi", "ten vat tu", "tieu chuan", "don vi thi nghiem", "ghi chu", "noi dung"
                             ].some(kw => headerText.includes(kw));
-                            
+
                             // Nếu là cột STT (cột đầu tiên) thì luôn căn giữa
                             if (cIdx === 0) {
                                 cellAlignment = "Centered";
@@ -316,9 +315,9 @@ export const WordService = {
                                 }
                             }
 
-                            // BƯỚC QUAN TRỌNG: Ép buộc màu nền (Sử dụng mã màu trắng thay vì null để ghi đè hoàn toàn)
-                            //cell.shadingColor = (rIdx === 0) ? "#F1F5F9" : "#FFFFFF";
-                            // Ép buộc in đậm ở mức độ Ô (Cell)
+                            // Loại bỏ hoàn toàn màu nền (Để tất cả là trắng/không màu)
+                            cell.shadingColor = null;
+                            // Ép buộc in đậm ở mức độ Ô (Cell) - Chỉ cho tiêu đề
                             cell.font.bold = (rIdx === 0);
 
                             try {
@@ -327,9 +326,9 @@ export const WordService = {
                                     // BƯỚC QUAN TRỌNG: Ép lại in đậm ở mức độ đoạn văn
                                     p.font.bold = (rIdx === 0);
                                     p.font.name = "Times New Roman";
-                                    p.font.size = 11;
-                                    p.spaceBefore = 1.5;
-                                    p.spaceAfter = 1.5;
+                                    p.font.size = 13;
+                                    p.spaceBefore = 0;
+                                    p.spaceAfter = 0;
                                 });
                             } catch (e) { }
                         });
