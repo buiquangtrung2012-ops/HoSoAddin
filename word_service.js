@@ -283,7 +283,7 @@ export const WordService = {
                     // 3. Thiết lập in đậm duy nhất cho hàng tiêu đề
                     const headerRow = targetTable.rows.items[0];
                     headerRow.font.bold = true;
-                    headerRow.shadingColor = "#F1F5F9";
+                    //headerRow.shadingColor = "#F1F5F9";
                     await context.sync();
 
                     targetTable.rows.items.forEach((row, rIdx) => {
@@ -317,7 +317,7 @@ export const WordService = {
                             }
 
                             // BƯỚC QUAN TRỌNG: Ép buộc màu nền (Sử dụng mã màu trắng thay vì null để ghi đè hoàn toàn)
-                            cell.shadingColor = (rIdx === 0) ? "#F1F5F9" : "#FFFFFF";
+                            //cell.shadingColor = (rIdx === 0) ? "#F1F5F9" : "#FFFFFF";
                             // Ép buộc in đậm ở mức độ Ô (Cell)
                             cell.font.bold = (rIdx === 0);
 
