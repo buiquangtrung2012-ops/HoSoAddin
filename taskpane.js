@@ -155,15 +155,15 @@ function renderContent() {
 function renderProjectForm(container) {
     const config = categories.duAn;
     const form = document.createElement("div");
-    // Sử dụng Grid thông minh: 1 cột cho màn hình hẹp, 2 cột cho màn hình rộng
-    form.className = "grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm";
+    // Sử dụng Grid thông minh: 2 cột mặc định (hẹp) để tiết kiệm chiều cao, 1 cột cho màn hình rộng (sm)
+    form.className = "grid grid-cols-2 sm:grid-cols-1 gap-x-4 gap-y-4 bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm";
     
     config.fields.forEach((field, i) => {
         const div = document.createElement("div");
-        // Các trường cần độ dài lớn sẽ chiếm trọn 2 cột
+        // Các trường quan trọng luôn chiếm trọn chiều ngang ở cả 2 chế độ
         const colSpan2Fields = ["tenDuAn", "goiThau", "dvtc"];
         if (colSpan2Fields.includes(field)) {
-            div.className = "sm:col-span-2";
+            div.className = "col-span-2 sm:col-span-1";
         }
 
         const isDate = field === 'ngayKhoiCong' || field === 'ngayHoanThanh';
