@@ -267,7 +267,7 @@ export const WordService = {
 
                     const justifiedKeywords = [
                         "ho va ten", "nhan su", "thiet bi", "xe may", "vat tu", "vat lieu",
-                        "tieu chuan", "don vi", "noi dung", "dia diem", "pham vi"
+                        "tieu chuan", "ghi chu", "don vi", "noi dung", "dia diem", "pham vi"
                     ];
 
                     // Định dạng chi tiết sẽ được xử lý trên từng đoạn văn (Paragraph) để tránh lỗi InvalidArgument
@@ -733,7 +733,7 @@ export const WordService = {
      * Đóng gói Hồ sơ (Xuất Tổng hoặc Tách Folder ZIP theo Bookmark)
      */
     processExport: async (mode, tenDuAn, options = {}) => {
-        const { folderHandle = null, outputMode = 'zip' } = options || {};
+        const { folderHandle = null, outputMode = 'zip', onProgress = null } = options || {};
         const useZip = outputMode === 'zip' || !folderHandle;
 
         // Trích xuất địa danh làm tên file/folder
@@ -753,13 +753,16 @@ export const WordService = {
         console.log(`✓ Document loaded: ${fullBlob.size} bytes, type: ${fullBlob.type}`);
 
         if (mode === 'master') {
+            if (onProgress) onProgress("Đang tạo file tổng...", 50);
             const folderName = baseName || 'HoSo';
             const fileName = `HoSoTongHop_${baseName}.docx`;
             if (folderHandle) {
                 await WordService._saveBlobToFolder(folderHandle, `${folderName}/${fileName}`, fullBlob);
                 console.log(`✅ Lưu file tổng vào thư mục đã chọn: ${folderName}/${fileName}`);
+                if (onProgress) onProgress("Đã lưu file tổng vào thư mục máy tính.", 80);
             } else {
                 saveAs(fullBlob, fileName);
+                if (onProgress) onProgress("Đã tải xuống file tổng.", 80);
             }
             return;
         }
@@ -815,7 +818,10 @@ export const WordService = {
             console.log(`📄 Full document blob: ${fullBlob ? fullBlob.size + ' bytes' : 'NULL'}`);
             console.log(`📂 Export mode: ${outputMode}, selected folder: ${folderHandle ? 'yes' : 'no'}, root folder: ${rootFolderName}`);
 
-            for (const group of splitGroups) {
+            for (let i = 0; i < splitGroups.length; i++) {
+                const group = splitGroups[i];
+                if (onProgress) onProgress(`Đang xử lý ${i+1}/${splitGroups.length}: ${group.folder}...`, 20 + Math.floor((i / splitGroups.length) * 60));
+                
                 const ooxmlParts = [];
                 for (const bmName of group.bookmarks) {
                     const ooxml = await WordService.getBookmarkOoxml(bmName);
@@ -863,6 +869,7 @@ export const WordService = {
             console.log(`📊 Summary: ${filesAdded} files added, ${filesFailed} files failed`);
 
             if (useZip) {
+                if (onProgress) onProgress("📦 Đang đóng gói file ZIP...", 85);
                 const zipContent = await zip.generateAsync({ type: "blob" });
                 console.log(`📦 ZIP file created: ${zipContent.size} bytes`);
                 if (zipContent.size === 0) {
@@ -871,11 +878,14 @@ export const WordService = {
                 if (folderHandle) {
                     await WordService._saveBlobToFolder(folderHandle, `HoSo_${baseName}_Da_Tach.zip`, zipContent);
                     console.log(`✅ Lưu ZIP vào thư mục đã chọn: HoSo_${baseName}_Da_Tach.zip`);
+                    if (onProgress) onProgress("Đã lưu tệp ZIP.", 95);
                 } else {
                     saveAs(zipContent, `HoSo_${baseName}_Da_Tach.zip`);
+                    if (onProgress) onProgress("Đã tải xuống tệp ZIP.", 95);
                 }
             } else {
                 console.log('✅ Đã lưu tất cả tệp DOCX tách riêng vào thư mục đã chọn.');
+                if (onProgress) onProgress("Đã xuất hoàn tất toàn bộ các tệp.", 95);
             }
         }
     },
