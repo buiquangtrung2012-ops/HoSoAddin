@@ -582,7 +582,7 @@ function closeModal() {
 
 // --- CORE FUNCTIONS ---
 async function syncDataToWord() {
-    updateLog("Đang đồng bộ dữ liệu vào văn bản...");
+    updateLog("Đang đồng bộ dữ liệu vào văn bản...", 5);
 
     // 1. Cập nhật Biến văn bản (DocVariables) như VBA và tag cụ thể
     const docVars = {
@@ -596,26 +596,29 @@ async function syncDataToWord() {
     };
     
     try {
+        updateLog("Cập nhật thông tin dự án...", 10);
         // Thử cập nhật Content Controls trước
         await WordService.updateDocVariables(docVars);
     } catch (e) {
-        updateLog("Content Controls không khả dụng: " + e.message);
+        updateLog("Content Controls không khả dụng", 10);
     }
 
     // Luôn cập nhật Document Variables (DOCVARIABLE) để phù hợp template dùng DOCVARIABLE
     try {
+        updateLog("Gắn dữ liệu vào tài liệu...", 15);
         await WordService.updateDocumentVariables(docVars);
     } catch (e) {
-        updateLog("Document Variables thất bại: " + e.message);
+        updateLog("Gắn dữ liệu thất bại", 15);
     }
 
     // Các phương thức đồng bộ hiện đại (Content Controls và DocVariables) đã xử lý xong phần thông tin dự án
 
     // Cập nhật các field trong document để DOCVARIABLE hiển thị giá trị mới.
     try {
+        updateLog("Làm mới định dạng text...", 20);
         await WordService.updateAllFields();
     } catch (fieldError) {
-        updateLog("Không thể update các field: " + fieldError.message);
+        updateLog("Không thể update các field", 20);
     }
     
     // Bookmark bmTenDuAn đã được thay thế hoàn toàn bằng Content Control (tag DuAn)
@@ -633,52 +636,56 @@ async function syncDataToWord() {
     }
     
     // 2. Cập nhật Bảng (Table Syncs), ưu tiên Bookmark nếu có
-    updateLog(`📊 Dữ liệu: ${state.nhanSu.length} nhân sự, ${state.mayMoc.length} máy móc, ${state.vatLieu.length} vật liệu, ${state.thiNghiem.length} phòng TN.`);
-    
+    updateLog(`📊 Đang chèn bảng Nhân sự 1...`, 30);
     await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu", updateLog);
+    updateLog(`📊 Đang chèn bảng Nhân sự 2...`, 40);
     await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu2", updateLog);
+    updateLog(`📊 Đang chèn bảng Nhân sự 3...`, 50);
     await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu3", updateLog);
+    updateLog(`📊 Đang chèn bảng Máy móc...`, 60);
     await WordService.xuatBang(state.mayMoc, "Tên thiết bị|Xe máy|Máy móc|Thiết bị", "bmMayMoc", updateLog);
+    updateLog(`📊 Đang chèn bảng Vật liệu...`, 70);
     await WordService.xuatBang(state.vatLieu, "Tên vật tư", "bmVatLieu", updateLog);
+    updateLog(`📊 Đang chèn bảng Thí nghiệm...`, 80);
     await WordService.xuatBang(state.thiNghiem, "Đơn vị thí nghiệm", "bmThiNghiem", updateLog);
     
     // Format căn lề bảng đã được tích hợp trực tiếp trong xuatBang
-    
+    updateLog("Áp dụng kiểu dáng cuối cùng...", 90);
     await WordService.applyModernStyleToDocument();
 }
 
 async function onCapNhatClick() {
     try {
-        updateLog("--- Bắt đầu Cập nhật dữ liệu ---");
+        updateLog("--- Bắt đầu Cập nhật dữ liệu ---", 2);
         await syncDataToWord();
-        updateLog("✓ Hoàn tất cập nhật dữ liệu vào văn bản.");
+        updateLog("✓ Hoàn tất cập nhật dữ liệu vào văn bản.", 95);
         
         // Tự động ghi đè lại file đã xuất nếu có
         if (state.exportFolderHandle && (state.hasExportedMaster || state.hasSplitFiles)) {
-            updateLog("Bắt đầu cập nhật thay thế các file DOCX bên ngoài thư mục...");
+            updateLog("Cập nhật thay thế các file DOCX gốc...", 96);
             if (state.hasExportedMaster) {
                 await WordService.processExport('master', state.duAn.tenDuAn, {
                     folderHandle: state.exportFolderHandle,
                     outputMode: state.outputMode
                 });
-                updateLog("✓ Đã cập nhật ghi đè file tổng.");
+                updateLog("✓ Đã cập nhật ghi đè file tổng.", 97);
             }
             if (state.hasSplitFiles) {
                 await WordService.processExport('split', state.duAn.tenDuAn, {
                     folderHandle: state.exportFolderHandle,
                     outputMode: state.outputMode
                 });
-                updateLog("✓ Đã cập nhật ghi đè file tách.");
+                updateLog("✓ Đã cập nhật ghi đè file tách.", 98);
             }
             msg = "Đã cập nhật Word & ghi đè toàn bộ file đã xuất!";
         }
         
-        updateLog("✅ Đã CẬP NHẬT HOÀN TẤT!");
+        updateLog("ĐÃ CẬP NHẬT HOÀN TẤT!", 100);
         showToast("Đã cập nhật dữ liệu thành công!", "success");
     } catch (e) {
         console.error("onCapNhatClick Error:", e);
         const errorDetail = e.message || "Lỗi không xác định";
-        updateLog(`❌ LỖI CẬP NHẬT: ${errorDetail}`);
+        updateLog(`❌ LỖI: ${errorDetail}`, 100);
         if (e.stack) console.log(e.stack);
         showToast("Có lỗi xảy ra khi cập nhật (Xem Nhật ký bên dưới)", "error");
     }
@@ -686,7 +693,7 @@ async function onCapNhatClick() {
 
 async function onImportFromDocClick() {
     try {
-        updateLog("Đang quét nội dung văn bản...");
+        updateLog("Đang quét nội dung văn bản...", 30);
         const data = await WordService.importDataFromDoc();
         
         // --- LOG CHẨN ĐOÁN (DIAGNOSTIC) ---
@@ -727,7 +734,7 @@ async function onImportFromDocClick() {
         await saveState();
         renderContent();
         
-        updateLog(`✓ Đã nhập thành công ${updateCount} nhóm dữ liệu!`);
+        updateLog(`✓ Đã nhập thành công ${updateCount} nhóm dữ liệu!`, 100);
         showToast("Đã khôi phục dữ liệu từ văn bản!", "success");
     } catch (e) {
         updateLog("Lỗi nhập liệu: " + e.message);
@@ -768,7 +775,7 @@ async function requestExportFolder() {
 async function onTachClick() {
     try {
         await syncDataToWord();
-        updateLog("⏳ Đang chuẩn bị tách hồ sơ theo bookmark...");
+        updateLog("⏳ Đang chuẩn bị tách hồ sơ theo bookmark...", 20);
         
         // Capture console logs để debug
         const originalLog = console.log;
@@ -795,7 +802,8 @@ async function onTachClick() {
         await requestExportFolder();
         await WordService.processExport('split', state.duAn.tenDuAn, {
             folderHandle: state.exportFolderHandle,
-            outputMode: state.outputMode
+            outputMode: state.outputMode,
+            onProgress: (msg, percent) => updateLog(msg, percent)
         });
         state.hasSplitFiles = true;
         await saveState();
@@ -839,7 +847,7 @@ async function onTachClick() {
         
         // Hiển thị logs chi tiết
         updateLog("📊 Chi tiết quá trình tách:\n" + allLogs);
-        updateLog("\n✅ Đã TÁCH HỒ SƠ thành công!");
+        updateLog("\n✅ Đã TÁCH HỒ SƠ thành công!", 100);
         showToast("Đã tách hồ sơ thành công!", "success");
     } catch (e) {
         updateLog("❌ Lỗi exception: " + e.message + "\n" + (e.stack || ""));
@@ -850,15 +858,16 @@ async function onTachClick() {
 async function onXuatClick() {
     try {
         await syncDataToWord();
-        updateLog("Đang xuất bộ hồ sơ tổng...");
+        updateLog("Đang xuất bộ hồ sơ tổng...", 30);
         await requestExportFolder();
         await WordService.processExport('master', state.duAn.tenDuAn, {
             folderHandle: state.exportFolderHandle,
-            outputMode: state.outputMode
+            outputMode: state.outputMode,
+            onProgress: (msg, percent) => updateLog(msg, percent)
         });
         state.hasExportedMaster = true;
         await saveState();
-        updateLog("Đã XUẤT HỒ SƠ TỔNG (.docx) thành công!");
+        updateLog("Đã XUẤT HỒ SƠ TỔNG (.docx) thành công!", 100);
         showToast("Đã xuất hồ sơ tổng thành công!", "success");
     } catch (e) {
         updateLog("Lỗi: " + e.message + (e.debugInfo ? "\nDebug: " + JSON.stringify(e.debugInfo) : ""));
@@ -1051,7 +1060,23 @@ function openResetDataModal() {
     });
 }
 
-function updateLog(m) { document.getElementById('logMsg').innerText = m; }
+function updateLog(m, progress = undefined) { 
+    document.getElementById('logMsg').innerText = m; 
+    const progressContainer = document.getElementById('loadingProgressContainer');
+    const progressBar = document.getElementById('loadingProgressBar');
+    if (progressContainer && progressBar) {
+        if (progress !== undefined) {
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = `${progress}%`;
+            if (progress >= 100) {
+                setTimeout(() => {
+                    progressContainer.classList.add('hidden');
+                    progressBar.style.width = '0%';
+                }, 2000);
+            }
+        }
+    }
+}
 
 function showToast(message, type = 'success') {
     const bgClass = type === 'error' ? 'bg-red-600' : 'bg-emerald-600';
