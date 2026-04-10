@@ -619,6 +619,18 @@ async function syncDataToWord() {
     }
     
     // Bookmark bmTenDuAn đã được thay thế hoàn toàn bằng Content Control (tag DuAn)
+    // Tuy nhiên khôi phục lại cơ chế placeholder <<Tag>> để đảm bảo tương thích 100% với mẫu cũ
+    try {
+        await WordService.replaceInDocument("<<DuAn>>", state.duAn.tenDuAn || "", "DuAn");
+        await WordService.replaceInDocument("<<GoiThau>>", state.duAn.goiThau || "", "GoiThau");
+        await WordService.replaceInDocument("<<DVTC>>", state.duAn.dvtc || "", "DVTC");
+        await WordService.replaceInDocument("<<DaiDienCDT>>", state.duAn.daiDienCDT || "", "DaiDienCDT");
+        await WordService.replaceInDocument("<<TVGS>>", state.duAn.tvgs || "", "TVGS");
+        await WordService.replaceInDocument("<<NgayKhoiCong>>", state.duAn.ngayKhoiCong || "", "NgayKhoiCong");
+        await WordService.replaceInDocument("<<NgayHoanThanh>>", state.duAn.ngayHoanThanh || "", "NgayHoanThanh");
+    } catch (e) {
+        updateLog("Lỗi thay thế placeholder: " + e.message);
+    }
     
     // 2. Cập nhật Bảng (Table Syncs), ưu tiên Bookmark nếu có
     updateLog(`📊 Dữ liệu: ${state.nhanSu.length} nhân sự, ${state.mayMoc.length} máy móc, ${state.vatLieu.length} vật liệu, ${state.thiNghiem.length} phòng TN.`);
