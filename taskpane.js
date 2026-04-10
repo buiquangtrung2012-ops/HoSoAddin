@@ -609,18 +609,7 @@ async function syncDataToWord() {
         updateLog("Document Variables thất bại: " + e.message);
     }
 
-    // Thay placeholder chung (ưu tiên) để không phụ thuộc hoàn toàn DOCVARIABLE.
-    try {
-        await WordService.replaceInDocument("<<DuAn>>", state.duAn.tenDuAn || "", "DuAn");
-        await WordService.replaceInDocument("<<GoiThau>>", state.duAn.goiThau || "", "GoiThau");
-        await WordService.replaceInDocument("<<DVTC>>", state.duAn.dvtc || "", "DVTC");
-        await WordService.replaceInDocument("<<DaiDienCDT>>", state.duAn.daiDienCDT || "", "DaiDienCDT");
-        await WordService.replaceInDocument("<<TVGS>>", state.duAn.tvgs || "", "TVGS");
-        await WordService.replaceInDocument("<<NgayKhoiCong>>", state.duAn.ngayKhoiCong || "", "NgayKhoiCong");
-        await WordService.replaceInDocument("<<NgayHoanThanh>>", state.duAn.ngayHoanThanh || "", "NgayHoanThanh");
-    } catch (err) {
-        updateLog("Không thể thay placeholder: " + err.message);
-    }
+    // Các phương thức đồng bộ hiện đại (Content Controls và DocVariables) đã xử lý xong phần thông tin dự án
 
     // Cập nhật các field trong document để DOCVARIABLE hiển thị giá trị mới.
     try {
