@@ -618,7 +618,7 @@ async function syncDataToWord() {
         updateLog("Không thể update các field: " + fieldError.message);
     }
     
-    await WordService.replaceTag("bmTenDuAn", state.duAn.tenDuAn || "---");
+    // Bookmark bmTenDuAn đã được thay thế hoàn toàn bằng Content Control (tag DuAn)
     
     // 2. Cập nhật Bảng (Table Syncs), ưu tiên Bookmark nếu có
     await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu", updateLog);
