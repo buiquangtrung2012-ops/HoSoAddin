@@ -30,7 +30,7 @@ let state = {
 
 // --- CONFIGURATION ---
 const categories = {
-    duAn: { title: "Dự án", fields: ["soHD", "tenDuAn", "goiThau", "dvtc", "daiDienCDT", "tvgs", "ngayKhoiCong", "ngayHoanThanh"], labels: ["Số hợp đồng", "Tên dự án", "Tên gói thầu", "Đơn vị thi công", "Đại diện CDT", "Tư vấn giám sát", "Ngày khởi công", "Ngày hoàn thành"] },
+    duAn: { title: "Dự án", fields: ["tenDuAn", "goiThau", "dvtc", "daiDienCDT", "tvgs", "soHD", "ngayKhoiCong", "ngayHoanThanh"], labels: ["Tên dự án", "Tên gói thầu", "Đơn vị thi công", "Đại diện CDT", "Tư vấn giám sát", "Số hợp đồng", "Ngày khởi công", "Ngày hoàn thành"] },
     nhanSu: { title: "Nhân sự", fields: ["stt", "name", "role", "major", "phone"], labels: ["STT", "Họ và tên", "Chức danh", "Chuyên ngành", "Số điện thoại"] },
     mayMoc: { title: "Máy móc", fields: ["stt", "name", "unit", "qty", "owner", "status"], labels: ["STT", "Tên thiết bị", "Đơn vị tính", "Số lượng", "Chủ sở hữu", "Hình thức"] },
     vatLieu: { title: "Vật liệu", fields: ["stt", "name", "standard", "origin", "note"], labels: ["STT", "Tên vật tư", "Thông số/Tiêu chuẩn", "Nguồn gốc", "Đơn vị cung cấp"] },
@@ -167,7 +167,7 @@ function renderProjectForm(container) {
     config.fields.forEach((field, i) => {
         const div = document.createElement("div");
         // Các trường quan trọng chiếm trọn chiều ngang
-        const fullWidthFields = ["soHD", "tenDuAn", "goiThau", "dvtc"];
+        const fullWidthFields = ["tenDuAn", "goiThau", "dvtc"];
         if (fullWidthFields.includes(field)) {
             div.className = "field-full-width";
         }
