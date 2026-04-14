@@ -18,6 +18,7 @@ export const MockData = {
         ["1", "Công ty thí nghiệm", "xã AV, tỉnh BC", "LAS-XD 123  ", "Thí nghiệm xây dựng"],
     ],
     duAn: {
+        soHD: "127/HĐ-THTT ngày 18/03/2026",
         tenDuAn: "Dự án đầu tư xây dựng hạ tầng kỹ thuật Khu đô thị mới Kim Chung - Di Trạch",
         goiThau: "Gói thầu số 08: Thi công hệ thống thoát nước mưa và xử lý nước thải",
         dvtc: "Công ty Cổ phần Tập đoàn Xây dựng Minh Hòa",
