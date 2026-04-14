@@ -9,6 +9,7 @@ let state = {
     currentTab: 'duAn',
     editingIndex: -1,
     duAn: {
+        soHD: "",
         tenDuAn: "",
         goiThau: "",
         dvtc: "",
@@ -29,7 +30,7 @@ let state = {
 
 // --- CONFIGURATION ---
 const categories = {
-    duAn: { title: "Dự án", fields: ["tenDuAn", "goiThau", "dvtc", "daiDienCDT", "tvgs", "ngayKhoiCong", "ngayHoanThanh"], labels: ["Tên dự án", "Tên gói thầu", "Đơn vị thi công", "Đại diện CDT", "Tư vấn giám sát", "Ngày khởi công", "Ngày hoàn thành"] },
+    duAn: { title: "Dự án", fields: ["soHD", "tenDuAn", "goiThau", "dvtc", "daiDienCDT", "tvgs", "ngayKhoiCong", "ngayHoanThanh"], labels: ["Số hợp đồng", "Tên dự án", "Tên gói thầu", "Đơn vị thi công", "Đại diện CDT", "Tư vấn giám sát", "Ngày khởi công", "Ngày hoàn thành"] },
     nhanSu: { title: "Nhân sự", fields: ["stt", "name", "role", "major", "phone"], labels: ["STT", "Họ và tên", "Chức danh", "Chuyên ngành", "Số điện thoại"] },
     mayMoc: { title: "Máy móc", fields: ["stt", "name", "unit", "qty", "owner", "status"], labels: ["STT", "Tên thiết bị", "Đơn vị tính", "Số lượng", "Chủ sở hữu", "Hình thức"] },
     vatLieu: { title: "Vật liệu", fields: ["stt", "name", "standard", "origin", "note"], labels: ["STT", "Tên vật tư", "Thông số/Tiêu chuẩn", "Nguồn gốc", "Đơn vị cung cấp"] },
@@ -88,6 +89,11 @@ async function loadState() {
         state.hasSplitFiles = syncState.hasSplitFiles || false;
         state.outputMode = syncState.outputMode || 'multiple';
         state.soHDForExport = syncState.soHDForExport || "";
+        
+        // Migration: Tự động chuyển số hợp đồng từ cấu hình tập tin sang thông tin dự án nếu chưa có
+        if (!state.duAn.soHD && state.soHDForExport) {
+            state.duAn.soHD = state.soHDForExport;
+        }
     }
 }
 
@@ -103,7 +109,7 @@ async function saveState() {
         hasExportedMaster: state.hasExportedMaster,
         hasSplitFiles: state.hasSplitFiles,
         outputMode: state.outputMode,
-        soHDForExport: state.soHDForExport
+        soHDForExport: state.duAn.soHD // Sync back to the old field for compatibility
     });
 }
 
@@ -160,8 +166,8 @@ function renderProjectForm(container) {
     
     config.fields.forEach((field, i) => {
         const div = document.createElement("div");
-        // Các trường quan trọng (Tên dự án, Gói thầu, Đơn vị) luôn chiếm trọn chiều ngang
-        const fullWidthFields = ["tenDuAn", "goiThau", "dvtc"];
+        // Các trường quan trọng chiếm trọn chiều ngang
+        const fullWidthFields = ["soHD", "tenDuAn", "goiThau", "dvtc"];
         if (fullWidthFields.includes(field)) {
             div.className = "field-full-width";
         }
@@ -446,14 +452,6 @@ function renderExportSettings(container) {
             </div>
         </div>
     `;
-    
-    const soHDInput = document.createElement('div');
-    soHDInput.className = 'mt-6 pt-4 border-t border-slate-200';
-    soHDInput.innerHTML = `
-        <label class="text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Số hợp đồng (cho đặt tên file)</label>
-        <input type="text" id="soHDInput" spellcheck="false" value="${state.soHDForExport || ''}" placeholder="VD: HD-2024-001" class="input-field w-full">
-    `;
-    container.appendChild(soHDInput);
 
     const radioInputs = container.querySelectorAll('input[type="radio"]');
     radioInputs.forEach(input => {
@@ -462,12 +460,6 @@ function renderExportSettings(container) {
             await saveState();
         };
     });
-
-    const soHDField = container.querySelector('#soHDInput');
-    soHDField.onchange = async () => { 
-        state.soHDForExport = soHDField.value; 
-        await saveState();
-    };
 
     const btnChooseFolder = container.querySelector('#btnChooseFolder');
     const exportFolderLabel = container.querySelector('#exportFolderLabel');
@@ -587,6 +579,7 @@ async function syncDataToWord() {
 
     // 1. Cập nhật Biến văn bản (DocVariables) như VBA và tag cụ thể
     const docVars = {
+        "SoHD": state.duAn.soHD,
         "DuAn": state.duAn.tenDuAn,
         "GoiThau": state.duAn.goiThau,
         "DVTC": state.duAn.dvtc,
@@ -966,7 +959,7 @@ function sanitizeFileName(input) {
 function generateProjectFolderName() {
     const duAn = state.duAn || {};
     const tenDuAn = sanitizeFileName(duAn.tenDuAn);
-    const soHD = sanitizeFileName(state.soHDForExport);
+    const soHD = sanitizeFileName(duAn.soHD);
     const dvtc = sanitizeFileName(duAn.dvtc);
 
     if (tenDuAn && soHD) {
