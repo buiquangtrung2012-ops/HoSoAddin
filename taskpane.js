@@ -714,6 +714,7 @@ async function syncDataToWord() {
     // Bookmark bmTenDuAn đã được thay thế hoàn toàn bằng Content Control (tag DuAn)
     // Tuy nhiên khôi phục lại cơ chế placeholder <<Tag>> để đảm bảo tương thích 100% với mẫu cũ
     try {
+        await WordService.replaceInDocument("<<SoHD>>", state.duAn.soHD || "", "SoHD");
         await WordService.replaceInDocument("<<DuAn>>", state.duAn.tenDuAn || "", "DuAn");
         await WordService.replaceInDocument("<<GoiThau>>", state.duAn.goiThau || "", "GoiThau");
         await WordService.replaceInDocument("<<DVTC>>", state.duAn.dvtc || "", "DVTC");
