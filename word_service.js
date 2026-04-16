@@ -915,6 +915,7 @@ export const WordService = {
                 "DVTC": ["DVTC", "dvtc", "donViThiCong", "Contractor"],
                 "DaiDienCDT": ["DaiDienCDT", "daiDienCDT", "chuDauTu", "CDT", "Client"],
                 "TVGS": ["TVGS", "tvgs", "tuVanGiamSat", "Supervisor"],
+                "SoHD": ["SoHD", "soHD", "ContractNumber", "Number"],
                 "NgayKhoiCong": ["NgayKhoiCong", "ngayKhoiCong", "NgayKC", "StartDate"],
                 "NgayHoanThanh": ["NgayHoanThanh", "ngayHoanThanh", "NgayHT", "EndDate"]
             };
@@ -934,6 +935,7 @@ export const WordService = {
                                 "DVTC": "dvtc",
                                 "DaiDienCDT": "daiDienCDT",
                                 "TVGS": "tvgs",
+                                "SoHD": "soHD",
                                 "NgayKhoiCong": "ngayKhoiCong",
                                 "NgayHoanThanh": "ngayHoanThanh"
                             }[key];
@@ -954,7 +956,7 @@ export const WordService = {
                         if (aliases.some(a => a.toLowerCase() === v.name.toLowerCase())) {
                             const internalKey = {
                                 "DuAn": "tenDuAn", "GoiThau": "goiThau", "DVTC": "dvtc",
-                                "DaiDienCDT": "daiDienCDT", "TVGS": "tvgs",
+                                "DaiDienCDT": "daiDienCDT", "TVGS": "tvgs", "SoHD": "soHD",
                                 "NgayKhoiCong": "ngayKhoiCong", "NgayHoanThanh": "ngayHoanThanh"
                             }[key];
                             if (!result.duAn[internalKey] && v.value && v.value.trim().length > 0) {
