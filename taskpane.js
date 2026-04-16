@@ -138,15 +138,8 @@ function renderContent() {
             renderList(container, state.currentTab);
         }
         
-        // Tự động căn chỉnh lại độ cao cho các textarea khi load dữ liệu
-        setTimeout(() => {
-            document.querySelectorAll('textarea').forEach(ta => {
-                ta.style.height = 'auto';
-                const newHeight = Math.min(ta.scrollHeight, 150);
-                ta.style.height = newHeight + 'px';
-                ta.style.overflowY = ta.scrollHeight > 150 ? 'auto' : 'hidden';
-            });
-        }, 50);
+        // Tự động căn chỉnh lại độ cao cho các textarea
+        adjustAllTextareaHeights();
     } catch (e) {
         console.error("Lỗi render:", e);
         const container = document.getElementById('tabContent');
@@ -208,14 +201,47 @@ function renderProjectForm(container) {
         }
     }, 50);
     
-    // Real-time Save for Project Info
+    // Real-time Save & Auto-resize for Project Info
     form.querySelectorAll('.project-input').forEach(input => {
+        input.addEventListener('input', () => {
+            if (input.tagName.toLowerCase() === 'textarea') {
+                adjustTextareaHeight(input);
+            }
+        });
+
         input.onchange = async () => {
             state.duAn[input.dataset.field] = input.value;
             await saveState();
         };
     });
 }
+
+function adjustTextareaHeight(ta) {
+    if (!ta) return;
+    ta.style.height = 'auto';
+    // Nếu không có nội dung, trả về min-height để tránh placeholder làm giãn khung
+    if (!ta.value) {
+        ta.style.height = ''; 
+        ta.style.overflowY = 'hidden';
+        return;
+    }
+    const newHeight = Math.min(ta.scrollHeight, 150);
+    ta.style.height = newHeight + 'px';
+    ta.style.overflowY = ta.scrollHeight > 150 ? 'auto' : 'hidden';
+}
+
+function adjustAllTextareaHeights() {
+    setTimeout(() => {
+        document.querySelectorAll('textarea').forEach(ta => {
+            adjustTextareaHeight(ta);
+        });
+    }, 50);
+}
+
+// Theo dõi thay đổi độ rộng cửa sổ để tính lại độ cao textarea (Responsive)
+window.addEventListener('resize', () => {
+    adjustAllTextareaHeights();
+});
 
 function renderList(container, type) {
     const items = state[type] || [];
@@ -338,6 +364,11 @@ function renderList(container, type) {
             }
             
             inputElement.value = val;
+            
+            // Tự động căn chỉnh độ cao khi nhập liệu cho bảng
+            if (inputElement.tagName.toLowerCase() === 'textarea') {
+                inputElement.addEventListener('input', () => adjustTextareaHeight(inputElement));
+            }
             
             inputElement.onblur = async (e) => {
                 // Chỉ xử lý nếu không phải trường readonly
