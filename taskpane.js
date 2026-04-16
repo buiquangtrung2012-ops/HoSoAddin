@@ -161,41 +161,7 @@ function renderProjectView(container) {
     const config = categories.duAn;
     
     const wrapper = document.createElement("div");
-    wrapper.className = "grid grid-cols-1 md:grid-cols-12 gap-6 pb-12";
-    
-    // Left Column: Hero Card & Summary
-    const leftCol = document.createElement("div");
-    leftCol.className = "md:col-span-4 space-y-6";
-    
-    const version = document.getElementById('statusInfo')?.innerText || "v1.0.0";
-    
-    leftCol.innerHTML = `
-        <div class="hero-card">
-            <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/20">
-                <i data-lucide="briefcase" class="text-white" size="32"></i>
-            </div>
-            <h3 class="text-xl font-bold mb-1">${version}</h3>
-            <p class="text-xs text-white/70 uppercase font-black tracking-widest">MÃ DỰ ÁN</p>
-        </div>
-        
-        <div class="glass-card p-6 space-y-4">
-            <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest">Thông tin tổng quan</h4>
-            <div class="space-y-4">
-                ${renderSummaryRow("Trạng thái", "Đang thực hiện", "text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full text-[10px] font-bold")}
-                ${renderSummaryRow("Ngày tạo", new Date().toLocaleDateString('vi-VN'), "font-bold text-slate-600")}
-                ${renderSummaryRow("Người tạo", "Admin", "font-bold text-slate-600")}
-                ${renderSummaryRow("Số hợp đồng", state.duAn.soHD || "---", "font-bold text-slate-600")}
-                ${renderSummaryRow("Hạn hoàn thành", state.duAn.ngayHoanThanh || "---", "font-bold text-slate-600")}
-            </div>
-            <button class="w-full py-3 mt-4 text-[11px] font-bold text-slate-400 border border-slate-100 rounded-xl hover:bg-slate-50 flex items-center justify-center gap-2">
-                <i data-lucide="history" size="14"></i> Xem lịch sử chỉnh sửa
-            </button>
-        </div>
-    `;
-    
-    // Right Column: Info Cards
-    const rightCol = document.createElement("div");
-    rightCol.className = "md:col-span-8 space-y-3";
+    wrapper.className = "max-w-3xl mx-auto space-y-4 pb-12";
     
     const fieldIcons = {
         tenDuAn: 'file-text',
@@ -210,42 +176,51 @@ function renderProjectView(container) {
     
     config.fields.forEach((field, i) => {
         const card = document.createElement("div");
-        card.className = "info-card group";
+        card.className = "info-card group p-5 cursor-default"; // Remove pointer cursor
         
         const value = state.duAn[field] || "";
         const mockVal = (MockData && MockData.duAn) ? MockData.duAn[field] : null;
-        const displayValue = value || `VD: ${mockVal || config.labels[i]}`;
-        const isPlaceholder = !value;
+        const isDate = field === 'ngayKhoiCong' || field === 'ngayHoanThanh';
         
         card.innerHTML = `
-            <div class="w-12 h-12 bg-slate-50 text-indigo-500 rounded-xl flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
+            <div class="w-12 h-12 bg-slate-50 text-indigo-500 rounded-xl flex items-center justify-center shrink-0">
                 <i data-lucide="${fieldIcons[field] || 'edit'}" size="20"></i>
             </div>
             <div class="flex-1 min-w-0">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">${config.labels[i]}</p>
-                <p class="text-[13px] font-bold ${isPlaceholder ? 'text-slate-300' : 'text-slate-700'} truncate">${displayValue}</p>
-            </div>
-            <div class="p-2 text-slate-300 group-hover:text-indigo-500 transition-colors">
-                <i data-lucide="edit-3" size="16"></i>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">${config.labels[i]}</p>
+                <textarea data-field="${field}" spellcheck="false" 
+                    class="project-input w-full bg-transparent border-none outline-none font-bold text-slate-700 text-[14px] resize-none overflow-hidden p-0 m-0 ${isDate ? 'date-picker-input' : ''}" 
+                    placeholder="VD: ${mockVal || config.labels[i]}" 
+                    rows="1">${value}</textarea>
             </div>
         `;
         
-        card.onclick = () => openProjectEditModal(field);
-        rightCol.appendChild(card);
+        wrapper.appendChild(card);
     });
     
-    wrapper.appendChild(leftCol);
-    wrapper.appendChild(rightCol);
     container.appendChild(wrapper);
+
+    // Initial height adjustment and listeners
+    setTimeout(() => {
+        container.querySelectorAll('.project-input').forEach(input => {
+            adjustTextareaHeight(input);
+            input.addEventListener('input', () => {
+                adjustTextareaHeight(input);
+            });
+            input.onchange = async () => {
+                state.duAn[input.dataset.field] = input.value;
+                await saveState();
+            };
+        });
+
+        if (typeof flatpickr !== 'undefined') {
+            flatpickr(".date-picker-input", { dateFormat: "d/m/Y", locale: "vn", allowInput: true });
+        }
+    }, 50);
 }
 
 function renderSummaryRow(label, value, valueClass = "") {
-    return `
-        <div class="flex items-center justify-between text-[11px]">
-            <span class="text-slate-400 font-bold">${label}</span>
-            <span class="${valueClass}">${value}</span>
-        </div>
-    `;
+    return "";
 }
 
 function openProjectEditModal(focusField) {
