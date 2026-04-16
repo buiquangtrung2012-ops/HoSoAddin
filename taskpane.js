@@ -190,83 +190,78 @@ function renderContent() {
 }
 
 function renderProjectView(container) {
-    const config = categories.duAn;
-    
+    container.innerHTML = "";
+
     const wrapper = document.createElement("div");
-    wrapper.className = "max-w-3xl mx-auto space-y-4 pb-12";
-    
-    const fieldIcons = {
-        tenDuAn: 'file-text',
-        goiThau: 'clipboard-list',
-        dvtc: 'briefcase',
-        daiDienCDT: 'user',
-        tvgs: 'users',
-        soHD: 'hash',
-        ngayKhoiCong: 'calendar',
-        ngayHoanThanh: 'calendar-check'
-    };
-    
-    // Create a grid for dates if they are next to each other
-    let dateGrid = null;
+    wrapper.className = "space-y-6";
 
-    config.fields.forEach((field, i) => {
-        const isDate = field === 'ngayKhoiCong' || field === 'ngayHoanThanh';
-        const value = state.duAn[field] || "";
-        const mockVal = MockData.duAn[field] || config.labels[i];
-        
-        const card = document.createElement("div");
-        card.className = "info-card group p-5 cursor-default";
-        
-        card.innerHTML = `
-            <div class="w-12 h-12 bg-slate-50 text-indigo-500 rounded-xl flex items-center justify-center shrink-0">
-                <i data-lucide="${fieldIcons[field] || 'edit'}" size="20"></i>
+    // ===== PROJECT CARD =====
+    const projectCard = document.createElement("div");
+    projectCard.className = `
+        rounded-3xl p-8 text-center text-white
+        bg-gradient-to-br from-indigo-500 to-blue-600
+        shadow-lg
+    `;
+
+    projectCard.innerHTML = `
+        <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center 
+            bg-white/20 rounded-2xl backdrop-blur">
+            <span style="font-size:24px">📁</span>
+        </div>
+
+        <div style="font-size:20px;font-weight:bold;letter-spacing:1px">
+            ${state.projectId || 'v16042026.1150'}
+        </div>
+
+        <div style="font-size:12px;opacity:0.8;margin-top:4px">
+            PROJECT IDENTIFIER
+        </div>
+    `;
+
+    // ===== OVERVIEW CARD =====
+    const overview = document.createElement("div");
+    overview.className = "bg-white rounded-3xl p-6 shadow-sm";
+
+    overview.innerHTML = `
+        <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:12px;letter-spacing:1px">
+            OVERVIEW
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
+
+            <div style="display:flex;justify-content:space-between">
+                <span style="color:#64748b">Status</span>
+                <span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:999px;font-size:11px">
+                    Active
+                </span>
             </div>
-            <div class="flex-1 min-w-0">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">${config.labels[i]}</p>
-                ${isDate ? 
-                    `<input type="text" data-field="${field}" spellcheck="false" 
-                        class="project-input w-full bg-transparent border-none outline-none font-bold text-slate-700 text-[14px] p-0 m-0 date-picker-input" 
-                        placeholder="VD: ${mockVal}" value="${value}">` :
-                    `<textarea data-field="${field}" spellcheck="false" 
-                        class="project-input w-full bg-transparent border-none outline-none font-bold text-slate-700 text-[14px] resize-none overflow-hidden p-0 m-0" 
-                        placeholder="VD: ${mockVal}" rows="1">${value}</textarea>`
-                }
+
+            <div style="display:flex;justify-content:space-between">
+                <span style="color:#64748b">Created</span>
+                <span>${new Date().toLocaleDateString()}</span>
             </div>
-        `;
-        
-        if (isDate) {
-            if (!dateGrid) {
-                dateGrid = document.createElement("div");
-                dateGrid.className = "grid grid-cols-2 gap-4";
-                wrapper.appendChild(dateGrid);
-            }
-            dateGrid.appendChild(card);
-        } else {
-            dateGrid = null;
-            wrapper.appendChild(card);
-        }
-    });
-    
+
+            <div style="display:flex;justify-content:space-between">
+                <span style="color:#64748b">Author</span>
+                <span>Admin</span>
+            </div>
+
+            <div style="display:flex;justify-content:space-between">
+                <span style="color:#64748b">Contract #</span>
+                <span>---</span>
+            </div>
+
+            <div style="display:flex;justify-content:space-between">
+                <span style="color:#64748b">Deadline</span>
+                <span>---</span>
+            </div>
+
+        </div>
+    `;
+
+    wrapper.appendChild(projectCard);
+    wrapper.appendChild(overview);
     container.appendChild(wrapper);
-
-    // Initialization
-    setTimeout(() => {
-        container.querySelectorAll('.project-input').forEach(input => {
-            if (input.tagName.toLowerCase() === 'textarea') adjustTextareaHeight(input);
-            input.addEventListener('input', () => {
-                if (input.tagName.toLowerCase() === 'textarea') adjustTextareaHeight(input);
-            });
-            input.onchange = async () => {
-                state.duAn[input.dataset.field] = input.value;
-                await saveState();
-            };
-        });
-
-        if (typeof flatpickr !== 'undefined') {
-            flatpickr(".date-picker-input", { dateFormat: "d/m/Y", locale: "vn", allowInput: true });
-        }
-        lucide.createIcons();
-    }, 50);
 }
 
 function renderClassicView(container) {
