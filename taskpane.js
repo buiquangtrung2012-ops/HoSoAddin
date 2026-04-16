@@ -271,41 +271,90 @@ function renderProjectView(container) {
 
 function renderClassicView(container) {
     const config = categories.duAn;
-    const form = document.createElement("div");
-    form.className = "bg-white p-8 rounded-2xl shadow-sm space-y-6";
+    const wrapper = document.createElement("div");
+    wrapper.className = "grid grid-cols-1 md:grid-cols-12 gap-6 pb-12";
+    
+    // Left Column: Hero Card & Overview
+    const leftCol = document.createElement("div");
+    leftCol.className = "md:col-span-4 space-y-6";
+    
+    const version = document.getElementById('statusInfo')?.innerText || "v1.0.0";
+    
+    leftCol.innerHTML = `
+        <div class="hero-card !bg-gradient-to-br !from-blue-600 !to-indigo-700 shadow-xl shadow-blue-100 p-8 rounded-[2rem]">
+            <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-6 border border-white/20">
+                <i data-lucide="briefcase" class="text-white" size="32"></i>
+            </div>
+            <h3 class="text-2xl font-bold mb-1">${version}</h3>
+            <p class="text-[10px] text-white/70 uppercase font-black tracking-widest">PROJECT IDENTIFIER</p>
+        </div>
+        
+        <div class="glass-card p-6 space-y-5 bg-white border border-slate-100 rounded-[2rem] shadow-sm">
+            <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest">Overview</h4>
+            <div class="space-y-4">
+                ${renderMetadataRow("Status", "Active", "bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full text-[10px] font-bold")}
+                ${renderMetadataRow("Created", new Date().toLocaleDateString('vi-VN'), "font-bold text-slate-700")}
+                ${renderMetadataRow("Author", "Admin", "font-bold text-slate-700")}
+                ${renderMetadataRow("Contract #", state.duAn.soHD || "---", "font-bold text-slate-700")}
+                ${renderMetadataRow("Deadline", state.duAn.ngayHoanThanh || "---", "font-bold text-slate-700")}
+            </div>
+        </div>
+    `;
+    
+    // Right Column: Info Cards
+    const rightCol = document.createElement("div");
+    rightCol.className = "md:col-span-8 space-y-3";
+    
+    const fieldIcons = {
+        tenDuAn: 'file-text',
+        goiThau: 'clipboard-list',
+        dvtc: 'briefcase',
+        daiDienCDT: 'user',
+        tvgs: 'users',
+        soHD: 'hash',
+        ngayKhoiCong: 'calendar',
+        ngayHoanThanh: 'calendar-check'
+    };
     
     config.fields.forEach((field, i) => {
-        const div = document.createElement("div");
-        const isDate = field === 'ngayKhoiCong' || field === 'ngayHoanThanh';
+        const card = document.createElement("div");
+        card.className = "info-card p-5 group";
+        
+        const value = state.duAn[field] || "";
         const mockVal = MockData.duAn[field] || config.labels[i];
         
-        div.innerHTML = `
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">${config.labels[i]}</label>
-            ${isDate ? 
-                `<input type="text" data-field="${field}" 
-                    class="project-input w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all date-picker-input" 
-                    placeholder="VD: ${mockVal}" value="${state.duAn[field] || ''}">` :
-                `<textarea data-field="${field}" 
-                    class="project-input w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-y" 
-                    placeholder="VD: ${mockVal}" rows="2">${state.duAn[field] || ''}</textarea>`
-            }
+        card.innerHTML = `
+            <div class="w-12 h-12 bg-slate-50 text-indigo-500 rounded-xl flex items-center justify-center group-hover:bg-indigo-50 transition-colors shrink-0">
+                <i data-lucide="${fieldIcons[field] || 'edit'}" size="20"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">${config.labels[i]}</p>
+                <p class="text-[14px] font-bold text-slate-700 truncate">${value || 'Chưa có thông tin'}</p>
+                <p class="text-[10px] text-slate-400 italic truncate">${!value ? 'VD: ' + mockVal : ''}</p>
+            </div>
+            <button class="p-2 text-slate-300 group-hover:text-indigo-500 transition-colors opacity-0 group-hover:opacity-100">
+                <i data-lucide="edit-3" size="18"></i>
+            </button>
         `;
-        form.appendChild(div);
+        
+        card.onclick = () => openProjectEditModal(field);
+        rightCol.appendChild(card);
     });
     
-    container.appendChild(form);
+    wrapper.appendChild(leftCol);
+    wrapper.appendChild(rightCol);
+    container.appendChild(wrapper);
     
-    setTimeout(() => {
-        container.querySelectorAll('.project-input').forEach(input => {
-            input.onchange = async () => {
-                state.duAn[input.dataset.field] = input.value;
-                await saveState();
-            };
-        });
-        if (typeof flatpickr !== 'undefined') {
-            flatpickr(".date-picker-input", { dateFormat: "d/m/Y", locale: "vn", allowInput: true });
-        }
-    }, 50);
+    setTimeout(() => lucide.createIcons(), 50);
+}
+
+function renderMetadataRow(label, value, valClass = "") {
+    return `
+        <div class="flex items-center justify-between text-[11px]">
+            <span class="text-slate-400 font-bold">${label}</span>
+            <span class="${valClass}">${value}</span>
+        </div>
+    `;
 }
 
 function openProjectEditModal(focusField) {
