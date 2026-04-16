@@ -120,6 +120,12 @@ function switchTab(tabId) {
         btn.classList.toggle('active', btn.dataset.tab === tabId);
     });
     
+    // Update Page Title
+    const pageTitle = document.getElementById('pageTitle');
+    if (pageTitle) {
+        pageTitle.innerText = categories[tabId]?.title?.toUpperCase() || tabId.toUpperCase();
+    }
+    
     renderContent();
     lucide.createIcons();
 }
@@ -131,7 +137,7 @@ function renderContent() {
         container.innerHTML = "";
         
         if (state.currentTab === 'duAn') {
-            renderProjectForm(container);
+            renderProjectView(container);
         } else if (state.currentTab === 'xuatBan') {
             renderExportSettings(container);
         } else {
@@ -151,69 +157,130 @@ function renderContent() {
     }
 }
 
-function renderProjectForm(container) {
+function renderProjectView(container) {
     const config = categories.duAn;
-    const form = document.createElement("div");
-    // Sử dụng class CSS tùy chỉnh (trong taskpane.html) để xử lý Responsive ngược theo ý người dùng
-    form.className = "project-grid-container bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm";
+    
+    const wrapper = document.createElement("div");
+    wrapper.className = "grid grid-cols-1 md:grid-cols-12 gap-6 pb-12";
+    
+    // Left Column: Hero Card & Summary
+    const leftCol = document.createElement("div");
+    leftCol.className = "md:col-span-4 space-y-6";
+    
+    const version = document.getElementById('statusInfo')?.innerText || "v1.0.0";
+    
+    leftCol.innerHTML = `
+        <div class="hero-card">
+            <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/20">
+                <i data-lucide="briefcase" class="text-white" size="32"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-1">${version}</h3>
+            <p class="text-xs text-white/70 uppercase font-black tracking-widest">MÃ DỰ ÁN</p>
+        </div>
+        
+        <div class="glass-card p-6 space-y-4">
+            <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest">Thông tin tổng quan</h4>
+            <div class="space-y-4">
+                ${renderSummaryRow("Trạng thái", "Đang thực hiện", "text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full text-[10px] font-bold")}
+                ${renderSummaryRow("Ngày tạo", new Date().toLocaleDateString('vi-VN'), "font-bold text-slate-600")}
+                ${renderSummaryRow("Người tạo", "Admin", "font-bold text-slate-600")}
+                ${renderSummaryRow("Số hợp đồng", state.duAn.soHD || "---", "font-bold text-slate-600")}
+                ${renderSummaryRow("Hạn hoàn thành", state.duAn.ngayHoanThanh || "---", "font-bold text-slate-600")}
+            </div>
+            <button class="w-full py-3 mt-4 text-[11px] font-bold text-slate-400 border border-slate-100 rounded-xl hover:bg-slate-50 flex items-center justify-center gap-2">
+                <i data-lucide="history" size="14"></i> Xem lịch sử chỉnh sửa
+            </button>
+        </div>
+    `;
+    
+    // Right Column: Info Cards
+    const rightCol = document.createElement("div");
+    rightCol.className = "md:col-span-8 space-y-3";
+    
+    const fieldIcons = {
+        tenDuAn: 'file-text',
+        goiThau: 'clipboard-list',
+        dvtc: 'briefcase',
+        daiDienCDT: 'user',
+        tvgs: 'users',
+        soHD: 'hash',
+        ngayKhoiCong: 'calendar',
+        ngayHoanThanh: 'calendar-check'
+    };
+    
+    config.fields.forEach((field, i) => {
+        const card = document.createElement("div");
+        card.className = "info-card group";
+        
+        const value = state.duAn[field] || "";
+        const mockVal = (MockData && MockData.duAn) ? MockData.duAn[field] : null;
+        const displayValue = value || `VD: ${mockVal || config.labels[i]}`;
+        const isPlaceholder = !value;
+        
+        card.innerHTML = `
+            <div class="w-12 h-12 bg-slate-50 text-indigo-500 rounded-xl flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
+                <i data-lucide="${fieldIcons[field] || 'edit'}" size="20"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">${config.labels[i]}</p>
+                <p class="text-[13px] font-bold ${isPlaceholder ? 'text-slate-300' : 'text-slate-700'} truncate">${displayValue}</p>
+            </div>
+            <div class="p-2 text-slate-300 group-hover:text-indigo-500 transition-colors">
+                <i data-lucide="edit-3" size="16"></i>
+            </div>
+        `;
+        
+        card.onclick = () => openProjectEditModal(field);
+        rightCol.appendChild(card);
+    });
+    
+    wrapper.appendChild(leftCol);
+    wrapper.appendChild(rightCol);
+    container.appendChild(wrapper);
+}
+
+function renderSummaryRow(label, value, valueClass = "") {
+    return `
+        <div class="flex items-center justify-between text-[11px]">
+            <span class="text-slate-400 font-bold">${label}</span>
+            <span class="${valueClass}">${value}</span>
+        </div>
+    `;
+}
+
+function openProjectEditModal(focusField) {
+    const config = categories.duAn;
+    const modalForm = document.getElementById('modalFormContent');
+    modalForm.innerHTML = "";
+    
+    document.getElementById('modalTitle').innerText = "Chỉnh sửa thông tin dự án";
     
     config.fields.forEach((field, i) => {
         const div = document.createElement("div");
-        // Các trường quan trọng chiếm trọn chiều ngang
-        const fullWidthFields = ["tenDuAn", "goiThau", "dvtc"];
-        if (fullWidthFields.includes(field)) {
-            div.className = "field-full-width";
-        }
-
         const isDate = field === 'ngayKhoiCong' || field === 'ngayHoanThanh';
-        const extraClass = isDate ? 'date-picker-input' : '';
-        
-        // Safety check for MockData
         const mockVal = (MockData && MockData.duAn) ? MockData.duAn[field] : null;
-        const placeholder = `VD: ${mockVal || config.labels[i]}`;
-        
-        if (isDate) {
-            div.innerHTML = `
-                <label class="text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">${config.labels[i]}</label>
-                <input type="text" spellcheck="false" data-field="${field}" value="${state.duAn[field] || ''}" class="input-field project-input ${extraClass}" placeholder="${placeholder}">
-            `;
-        } else {
-            div.innerHTML = `
-                <label class="text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">${config.labels[i]}</label>
-                <textarea spellcheck="false" data-field="${field}" class="input-field project-input resize-y py-2 w-full" style="height: auto; min-height: 2.125rem;" rows="1" placeholder="${placeholder}">${state.duAn[field] || ''}</textarea>
-            `;
-        }
-        form.appendChild(div);
+
+        div.innerHTML = `
+            <label class="text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">${config.labels[i]}</label>
+            <textarea id="modalInput_${field}" spellcheck="false" class="input-field project-input resize-y py-3 w-full border border-slate-100 rounded-xl text-sm focus:border-indigo-400 transition-all ${isDate ? 'date-picker-input' : ''}" 
+                style="height: auto; min-height: 3rem;" rows="1" placeholder="VD: ${mockVal || ''}">${state.duAn[field] || ''}</textarea>
+        `;
+        modalForm.appendChild(div);
     });
     
-    container.appendChild(form);
+    document.getElementById('modalOverlay').classList.remove('hidden');
     
-    // Khởi tạo Flatpickr cho tiện ích lịch cực đẹp và chuẩn DD/MM/YYYY
+    // Initialize tooltips and datepickers
     setTimeout(() => {
         if (typeof flatpickr !== 'undefined') {
-            flatpickr(".date-picker-input", {
-                dateFormat: "d/m/Y",
-                locale: "vn",
-                allowInput: true,
-                altInput: true,
-                altFormat: "d/m/Y"
-            });
+            flatpickr(".date-picker-input", { dateFormat: "d/m/Y", locale: "vn", allowInput: true });
         }
+        adjustAllTextareaHeights();
+        const firstField = document.getElementById(`modalInput_${focusField}`);
+        if (firstField) firstField.focus();
     }, 50);
     
-    // Real-time Save & Auto-resize for Project Info
-    form.querySelectorAll('.project-input').forEach(input => {
-        input.addEventListener('input', () => {
-            if (input.tagName.toLowerCase() === 'textarea') {
-                adjustTextareaHeight(input);
-            }
-        });
-
-        input.onchange = async () => {
-            state.duAn[input.dataset.field] = input.value;
-            await saveState();
-        };
-    });
+    state.currentEditType = 'duAn';
 }
 
 function adjustTextareaHeight(ta) {
@@ -559,38 +626,46 @@ function openEditModal(index = -1) {
 async function saveModal() {
     const type = state.currentTab;
     const config = categories[type];
-    const newEntry = [];
     
-    // Auto-calculate STT
-    newEntry[0] = state.editingIndex === -1 ? (state[type].length + 1).toString() : state[type][state.editingIndex][0];
-    
-    config.fields.forEach((field, i) => {
-        if (field === 'stt') return;
-        let val = document.getElementById(`modalInput_${field}`)?.value || "";
-        if (field === 'qty' && val) val = String(val).padStart(2, '0');
-        if (type === 'nhanSu' && field === 'phone' && val) {
-            val = val.replace(/(?:0|\+84)[\d\.\-\s]{9,13}/g, match => {
-                let d = match.replace(/\D/g, '');
-                if (d.startsWith('84')) d = '0' + d.substring(2);
-                if (d.length >= 10 && d.startsWith('0')) return d.substring(0, 10).replace(/(\d{4})(\d{3})(\d{3})/, '$1.$2.$3');
-                return match;
-            });
-            document.getElementById(`modalInput_${field}`).value = val;
-        }
-        newEntry[i] = val;
-    });
-    
-    // Specialized Logic: KiemTraSoHuu (VBA Port)
-    if (type === 'mayMoc') {
-        const ownerName = normalize(newEntry[4]); // Chu So Huu
-        const companyName = normalize(state.duAn.dvtc); // Don Vi Thi Cong
-        newEntry[5] = (ownerName.includes(companyName) || companyName.includes(ownerName)) ? "Sở hữu" : "Đi thuê";
-    }
-    
-    if (state.editingIndex === -1) {
-        state[type].push(newEntry);
+    // Xử lý riêng cho lưu thông tin dự án từ Modal mới
+    if (state.currentEditType === 'duAn') {
+        config.fields.forEach(field => {
+            const val = document.getElementById(`modalInput_${field}`)?.value || "";
+            state.duAn[field] = val;
+        });
+        state.currentEditType = null;
     } else {
-        state[type][state.editingIndex] = newEntry;
+        const newEntry = [];
+        // Auto-calculate STT
+        newEntry[0] = state.editingIndex === -1 ? (state[type].length + 1).toString() : state[type][state.editingIndex][0];
+        
+        config.fields.forEach((field, i) => {
+            if (field === 'stt') return;
+            let val = document.getElementById(`modalInput_${field}`)?.value || "";
+            if (field === 'qty' && val) val = String(val).padStart(2, '0');
+            if (type === 'nhanSu' && field === 'phone' && val) {
+                val = val.replace(/(?:0|\+84)[\d\.\-\s]{9,13}/g, match => {
+                    let d = match.replace(/\D/g, '');
+                    if (d.startsWith('84')) d = '0' + d.substring(2);
+                    if (d.length >= 10 && d.startsWith('0')) return d.substring(0, 10).replace(/(\d{4})(\d{3})(\d{3})/, '$1.$2.$3');
+                    return match;
+                });
+                document.getElementById(`modalInput_${field}`).value = val;
+            }
+            newEntry[i] = val;
+        });
+        
+        if (type === 'mayMoc') {
+            const ownerName = normalize(newEntry[4]);
+            const companyName = normalize(state.duAn.dvtc);
+            newEntry[5] = (ownerName.includes(companyName) || companyName.includes(ownerName)) ? "Sở hữu" : "Đi thuê";
+        }
+        
+        if (state.editingIndex === -1) {
+            state[type].push(newEntry);
+        } else {
+            state[type][state.editingIndex] = newEntry;
+        }
     }
     
     await saveState();
