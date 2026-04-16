@@ -8,7 +8,6 @@ import { MockData } from './mock_data.js';
 let state = {
     currentTab: 'duAn',
     editingIndex: -1,
-    theme: localStorage.getItem('addinTheme') || 'modern', // Default to modern
     duAn: {
         soHD: "",
         tenDuAn: "",
@@ -50,7 +49,6 @@ async function initializeApp() {
         updateLog("Đang khởi tạo hệ thống...");
         await loadState();
         registerEvents();
-        initializeTheme();
         switchTab('duAn');
         updateLog("Hệ thống sẵn sàng");
     } catch (e) {
@@ -116,35 +114,6 @@ async function saveState() {
 }
 
 // --- UI CONTROLLER ---
-function initializeTheme() {
-    document.body.className = `flex h-screen bg-[#f3f6f9] theme-${state.theme}`;
-    const btnClassic = document.getElementById('themeClassic');
-    const btnModern = document.getElementById('themeModern');
-    
-    if (btnClassic && btnModern) {
-        btnClassic.classList.toggle('active', state.theme === 'classic');
-        btnModern.classList.toggle('active', state.theme === 'modern');
-        btnClassic.onclick = () => switchTheme('classic');
-        btnModern.onclick = () => switchTheme('modern');
-    }
-}
-
-async function switchTheme(newTheme) {
-    state.theme = newTheme;
-    localStorage.setItem('addinTheme', newTheme);
-    document.body.className = `flex h-screen bg-[#f3f6f9] theme-${newTheme}`;
-    
-    const btnClassic = document.getElementById('themeClassic');
-    const btnModern = document.getElementById('themeModern');
-    if (btnClassic && btnModern) {
-        btnClassic.classList.toggle('active', newTheme === 'classic');
-        btnModern.classList.toggle('active', newTheme === 'modern');
-    }
-    
-    renderContent();
-    lucide.createIcons();
-}
-
 function switchTab(tabId) {
     state.currentTab = tabId;
     document.querySelectorAll('[data-tab]').forEach(btn => {
@@ -168,8 +137,7 @@ function renderContent() {
         container.innerHTML = "";
         
         if (state.currentTab === 'duAn') {
-            if (state.theme === 'modern') renderProjectView(container);
-            else renderClassicView(container);
+            renderProjectView(container);
         } else if (state.currentTab === 'xuatBan') {
             renderExportSettings(container);
         } else {
@@ -190,115 +158,10 @@ function renderContent() {
 }
 
 function renderProjectView(container) {
-    container.innerHTML = "";
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "space-y-6";
-
-    // ===== PROJECT CARD =====
-    const projectCard = document.createElement("div");
-    projectCard.className = `
-        rounded-3xl p-8 text-center text-white
-        bg-gradient-to-br from-indigo-500 to-blue-600
-        shadow-lg
-    `;
-
-    projectCard.innerHTML = `
-        <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center 
-            bg-white/20 rounded-2xl backdrop-blur">
-            <span style="font-size:24px">📁</span>
-        </div>
-
-        <div style="font-size:20px;font-weight:bold;letter-spacing:1px">
-            ${state.projectId || 'v16042026.1150'}
-        </div>
-
-        <div style="font-size:12px;opacity:0.8;margin-top:4px">
-            PROJECT IDENTIFIER
-        </div>
-    `;
-
-    // ===== OVERVIEW CARD =====
-    const overview = document.createElement("div");
-    overview.className = "bg-white rounded-3xl p-6 shadow-sm";
-
-    overview.innerHTML = `
-        <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:12px;letter-spacing:1px">
-            OVERVIEW
-        </div>
-
-        <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
-
-            <div style="display:flex;justify-content:space-between">
-                <span style="color:#64748b">Status</span>
-                <span style="background:#dcfce7;color:#16a34a;padding:2px 8px;border-radius:999px;font-size:11px">
-                    Active
-                </span>
-            </div>
-
-            <div style="display:flex;justify-content:space-between">
-                <span style="color:#64748b">Created</span>
-                <span>${new Date().toLocaleDateString()}</span>
-            </div>
-
-            <div style="display:flex;justify-content:space-between">
-                <span style="color:#64748b">Author</span>
-                <span>Admin</span>
-            </div>
-
-            <div style="display:flex;justify-content:space-between">
-                <span style="color:#64748b">Contract #</span>
-                <span>---</span>
-            </div>
-
-            <div style="display:flex;justify-content:space-between">
-                <span style="color:#64748b">Deadline</span>
-                <span>---</span>
-            </div>
-
-        </div>
-    `;
-
-    wrapper.appendChild(projectCard);
-    wrapper.appendChild(overview);
-    container.appendChild(wrapper);
-}
-
-function renderClassicView(container) {
     const config = categories.duAn;
+    
     const wrapper = document.createElement("div");
-    wrapper.className = "grid grid-cols-1 md:grid-cols-12 gap-6 pb-12";
-    
-    // Left Column: Hero Card & Overview
-    const leftCol = document.createElement("div");
-    leftCol.className = "md:col-span-4 space-y-6";
-    
-    const version = document.getElementById('statusInfo')?.innerText || "v1.0.0";
-    
-    leftCol.innerHTML = `
-        <div class="hero-card !bg-gradient-to-br !from-blue-600 !to-indigo-700 shadow-xl shadow-blue-100 p-8 rounded-[2rem]">
-            <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-6 border border-white/20">
-                <i data-lucide="briefcase" class="text-white" size="32"></i>
-            </div>
-            <h3 class="text-2xl font-bold mb-1">${version}</h3>
-            <p class="text-[10px] text-white/70 uppercase font-black tracking-widest">PROJECT IDENTIFIER</p>
-        </div>
-        
-        <div class="glass-card p-6 space-y-5 bg-white border border-slate-100 rounded-[2rem] shadow-sm">
-            <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest">Overview</h4>
-            <div class="space-y-4">
-                ${renderMetadataRow("Status", "Active", "bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full text-[10px] font-bold")}
-                ${renderMetadataRow("Created", new Date().toLocaleDateString('vi-VN'), "font-bold text-slate-700")}
-                ${renderMetadataRow("Author", "Admin", "font-bold text-slate-700")}
-                ${renderMetadataRow("Contract #", state.duAn.soHD || "---", "font-bold text-slate-700")}
-                ${renderMetadataRow("Deadline", state.duAn.ngayHoanThanh || "---", "font-bold text-slate-700")}
-            </div>
-        </div>
-    `;
-    
-    // Right Column: Info Cards
-    const rightCol = document.createElement("div");
-    rightCol.className = "md:col-span-8 space-y-3";
+    wrapper.className = "max-w-3xl mx-auto space-y-4 pb-12";
     
     const fieldIcons = {
         tenDuAn: 'file-text',
@@ -311,45 +174,67 @@ function renderClassicView(container) {
         ngayHoanThanh: 'calendar-check'
     };
     
+    // Create a grid for dates if they are next to each other
+    let dateGrid = null;
+
     config.fields.forEach((field, i) => {
-        const card = document.createElement("div");
-        card.className = "info-card p-5 group";
-        
+        const isDate = field === 'ngayKhoiCong' || field === 'ngayHoanThanh';
         const value = state.duAn[field] || "";
         const mockVal = MockData.duAn[field] || config.labels[i];
         
+        const card = document.createElement("div");
+        card.className = "info-card group p-5 cursor-default";
+        
         card.innerHTML = `
-            <div class="w-12 h-12 bg-slate-50 text-indigo-500 rounded-xl flex items-center justify-center group-hover:bg-indigo-50 transition-colors shrink-0">
+            <div class="w-12 h-12 bg-slate-50 text-indigo-500 rounded-xl flex items-center justify-center shrink-0">
                 <i data-lucide="${fieldIcons[field] || 'edit'}" size="20"></i>
             </div>
             <div class="flex-1 min-w-0">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">${config.labels[i]}</p>
-                <p class="text-[14px] font-bold text-slate-700 truncate">${value || 'Chưa có thông tin'}</p>
-                <p class="text-[10px] text-slate-400 italic truncate">${!value ? 'VD: ' + mockVal : ''}</p>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">${config.labels[i]}</p>
+                ${isDate ? 
+                    `<input type="text" data-field="${field}" spellcheck="false" 
+                        class="project-input w-full bg-transparent border-none outline-none font-bold text-slate-700 text-[14px] p-0 m-0 date-picker-input" 
+                        placeholder="VD: ${mockVal}" value="${value}">` :
+                    `<textarea data-field="${field}" spellcheck="false" 
+                        class="project-input w-full bg-transparent border-none outline-none font-bold text-slate-700 text-[14px] resize-none overflow-hidden p-0 m-0" 
+                        placeholder="VD: ${mockVal}" rows="1">${value}</textarea>`
+                }
             </div>
-            <button class="p-2 text-slate-300 group-hover:text-indigo-500 transition-colors opacity-0 group-hover:opacity-100">
-                <i data-lucide="edit-3" size="18"></i>
-            </button>
         `;
         
-        card.onclick = () => openProjectEditModal(field);
-        rightCol.appendChild(card);
+        if (isDate) {
+            if (!dateGrid) {
+                dateGrid = document.createElement("div");
+                dateGrid.className = "grid grid-cols-2 gap-4";
+                wrapper.appendChild(dateGrid);
+            }
+            dateGrid.appendChild(card);
+        } else {
+            dateGrid = null;
+            wrapper.appendChild(card);
+        }
     });
     
-    wrapper.appendChild(leftCol);
-    wrapper.appendChild(rightCol);
     container.appendChild(wrapper);
-    
-    setTimeout(() => lucide.createIcons(), 50);
-}
 
-function renderMetadataRow(label, value, valClass = "") {
-    return `
-        <div class="flex items-center justify-between text-[11px]">
-            <span class="text-slate-400 font-bold">${label}</span>
-            <span class="${valClass}">${value}</span>
-        </div>
-    `;
+    // Initialization
+    setTimeout(() => {
+        container.querySelectorAll('.project-input').forEach(input => {
+            if (input.tagName.toLowerCase() === 'textarea') adjustTextareaHeight(input);
+            input.addEventListener('input', () => {
+                if (input.tagName.toLowerCase() === 'textarea') adjustTextareaHeight(input);
+            });
+            input.onchange = async () => {
+                state.duAn[input.dataset.field] = input.value;
+                await saveState();
+            };
+        });
+
+        if (typeof flatpickr !== 'undefined') {
+            flatpickr(".date-picker-input", { dateFormat: "d/m/Y", locale: "vn", allowInput: true });
+        }
+        lucide.createIcons();
+    }, 50);
 }
 
 function openProjectEditModal(focusField) {
