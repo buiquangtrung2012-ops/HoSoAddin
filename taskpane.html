@@ -2,36 +2,6 @@
 <html lang="vi">
 
 <head>
-    <style>
-    /* Bo góc đẹp */
-    .rounded-3xl {
-        border-radius: 24px;
-    }
-    
-    /* Shadow mịn */
-    .shadow-sm {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-    .shadow-lg {
-        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-    }
-    
-    /* Gradient giống ảnh */
-    .bg-gradient-to-br {
-        background: linear-gradient(135deg, #4f46e5, #2563eb);
-    }
-    
-    /* Hiệu ứng hover nhẹ */
-    .bg-white:hover {
-        transform: translateY(-2px);
-        transition: 0.2s;
-    }
-    
-    /* Transition toàn UI */
-    body {
-        transition: all 0.3s ease;
-    }
-    </style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản Lý Hồ Sơ - Fluent UI</title>
@@ -187,22 +157,6 @@
             transform: scale(0.85);
             transform-origin: top left;
         }
-
-        /* Theme Styles */
-        body.theme-classic aside { width: 12rem; }
-        body.theme-classic .sidebar-btn { justify-content: flex-start; padding: 12px 18px; }
-        body.theme-classic .sidebar-btn i { margin-right: 4px; }
-        body.theme-classic .sidebar-btn span { display: inline; }
-        
-        body.theme-modern aside { width: 5rem; }
-        body.theme-modern .sidebar-btn { justify-content: center; padding: 12px; }
-        body.theme-modern .sidebar-btn span { display: none; }
-
-        #themeClassic.active { background: white; color: var(--fw-accent); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        #themeModern.active { background: white; color: var(--fw-accent); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        
-        #themeClassic:not(.active) { color: #94a3b8; }
-        #themeModern:not(.active) { color: #94a3b8; }
     </style>
 </head>
 
@@ -217,23 +171,23 @@
         </div>
 
         <nav class="flex flex-col gap-4 items-center">
-            <button data-tab="duAn" class="sidebar-btn active" title="Dự án">
-                <i data-lucide="home"></i> <span>Dự án</span>
+            <button data-tab="duAn" class="sidebar-btn active justify-center p-3" title="Dự án">
+                <i data-lucide="home"></i>
             </button>
-            <button data-tab="nhanSu" class="sidebar-btn" title="Nhân sự">
-                <i data-lucide="users"></i> <span>Nhân sự</span>
+            <button data-tab="nhanSu" class="sidebar-btn justify-center p-3" title="Nhân sự">
+                <i data-lucide="users"></i>
             </button>
-            <button data-tab="mayMoc" class="sidebar-btn" title="Máy móc">
-                <i data-lucide="truck"></i> <span>Máy móc</span>
+            <button data-tab="mayMoc" class="sidebar-btn justify-center p-3" title="Máy móc">
+                <i data-lucide="truck"></i>
             </button>
-            <button data-tab="vatLieu" class="sidebar-btn" title="Vật liệu">
-                <i data-lucide="package"></i> <span>Vật liệu</span>
+            <button data-tab="vatLieu" class="sidebar-btn justify-center p-3" title="Vật liệu">
+                <i data-lucide="package"></i>
             </button>
-            <button data-tab="thiNghiem" class="sidebar-btn" title="Phòng TN">
-                <i data-lucide="microscope"></i> <span>Phòng TN</span>
+            <button data-tab="thiNghiem" class="sidebar-btn justify-center p-3" title="Phòng TN">
+                <i data-lucide="microscope"></i>
             </button>
-            <button data-tab="xuatBan" class="sidebar-btn" title="Cài đặt">
-                <i data-lucide="settings"></i> <span>Cài đặt</span>
+            <button data-tab="xuatBan" class="sidebar-btn justify-center p-3" title="Cài đặt">
+                <i data-lucide="settings"></i>
             </button>
         </nav>
     </aside>
@@ -249,29 +203,12 @@
                 <h1 id="pageTitle" class="text-sm font-black uppercase tracking-widest text-slate-800">HỒ SƠ DỰ ÁN</h1>
             </div>
             
-            <div class="flex items-center gap-6">
-                <!-- Theme Switcher -->
-                <div class="flex items-center gap-2">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Theme</span>
-                    <div class="flex bg-slate-200/50 p-1 rounded-xl gap-1">
-                        <button id="themeClassic" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all" title="Giao diện truyền thống">
-                            <i data-lucide="file-text" size="14"></i>
-                            <span class="hidden sm:inline">CLASSIC</span>
-                        </button>
-                        <button id="themeModern" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all" title="Giao diện hiện đại">
-                            <i data-lucide="layout-dashboard" size="14"></i>
-                            <span class="hidden sm:inline">MODERN</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex flex-col items-end gap-1">
-                    <button onclick="window.location.reload(true)" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold rounded-lg transition-all shadow-sm shadow-emerald-100 uppercase tracking-tighter">
-                        <div class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
-                        UPDATE
-                    </button>
-                    <div id="statusInfo" class="text-[9px] font-bold text-slate-400">v16042026.1150</div>
-                </div>
+            <div class="flex flex-col items-end gap-1">
+                <button onclick="window.location.reload(true)" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold rounded-lg transition-all shadow-sm shadow-emerald-100 uppercase tracking-tighter">
+                    <div class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                    UPDATE
+                </button>
+                <div id="statusInfo" class="text-[9px] font-bold text-slate-400">v16042026.1231</div>
             </div>
         </header>
 
@@ -349,7 +286,7 @@
         </div>
     </div>
 
-    <script type="module" src="taskpane.js?v=16042026.1230"></script>
+    <script type="module" src="taskpane.js?v=16042026.1231"></script>
     <script>lucide.createIcons();</script>
 </body>
 
