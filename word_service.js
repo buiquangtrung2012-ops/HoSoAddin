@@ -910,14 +910,14 @@ export const WordService = {
 
             // Mở rộng tên thay thế (Aliases) cho các trường
             const fullTagMap = {
-                "DuAn": ["DuAn", "tenDuAn", "TenDuAn", "Project"],
-                "GoiThau": ["GoiThau", "goiThau", "tenGoiThau", "Package"],
-                "DVTC": ["DVTC", "dvtc", "donViThiCong", "Contractor"],
-                "DaiDienCDT": ["DaiDienCDT", "daiDienCDT", "chuDauTu", "CDT", "Client"],
-                "TVGS": ["TVGS", "tvgs", "tuVanGiamSat", "Supervisor"],
-                "SoHD": ["SoHD", "soHD", "ContractNumber", "Number"],
-                "NgayKhoiCong": ["NgayKhoiCong", "ngayKhoiCong", "NgayKC", "StartDate"],
-                "NgayHoanThanh": ["NgayHoanThanh", "ngayHoanThanh", "NgayHT", "EndDate"]
+                "DuAn": ["DuAn", "tenDuAn", "TenDuAn", "Project", "Ten Du An"],
+                "GoiThau": ["GoiThau", "goiThau", "tenGoiThau", "Package", "Goi Thau"],
+                "DVTC": ["DVTC", "dvtc", "donViThiCong", "Contractor", "Don vi thi cong"],
+                "DaiDienCDT": ["DaiDienCDT", "daiDienCDT", "chuDauTu", "CDT", "Client", "Dai dien CDT"],
+                "TVGS": ["TVGS", "tvgs", "tuVanGiamSat", "Supervisor", "Tu van giam sat"],
+                "SoHD": ["SoHD", "soHD", "ContractNumber", "Number", "So HD", "So hop dong", "SoHĐ"],
+                "NgayKhoiCong": ["NgayKhoiCong", "ngayKhoiCong", "NgayKC", "StartDate", "Ngay khoi cong"],
+                "NgayHoanThanh": ["NgayHoanThanh", "ngayHoanThanh", "NgayHT", "EndDate", "Ngay hoan thanh"]
             };
 
             const inventory = { tags: [], tables: [], variables: [] };
@@ -1026,7 +1026,30 @@ export const WordService = {
                 await context.sync();
 
                 const values = table.values;
-                if (values.length < 2) continue;
+                if (values.length < 1) continue;
+
+                // --- NEW: Heuristic for Summary Tables (2 columns, Key-Value pairs) ---
+                if (columnCount === 2 || (columnCount > 1 && values[0][0].length < 50)) {
+                    for (let r = 0; r < values.length; r++) {
+                        const row = values[r];
+                        if (row.length < 2) continue;
+                        
+                        const keyText = WordService.normalizeTextForSearch(row[0]);
+                        const valText = (row[1] || "").toString().trim();
+                        
+                        if (valText.length > 0) {
+                            if (keyText.includes("so hd") || keyText.includes("so hop dong")) {
+                                if (!result.duAn.soHD) result.duAn.soHD = valText;
+                            } else if (keyText === "ten du an") {
+                                if (!result.duAn.tenDuAn) result.duAn.tenDuAn = valText;
+                            } else if (keyText === "ten goi thau" || keyText === "goi thau") {
+                                if (!result.duAn.goiThau) result.duAn.goiThau = valText;
+                            } else if (keyText.includes("don vi thi cong")) {
+                                if (!result.duAn.dvtc) result.duAn.dvtc = valText;
+                            }
+                        }
+                    }
+                }
 
                 const headerRowText = values[0].join(" ");
                 const columnCount = values[0].length;
