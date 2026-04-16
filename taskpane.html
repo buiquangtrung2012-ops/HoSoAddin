@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hồ Sơ Dự Án - Pro Edition</title>
+    <title>Quản Lý Hồ Sơ - Fluent UI</title>
     <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js" type="text/javascript"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -14,382 +14,284 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap');
+
+        :root {
+            --fw-bg: #f3f6f9;
+            --fw-sidebar: #ffffff;
+            --fw-accent: #4f46e5;
+            --fw-card: #ffffff;
+            --fw-text-main: #1e293b;
+            --fw-text-muted: #64748b;
+            --radius-xl: 1.5rem;
+            --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+        }
+
         body {
-            font-family: 'Times New Roman', serif;
-            background-color: #f8fafc;
-            color: #1e293b;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--fw-bg);
+            color: var(--fw-text-main);
+            overflow: hidden;
         }
 
-        .tab-btn {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-        }
-
-        .tab-btn.active {
-            background-color: #1e293b;
-            color: #818cf8;
-        }
-
-        .tab-btn.active::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 15%;
-            height: 70%;
-            width: 3px;
-            background-color: #6366f1;
-            border-radius: 0 4px 4px 0;
-            box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
-        }
-
-        .input-field {
-            width: 100%;
-            min-height: 2.125rem;
-            background-color: #f1f5f9;
-            border: 1.5px solid transparent;
-            border-radius: 0.75rem;
-            padding: 0.35rem 0.85rem;
-            font-size: 13px;
-            font-family: 'Times New Roman', serif;
-            transition: all 0.2s;
-            line-height: 1.4;
-        }
-
-        .input-field:focus {
-            background-color: white;
-            border-color: #6366f1;
-            outline: none;
-            box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.15);
-        }
-
-        .card {
-            background: white;
-            border: 1px solid #f1f5f9;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-            border-color: #e2e8f0;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
-
-        .btn-modern {
+        .sidebar-btn {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 6px;
-            padding: 0.45rem 0.75rem;
-            border-radius: 0.75rem;
-            font-weight: 700;
-            font-size: 13px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: var(--fw-text-muted);
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             width: 100%;
+            border: none;
+            background: transparent;
         }
 
-        .btn-modern:active {
-            transform: scale(0.95);
+        .sidebar-btn:hover {
+            background-color: #f8fafc;
+            color: var(--fw-accent);
         }
 
-        .btn-modern:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .sidebar-btn.active {
+            background-color: #4f46e515;
+            color: var(--fw-accent);
         }
 
-        .btn-primary-modern {
-            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+        .sidebar-btn i {
+            width: 20px;
+            height: 20px;
+        }
+
+        .glass-card {
+            background: var(--fw-card);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid #f1f5f9;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .hero-card {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            border-radius: var(--radius-xl);
             color: white;
-            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.2);
-        }
-
-        .btn-primary-modern:hover {
-            transform: translateY(-2px);
+            padding: 2rem;
+            text-align: center;
             box-shadow: 0 20px 25px -5px rgba(79, 70, 229, 0.3);
         }
 
-        .btn-secondary-modern {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            color: #334155;
-            border: 1px solid #e2e8f0;
-        }
-
-        .btn-secondary-modern:hover {
-            background: #f8fafc;
-            border-color: #cbd5e1;
-        }
-
-        .btn-accent-modern {
-            background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
-            color: white;
-            box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.2);
-        }
-
-        .btn-accent-modern:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.3);
-        }
-
-        .btn-success-modern {
-            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-            color: white;
-            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);
-        }
-
-        .btn-success-modern:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.3);
-        }
-
-        .flatpickr-calendar {
-            transform: scale(0.9);
-            transform-origin: top left;
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important;
-            border: 1px solid #e2e8f0 !important;
-        }
-
-        .flatpickr-day {
-            height: 30px !important;
-            line-height: 30px !important;
-        }
-
-        .progress-striped {
-            background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.25) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.25) 50%, rgba(255, 255, 255, 0.25) 75%, transparent 75%, transparent);
-            background-size: 1rem 1rem;
-            animation: progress-stripes 1s linear infinite;
-        }
-
-        @keyframes progress-stripes {
-            from { background-position: 1rem 0; }
-            to { background-position: 0 0; }
-        }
-
-        /* Responsive ngược cho Hồ sơ dự án theo yêu cầu của người dùng */
-        .project-grid-container {
-            display: grid;
+        .info-card {
+            background: white;
+            padding: 1rem 1.25rem;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
             gap: 1rem;
+            border: 1px solid #f1f5f9;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .info-card:hover {
+            border-color: #e2e8f0;
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .action-card {
+            border-radius: 1.25rem;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 13px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            text-align: center;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .action-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .action-card i {
+            margin-bottom: 4px;
+        }
+
+        /* Nút màu sắc theo thiết kế mới */
+        .btn-capnhat { background: #e0e7ff; color: #4338ca; }
+        .btn-tach { background: #ecfeff; color: #0891b2; }
+        .btn-nhap { background: #ecfdf5; color: #059669; }
+        .btn-xuat { background: #f5f3ff; color: #7c3aed; }
+        .btn-reset { background: #fef2f2; color: #dc2626; }
+
+        .btn-capnhat:hover { background: #c7d2fe; }
+        .btn-tach:hover { background: #cffafe; }
+        .btn-nhap:hover { background: #d1fae5; }
+        .btn-xuat:hover { background: #ede9fe; }
+        .btn-reset:hover { background: #fee2e2; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        .input-inline {
+            background: transparent;
+            border: none;
+            outline: none;
             width: 100%;
+            font-size: 13px;
+            color: var(--fw-text-muted);
+            padding: 0;
+            margin-top: 2px;
         }
-
-        /* Khi cửa sổ HẸP (< 4800px): Chia 2 cột để tiết kiệm chiều cao */
-        @media (max-width: 480px) {
-            .project-grid-container {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            .field-full-width {
-                grid-column: span 2 / span 2;
-            }
-        }
-
-        /* Khi cửa sổ RỘNG (> 480px): 1 cột duy nhất chiếm trọn chiều ngang */
-        @media (min-width: 481px) {
-            .project-grid-container {
-                grid-template-columns: repeat(1, minmax(0, 1fr));
-            }
-
-            .field-full-width {
-                grid-column: span 1 / span 1;
-            }
-        }
+        .input-inline:focus { color: var(--fw-text-main); }
     </style>
 </head>
 
-<body class="flex h-screen overflow-hidden bg-white">
+<body class="flex h-screen bg-[#f3f6f9]">
 
-    <!-- Vertical Navigation Sidebar -->
-    <nav
-        class="w-16 sm:w-20 bg-slate-900 flex flex-col items-center py-6 gap-6 z-20 shadow-xl border-r border-slate-800">
-        <div class="mb-4 text-indigo-400">
-            <i data-lucide="layers" size="28"></i>
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white border-r border-slate-100 p-6 flex flex-col gap-8">
+        <div class="flex items-center gap-3 px-2">
+            <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+                <i data-lucide="layers" class="text-white"></i>
+            </div>
+            <div>
+                <h2 class="text-base font-bold text-slate-800 leading-tight">Quản Lý</h2>
+                <h2 class="text-base font-bold text-slate-800 leading-tight">Hồ Sơ</h2>
+            </div>
         </div>
 
-        <div class="flex flex-col gap-2 w-full px-2">
-            <button data-tab="duAn"
-                class="tab-btn active group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
-                <i data-lucide="home" size="20"></i>
-                <span class="text-[9px] font-bold uppercase tracking-tight">Dự án</span>
+        <nav class="flex flex-col gap-2">
+            <button data-tab="duAn" class="sidebar-btn active">
+                <i data-lucide="home"></i> <span>Dự án</span>
             </button>
-            <button data-tab="nhanSu"
-                class="tab-btn group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
-                <i data-lucide="users" size="20"></i>
-                <span class="text-[9px] font-bold uppercase tracking-tight">Nhân sự</span>
+            <button data-tab="nhanSu" class="sidebar-btn">
+                <i data-lucide="users"></i> <span>Nhân sự</span>
             </button>
-            <button data-tab="mayMoc"
-                class="tab-btn group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
-                <i data-lucide="truck" size="20"></i>
-                <span class="text-[9px] font-bold uppercase tracking-tight">Máy móc</span>
+            <button data-tab="mayMoc" class="sidebar-btn">
+                <i data-lucide="truck"></i> <span>Máy móc</span>
             </button>
-            <button data-tab="vatLieu"
-                class="tab-btn group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
-                <i data-lucide="package" size="20"></i>
-                <span class="text-[9px] font-bold uppercase tracking-tight">Vật liệu</span>
+            <button data-tab="vatLieu" class="sidebar-btn">
+                <i data-lucide="package"></i> <span>Vật liệu</span>
             </button>
-            <button data-tab="thiNghiem"
-                class="tab-btn group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
-                <i data-lucide="microscope" size="20"></i>
-                <span class="text-[9px] font-bold uppercase tracking-tight">Phòng TN</span>
+            <button data-tab="thiNghiem" class="sidebar-btn">
+                <i data-lucide="microscope"></i> <span>Phòng TN</span>
             </button>
-            <button data-tab="xuatBan"
-                class="tab-btn group flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all hover:bg-slate-800 text-slate-400">
-                <i data-lucide="settings" size="20"></i>
-                <span class="text-[9px] font-bold uppercase tracking-tight">Cài đặt</span>
+            <button data-tab="xuatBan" class="sidebar-btn">
+                <i data-lucide="settings"></i> <span>Cài đặt</span>
             </button>
-        </div>
-    </nav>
+        </nav>
 
-    <!-- Main Section (Header + Content + Footer) -->
-    <div class="flex-1 flex flex-col min-w-0 bg-slate-50 relative">
+        <div class="mt-auto p-4 bg-slate-50 rounded-2xl flex items-center gap-3 border border-slate-100">
+            <div class="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-sm">AD</div>
+            <div class="flex-1 min-w-0">
+                <p class="text-xs font-bold text-slate-800 truncate">Admin</p>
+                <p class="text-[10px] text-slate-500 truncate">admin@demo.vn</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <!-- Header -->
-        <header class="p-4 bg-white border-b border-slate-100 flex items-center justify-between z-10 shadow-sm">
-            <div class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-                onclick="window.location.href = window.location.pathname.split('?')[0] + '?t=' + new Date().getTime()"
-                title="Click vào đây để ép tải lại bản mới nhất (Bỏ qua Cache Github)">
-                <h1 class="text-sm font-black uppercase tracking-tighter text-slate-800" style="font-family: inherit;">
-                    Hồ Sơ Dự Án</h1>
-                <div id="statusInfo"
-                    class="text-[10px] font-bold px-2 py-1 bg-slate-100 rounded-full text-slate-500 uppercase tracking-widest">
-                    v16042026.1110</div>
+        <header class="h-16 flex items-center justify-between px-8 bg-[#f3f6f9] z-10">
+            <div class="flex items-center gap-4">
+                <button class="p-2 hover:bg-white rounded-lg transition-all text-slate-400">
+                    <i data-lucide="arrow-left" size="20"></i>
+                </button>
+                <h1 id="pageTitle" class="text-sm font-black uppercase tracking-widest text-slate-800">HỒ SƠ DỰ ÁN</h1>
+                <div id="statusInfo" class="px-3 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-200">v16042026.1110</div>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Đang cập nhật</span>
             </div>
         </header>
 
-        <!-- Main Content Area -->
-        <main class="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-6" id="mainContent">
-            <!-- Forms and Lists will be injected here -->
-            <div id="tabContent" class="max-w-3xl mx-auto space-y-4">
-                <!-- Dynamic Content -->
+        <!-- Dynamic Content -->
+        <main class="flex-1 overflow-y-auto p-8 custom-scrollbar" id="mainContent">
+            <div id="tabContent" class="max-w-4xl mx-auto space-y-8">
+                <!-- Content will be injected by JS -->
             </div>
         </main>
 
-        <!-- Footer Action -->
-        <footer class="bg-white border-t border-slate-100 p-4 shadow-[0_-8px_30px_rgb(0,0,0,0.04)] relative">
-            <div class="grid grid-cols-2 gap-3 max-w-sm mx-auto">
-                <button id="btnCapNhat"
-                    class="btn-modern bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200">
-                    <i data-lucide="refresh-cw" size="18"></i> CẬP NHẬT
+        <!-- Footer Actions -->
+        <footer class="p-8 bg-[#f3f6f9] border-t border-slate-200">
+            <div class="grid grid-cols-5 gap-4 max-w-4xl mx-auto">
+                <button id="btnCapNhat" class="action-card btn-capnhat">
+                    <i data-lucide="refresh-cw" size="24"></i>
+                    <span>CẬP NHẬT<br>HỒ SƠ</span>
                 </button>
-                <button id="btnSplit"
-                    class="btn-modern bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200">
-                    <i data-lucide="split" size="18"></i> TÁCH HỒ SƠ
+                <button id="btnSplit" class="action-card btn-tach">
+                    <i data-lucide="split" size="24"></i>
+                    <span>TÁCH<br>HỒ SƠ</span>
                 </button>
-                <button id="btnExport" class="btn-modern bg-slate-800 text-white hover:bg-slate-900 shadow-slate-200">
-                    <i data-lucide="file-text" size="18"></i> XUẤT HỒ SƠ TỔNG
+                <button id="btnImportDoc" class="action-card btn-nhap">
+                    <i data-lucide="cloud-download" size="24"></i>
+                    <span>NHẬP<br>DỮ LIỆU</span>
                 </button>
-                <button id="btnImportDoc"
-                    class="btn-modern bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200">
-                    <i data-lucide="cloud-download" size="18"></i> NHẬP DỮ LIỆU
+                <button id="btnExport" class="action-card btn-xuat">
+                    <i data-lucide="file-text" size="24"></i>
+                    <span>XUẤT<br>HỒ SƠ TỔNG</span>
                 </button>
-                <button id="btnResetFooter"
-                    class="btn-modern col-span-2 bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 py-2">
-                    <i data-lucide="rotate-ccw" size="16"></i> KHỞI TẠO LẠI DỮ LIỆU
+                <button id="btnResetFooter" class="action-card btn-reset">
+                    <i data-lucide="rotate-ccw" size="24"></i>
+                    <span>KHỞI TẠO LẠI<br>DỮ LIỆU</span>
                 </button>
             </div>
-            <div id="loadingProgressContainer" class="mt-4 w-full flex-col items-center justify-center hidden opacity-0 transition-opacity duration-300">
-                <div class="w-full max-w-[200px] bg-slate-200 rounded-full h-3 overflow-hidden relative mx-auto">
-                    <div id="loadingProgressBar" class="bg-blue-500 h-full rounded-full transition-all duration-300 ease-out progress-striped" style="width: 0%"></div>
+            <div id="loadingProgressContainer" class="mt-4 w-full flex flex-col items-center hidden">
+                <div class="w-full max-w-xs bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                    <div id="loadingProgressBar" class="bg-indigo-600 h-full transition-all duration-300" style="width: 0%"></div>
                 </div>
-                <div id="loadingProgressText" class="text-[10px] font-bold text-blue-500 mt-1 text-center">0%</div>
+                <div id="loadingProgressText" class="text-[10px] font-bold text-indigo-600 mt-2">Đang xử lý: 0%</div>
             </div>
-            <!-- Dòng text trạng thái đã bị vô hiệu hóa theo yêu cầu UX mới -->
-            <div id="logMsg" style="display: none;"></div>
         </footer>
     </div>
 
-    <!-- Universal Modal Form -->
-    <div id="modalOverlay"
-        class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-[2rem] w-full max-w-sm p-7 shadow-2xl flex flex-col max-h-[90vh]">
-            <h3 id="modalTitle" class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+    <!-- Modals -->
+    <div id="modalOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl">
+            <h3 id="modalTitle" class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-3">
                 <i data-lucide="edit-3" class="text-indigo-500"></i>
-                Chi tiết bản ghi
+                Chi tiết thông tin
             </h3>
-
-            <div id="modalFormContent" class="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1 mb-7">
-                <!-- Fields are injected dynamically -->
-            </div>
-
+            <div id="modalFormContent" class="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2 mb-8"></div>
             <div class="flex gap-3">
-                <button id="btnModalCancel"
-                    class="flex-1 h-12 bg-slate-100 text-slate-600 font-bold rounded-xl text-sm hover:bg-slate-200">Hủy</button>
-                <button id="btnModalSave"
-                    class="flex-2 h-12 bg-indigo-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700">LƯU
-                    LẠI</button>
+                <button id="btnModalCancel" class="flex-1 h-12 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all">Hủy</button>
+                <button id="btnModalSave" class="flex-2 h-12 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">LƯU LẠI</button>
             </div>
         </div>
     </div>
 
-    <!-- Project name prompt modal -->
-    <div id="projectNameModal"
-        class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-[1.25rem] w-full max-w-md p-6 shadow-2xl">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">Nhập tên thư mục hồ sơ</h3>
-            <p class="text-xs text-slate-500 mb-3">Tên sẽ dùng làm file/zip xuất ra (đã lọc ký hiệu không hợp lệ).</p>
-            <input id="projectNameInput" type="text"
-                class="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4 text-sm" placeholder="Tên dự án" />
-            <div class="flex justify-end gap-2">
-                <button id="projectNameCancel"
-                    class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-bold">Hủy</button>
-                <button id="projectNameConfirm" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-bold">Xác
-                    nhận</button>
-            </div>
-            <div id="projectNameError" class="mt-2 text-xs text-red-500 hidden">Tên không được để trống.</div>
-        </div>
-    </div>
-
-    <!-- Reset data confirmation modal -->
-    <div id="resetDataModal"
-        class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-[1.25rem] w-full max-w-md p-6 shadow-2xl">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                    <i data-lucide="alert-triangle" class="text-red-600" size="24"></i>
+    <!-- Reset Data Modal -->
+    <div id="resetDataModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl">
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+                    <i data-lucide="alert-triangle" class="text-red-600" size="28"></i>
                 </div>
                 <h3 class="text-lg font-bold text-slate-800">Khởi tạo dữ liệu mẫu</h3>
             </div>
-            <p class="text-sm text-slate-600 mb-6">
-                Bạn có chắc chắn muốn <strong>nạp lại dữ liệu mẫu</strong> không? Toàn bộ thông tin hiện tại (Dự án,
-                Nhân sự, Máy móc...) sẽ được thay thế bằng dữ liệu mẫu để bạn dễ dàng thử nghiệm.<br><br>
-                <em>Lưu ý: Thao tác này sẽ ghi đè dữ liệu hiện có trong Add-in.</em>
+            <p class="text-sm text-slate-600 mb-8 leading-relaxed">
+                Bạn có chắc chắn muốn <strong>nạp lại dữ liệu mẫu</strong> không? Toàn bộ thông tin hiện tại sẽ được thay thế bằng dữ liệu mẫu để thử nghiệm.
             </p>
-            <div class="flex justify-end gap-2">
-                <button id="resetDataCancel" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-bold">Hủy
-                    bỏ</button>
-                <button id="resetDataConfirm" class="px-4 py-2 rounded-lg bg-red-600 text-white font-bold">Khởi tạo lại
-                    dữ liệu</button>
+            <div class="flex justify-end gap-3">
+                <button id="resetDataCancel" class="px-6 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-all">Hủy bỏ</button>
+                <button id="resetDataConfirm" class="px-6 py-3 rounded-xl bg-red-600 text-white font-bold shadow-lg shadow-red-100 hover:bg-red-700 transition-all">Khởi tạo lại</button>
             </div>
         </div>
     </div>
+
     <script type="module" src="taskpane.js?v=16042026.1110"></script>
     <script>lucide.createIcons();</script>
 </body>
 
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
