@@ -8,6 +8,7 @@ import { MockData } from './mock_data.js';
 let state = {
     currentTab: 'duAn',
     editingIndex: -1,
+    theme: localStorage.getItem('addinTheme') || 'modern', // Default to modern
     duAn: {
         soHD: "",
         tenDuAn: "",
@@ -49,6 +50,7 @@ async function initializeApp() {
         updateLog("Đang khởi tạo hệ thống...");
         await loadState();
         registerEvents();
+        initializeTheme();
         switchTab('duAn');
         updateLog("Hệ thống sẵn sàng");
     } catch (e) {
@@ -114,6 +116,35 @@ async function saveState() {
 }
 
 // --- UI CONTROLLER ---
+function initializeTheme() {
+    document.body.className = `flex h-screen bg-[#f3f6f9] theme-${state.theme}`;
+    const btnClassic = document.getElementById('themeClassic');
+    const btnModern = document.getElementById('themeModern');
+    
+    if (btnClassic && btnModern) {
+        btnClassic.classList.toggle('active', state.theme === 'classic');
+        btnModern.classList.toggle('active', state.theme === 'modern');
+        btnClassic.onclick = () => switchTheme('classic');
+        btnModern.onclick = () => switchTheme('modern');
+    }
+}
+
+async function switchTheme(newTheme) {
+    state.theme = newTheme;
+    localStorage.setItem('addinTheme', newTheme);
+    document.body.className = `flex h-screen bg-[#f3f6f9] theme-${newTheme}`;
+    
+    const btnClassic = document.getElementById('themeClassic');
+    const btnModern = document.getElementById('themeModern');
+    if (btnClassic && btnModern) {
+        btnClassic.classList.toggle('active', newTheme === 'classic');
+        btnModern.classList.toggle('active', newTheme === 'modern');
+    }
+    
+    renderContent();
+    lucide.createIcons();
+}
+
 function switchTab(tabId) {
     state.currentTab = tabId;
     document.querySelectorAll('[data-tab]').forEach(btn => {
@@ -137,7 +168,8 @@ function renderContent() {
         container.innerHTML = "";
         
         if (state.currentTab === 'duAn') {
-            renderProjectView(container);
+            if (state.theme === 'modern') renderProjectView(container);
+            else renderClassicView(container);
         } else if (state.currentTab === 'xuatBan') {
             renderExportSettings(container);
         } else {
@@ -237,8 +269,43 @@ function renderProjectView(container) {
     }, 50);
 }
 
-function renderSummaryRow(label, value, valueClass = "") {
-    return "";
+function renderClassicView(container) {
+    const config = categories.duAn;
+    const form = document.createElement("div");
+    form.className = "bg-white p-8 rounded-2xl shadow-sm space-y-6";
+    
+    config.fields.forEach((field, i) => {
+        const div = document.createElement("div");
+        const isDate = field === 'ngayKhoiCong' || field === 'ngayHoanThanh';
+        const mockVal = MockData.duAn[field] || config.labels[i];
+        
+        div.innerHTML = `
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">${config.labels[i]}</label>
+            ${isDate ? 
+                `<input type="text" data-field="${field}" 
+                    class="project-input w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all date-picker-input" 
+                    placeholder="VD: ${mockVal}" value="${state.duAn[field] || ''}">` :
+                `<textarea data-field="${field}" 
+                    class="project-input w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-y" 
+                    placeholder="VD: ${mockVal}" rows="2">${state.duAn[field] || ''}</textarea>`
+            }
+        `;
+        form.appendChild(div);
+    });
+    
+    container.appendChild(form);
+    
+    setTimeout(() => {
+        container.querySelectorAll('.project-input').forEach(input => {
+            input.onchange = async () => {
+                state.duAn[input.dataset.field] = input.value;
+                await saveState();
+            };
+        });
+        if (typeof flatpickr !== 'undefined') {
+            flatpickr(".date-picker-input", { dateFormat: "d/m/Y", locale: "vn", allowInput: true });
+        }
+    }, 50);
 }
 
 function openProjectEditModal(focusField) {
