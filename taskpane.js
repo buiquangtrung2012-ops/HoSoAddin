@@ -174,13 +174,16 @@ function renderProjectView(container) {
         ngayHoanThanh: 'calendar-check'
     };
     
+    // Create a grid for dates if they are next to each other
+    let dateGrid = null;
+
     config.fields.forEach((field, i) => {
-        const card = document.createElement("div");
-        card.className = "info-card group p-5 cursor-default"; // Remove pointer cursor
-        
-        const value = state.duAn[field] || "";
-        const mockVal = (MockData && MockData.duAn) ? MockData.duAn[field] : null;
         const isDate = field === 'ngayKhoiCong' || field === 'ngayHoanThanh';
+        const value = state.duAn[field] || "";
+        const mockVal = MockData.duAn[field] || config.labels[i];
+        
+        const card = document.createElement("div");
+        card.className = "info-card group p-5 cursor-default";
         
         card.innerHTML = `
             <div class="w-12 h-12 bg-slate-50 text-indigo-500 rounded-xl flex items-center justify-center shrink-0">
@@ -188,24 +191,38 @@ function renderProjectView(container) {
             </div>
             <div class="flex-1 min-w-0">
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">${config.labels[i]}</p>
-                <textarea data-field="${field}" spellcheck="false" 
-                    class="project-input w-full bg-transparent border-none outline-none font-bold text-slate-700 text-[14px] resize-none overflow-hidden p-0 m-0 ${isDate ? 'date-picker-input' : ''}" 
-                    placeholder="VD: ${mockVal || config.labels[i]}" 
-                    rows="1">${value}</textarea>
+                ${isDate ? 
+                    `<input type="text" data-field="${field}" spellcheck="false" 
+                        class="project-input w-full bg-transparent border-none outline-none font-bold text-slate-700 text-[14px] p-0 m-0 date-picker-input" 
+                        placeholder="VD: ${mockVal}" value="${value}">` :
+                    `<textarea data-field="${field}" spellcheck="false" 
+                        class="project-input w-full bg-transparent border-none outline-none font-bold text-slate-700 text-[14px] resize-none overflow-hidden p-0 m-0" 
+                        placeholder="VD: ${mockVal}" rows="1">${value}</textarea>`
+                }
             </div>
         `;
         
-        wrapper.appendChild(card);
+        if (isDate) {
+            if (!dateGrid) {
+                dateGrid = document.createElement("div");
+                dateGrid.className = "grid grid-cols-2 gap-4";
+                wrapper.appendChild(dateGrid);
+            }
+            dateGrid.appendChild(card);
+        } else {
+            dateGrid = null;
+            wrapper.appendChild(card);
+        }
     });
     
     container.appendChild(wrapper);
 
-    // Initial height adjustment and listeners
+    // Initialization
     setTimeout(() => {
         container.querySelectorAll('.project-input').forEach(input => {
-            adjustTextareaHeight(input);
+            if (input.tagName.toLowerCase() === 'textarea') adjustTextareaHeight(input);
             input.addEventListener('input', () => {
-                adjustTextareaHeight(input);
+                if (input.tagName.toLowerCase() === 'textarea') adjustTextareaHeight(input);
             });
             input.onchange = async () => {
                 state.duAn[input.dataset.field] = input.value;
@@ -216,6 +233,7 @@ function renderProjectView(container) {
         if (typeof flatpickr !== 'undefined') {
             flatpickr(".date-picker-input", { dateFormat: "d/m/Y", locale: "vn", allowInput: true });
         }
+        lucide.createIcons();
     }, 50);
 }
 
