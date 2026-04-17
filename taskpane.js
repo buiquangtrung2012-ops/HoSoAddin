@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=17042026.1335';
-import { StorageService } from './storage_service.js?v=17042026.1335';
-import { MockData } from './mock_data.js?v=17042026.1335';
+import { WordService } from './word_service.js?v=17042026.1340';
+import { StorageService } from './storage_service.js?v=17042026.1340';
+import { MockData } from './mock_data.js?v=17042026.1340';
 
 /* global Office, lucide */
 
@@ -354,9 +354,9 @@ function renderProjectView(container) {
                             lucide.createIcons();
                         }
                     };
+                    
+                    if (state.duAn.isLienDanh) renderMembers();
                 }
-
-                if (state.duAn.isLienDanh) renderMembers();
             }
         }
     });
