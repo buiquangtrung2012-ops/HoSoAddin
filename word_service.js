@@ -433,14 +433,19 @@ export const WordService = {
                 }
             }
 
-            // Dọn hàng cũ (trừ hàng 1)
+            // Dọn dẹp toàn bộ hàng cũ (trừ hàng 1) một cách triệt để
             table.load("rowCount");
             await context.sync();
             if (table.rowCount > 1) {
                 try {
-                    table.deleteRows(1, table.rowCount - 1);
+                    // Xoá hàng từ dưới lên để tránh lỗi index
+                    for (let r = table.rowCount - 1; r >= 1; r--) {
+                        table.rows.getItemAt(r).delete();
+                    }
                     await context.sync();
-                } catch (e) {}
+                } catch (e) {
+                    logger(`⚠ Không thể xóa một số hàng cũ, sẽ ghi đè.`);
+                }
             }
 
             // Bước 3: Phân bổ dữ liệu
