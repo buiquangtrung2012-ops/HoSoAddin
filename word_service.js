@@ -433,97 +433,62 @@ export const WordService = {
                     throw new Error("Không tìm thấy bảng. Hãy click chuột vào trong bảng ký tên!");
                 }
 
-                // [CỰC QUAN TRỌNG] TÔ VIỀN ĐỎ ĐỂ NHẬN DIỆN
-                try {
-                    const redBorder = { color: "#FF0000", width: 3, type: "Single" };
-                    table.borders.outsideHorizontal.set(redBorder);
-                    table.borders.outsideVertical.set(redBorder);
-                    table.borders.insideHorizontal.set(redBorder);
-                    table.borders.insideVertical.set(redBorder);
-                    await context.sync();
-                    logger(`🚩 ĐÃ TÔ VIỀN ĐỎ BẢNG ĐƯỢC CHỌN.`);
-                } catch(e) { logger(`⚠️ Không thể tô viền: ${e.message}`); }
-
-
-                // BƯỚC 2: CHỈ TẢI HÀNG ĐẦU TIÊN (Minimal Touch - không chạm các hàng gộp ô)
-                logger(`📊 [B2] Đang tải hàng đầu tiên...`);
-                const firstRow = table.rows.getFirst();
-                firstRow.cells.load("items");
-                await context.sync();
-                const cells = firstRow.cells.items;
-                logger(`ℹ️ Hàng đầu có ${cells.length} ô.`);
-
-                if (cells.length === 0) {
-                    throw new Error("Hàng đầu tiên không có ô nào!");
-                }
+                // [CỰC QUAN TRỌNG] TÔ VIỀN (Đã xác định được bảng nên trả về viền chuẩn hoặc ẩn viền nếu là bảng mẫu)
+                // v1270: Xóa mã tô viền đỏ chẩn đoán
 
                 const members = Array.isArray(membersList) ? membersList.filter(m => m && m.trim() !== "") : [];
-                const dvtcText = (dvtcName || "").toUpperCase();
-
-                // BƯỚC 3: ĐIỀN NƠI NHẬN (ô đầu tiên)
-                logger(`🖋️ [B3] Điền Nơi nhận...`);
-                const okNn = await safeFillCell(context, cells[0], "Nơi nhận:", true, "Left");
-                logger(okNn ? `✓ Nơi nhận OK` : `✗ Nơi nhận THẤT BẠI`);
-
-                // BƯỚC 4: ĐIỀN CHỮ KÝ (ô thứ 2 trở đi)
-                if (cells.length < 2) {
-                    logger(`⚠️ Bảng chỉ có 1 ô, không thể điền chữ ký.`);
-                } else if (isLienDanh && members.length > 0) {
-                    logger(`📝 [B4] Dàn ${members.length} thành viên Liên danh...`);
-                    let memberIdx = 0;
-                    
-                    // Chiến lược A: Tạo bảng lồng ngang trong ô thứ 2
-                    try {
-                        const targetCell = cells[1];
-                        logger(`📂 Tạo bảng lồng 1×${members.length}...`);
-                        const nestedTable = targetCell.body.insertTable(1, members.length, "Start");
-                        await context.sync();
-                        
-                        // Ẩn viền
-                        try {
-                            const noB = { color: "#FFFFFF", width: 0 };
-                            nestedTable.borders.insideHorizontal.set(noB);
-                            nestedTable.borders.insideVertical.set(noB);
-                            nestedTable.borders.outsideHorizontal.set(noB);
-                            nestedTable.borders.outsideVertical.set(noB);
-                            await context.sync();
-                        } catch(e) {}
-
-                        const firstNestedRow = nestedTable.rows.getFirst();
-                        firstNestedRow.cells.load("items");
-                        await context.sync();
-                        const nCells = firstNestedRow.cells.items;
-                        
-                        for (let i = 0; i < members.length && i < nCells.length; i++) {
-                            const ok = await safeFillCell(context, nCells[i], members[i]);
-                            if (ok) memberIdx++;
-                            logger(`  → ${i+1}: ${ok ? '✓' : '✗'} ${members[i]}`);
-                        }
-                        logger(`✅ Dàn ngang: ${memberIdx}/${members.length}`);
-                    } catch(e) {
-                        // Chiến lược B: Điền dọc — chỉ dùng các ô trên hàng 1
-                        logger(`ℹ️ Bảng lồng thất bại: ${e.message}`);
-                        logger(`📂 Chuyển sang điền dọc trên hàng 1...`);
-                        for (let c = 1; c < cells.length && memberIdx < members.length; c++) {
-                            try {
-                                const ok = await safeFillCell(context, cells[c], members[memberIdx]);
-                                if (ok) memberIdx++;
-                            } catch(e2) {}
-                        }
-                        logger(`✅ Điền dọc: ${memberIdx}/${members.length}`);
-                    }
-
-                    if (memberIdx < members.length) {
-                        logger(`⚠️ Còn ${members.length - memberIdx} thành viên chưa điền (thiếu ô).`);
-                    }
+                const itemsToFill = [];
+                
+                if (isLienDanh && members.length > 0) {
+                    itemsToFill.push("Nơi nhận:");
+                    members.forEach(m => itemsToFill.push(m));
                 } else {
-                    // Đơn vị thường (không liên danh)
-                    logger(`📝 [B4] Cập nhật đơn vị thi công...`);
-                    await safeFillCell(context, cells[1], dvtcText);
+                    itemsToFill.push("Nơi nhận:");
+                    itemsToFill.push((dvtcName || "").toUpperCase());
+                }
+
+                logger(`📝 [B2] Bắt đầu dàn ${itemsToFill.length} mục theo dạng lưới...`);
+
+                let itemIdx = 0;
+                let rowIdx = 0;
+
+                while (itemIdx < itemsToFill.length) {
+                    // 1. Đảm bảo hàng tồn tại
+                    table.rows.load("items/count");
+                    await context.sync();
+                    
+                    if (rowIdx >= table.rows.items.length) {
+                        logger(`➕ Thêm hàng mới cho mục thứ ${itemIdx + 1}...`);
+                        table.addRows(1);
+                        await context.sync();
+                        table.rows.load("items");
+                        await context.sync();
+                    }
+
+                    const currentRow = table.rows.items[rowIdx];
+                    currentRow.cells.load("items");
+                    await context.sync();
+                    const cells = currentRow.cells.items;
+
+                    if (cells.length === 0) { rowIdx++; continue; }
+
+                    // 2. Điền tối đa 2 ô trên mỗi hàng (Z-pattern)
+                    for (let colIdx = 0; colIdx < cells.length && colIdx < 2; colIdx++) {
+                        if (itemIdx >= itemsToFill.length) break;
+                        
+                        const text = itemsToFill[itemIdx];
+                        const isNn = (text === "Nơi nhận:");
+                        
+                        logger(`🖋️ Điền Ô (${rowIdx}, ${colIdx}): ${text.substring(0, 20)}...`);
+                        await safeFillCell(context, cells[colIdx], text, !isNn, isNn ? "Left" : "Centered");
+                        
+                        itemIdx++;
+                    }
+                    rowIdx++;
                 }
 
                 await context.sync();
-                logger(`✅ HOÀN TẤT.`);
+                logger(`✅ HOÀN TẤT: Đã điền ${itemIdx}/${itemsToFill.length} mục.`);
             });
         } catch (err) {
             logger(`❌ LỖI: ${err.message}`);
