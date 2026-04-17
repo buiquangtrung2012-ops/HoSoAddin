@@ -361,8 +361,8 @@ export const WordService = {
                         firstP.alignment = alignment; 
                         // Ép giãn cách để tạo độ cao hàng ~3.8cm (v1310)
                         // 48 + 48 + 11 (font) = 107pt ~ 3.8cm
-                        firstP.spaceBefore = 48;
-                        firstP.spaceAfter = 48;
+                        //firstP.spaceBefore = 48;
+                        firstP.spaceAfter = 96;
                         firstP.lineSpacing = 12; // Single spacing
                     } catch(e) {}
 
