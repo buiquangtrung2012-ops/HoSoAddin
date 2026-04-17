@@ -344,16 +344,15 @@ export const WordService = {
                 if (!cell.body) return false;
 
                 cell.body.clear();
-                if (text && text.trim() !== "") {
-                    // Xử lý riêng cho ô Nơi nhận theo mẫu (Bold + Italic + Bullets)
+                    // Xử lý riêng cho ô Nơi nhận (v1160: ALL CAPS + Bullet)
                     if (text === "Nơi nhận:") {
-                        const p1 = cell.body.insertParagraph("Nơi nhận:", "Replace");
-                        p1.font.set({ bold: true, italic: true, size: 11, name: "Times New Roman" });
+                        const p1 = cell.body.insertParagraph("NƠI NHẬN:", "Replace");
+                        p1.font.set({ bold: true, italic: true, size: 10, name: "Times New Roman" });
 
-                        const p2 = cell.body.insertParagraph("  - Như trên;", "End");
+                        const p2 = cell.body.insertParagraph("- Như trên;", "End");
                         p2.font.set({ italic: true, size: 10, name: "Times New Roman" });
                         
-                        const p3 = cell.body.insertParagraph("  - Lưu VT.", "End");
+                        const p3 = cell.body.insertParagraph("- Lưu VT.", "End");
                         p3.font.set({ italic: true, size: 10, name: "Times New Roman" });
                         
                         try { p1.alignment = "Left"; p2.alignment = "Left"; p3.alignment = "Left"; } catch(e) {}
@@ -449,16 +448,16 @@ export const WordService = {
 
             if (isLienDanh) {
                 logger(`📝 [B4] Đang phân bổ<sup>${members.length}</sup> thành viên Liên danh...`);
-                let memberIdx = 0;
-
-                // Ưu tiên hàng 1: Sử dụng Bảng lồng nếu có 2 cột chính
-                if (firstRowCells.length >= 2 && members.length >= 2) {
+                // CHIẾN LƯỢC DÀN NGANG MỚI (v1160): Ép tất cả vào 1 hàng ngang nếu có thể
+                if (firstRowCells.length >= 2 && members.length > 0) {
                     try {
-                        logger(`📂 Thử tạo bảng lồng tại ô 2 hàng 1...`);
-                        const nestedTable = firstRowCells[1].body.insertTable(1, 2, "Replace");
+                        logger(`📂 [B4] Đang dàn ngang ${members.length} thành viên vào 1 hàng...`);
+                        const targetCell = firstRowCells[1];
+                        // Tạo bảng lồng 1 hàng x n cột (n = số thành viên)
+                        const nestedTable = targetCell.body.insertTable(1, members.length, "Replace");
                         await context.sync();
                         
-                        // Viền vô hình
+                        // Xóa viền bảng lồng
                         try {
                             const noB = { color: "#FFFFFF", width: 0 };
                             nestedTable.borders.insideHorizontal.set(noB);
@@ -471,32 +470,30 @@ export const WordService = {
                         await context.sync();
                         const nCells = nestedTable.rows.items[0].cells.items;
                         
-                        await safeFillCell(context, nCells[0], members[0]);
-                        await safeFillCell(context, nCells[1], members[1]);
-                        memberIdx = 2;
+                        for (let i = 0; i < members.length; i++) {
+                            await safeFillCell(context, nCells[i], members[i]);
+                        }
+                        memberIdx = members.length;
+                        logger(`✅ Đã dàn ngang thành công.`);
                     } catch(e) {
-                        logger(`ℹ️ Bảng gộp ô nặng, điền dọc vào ô chính.`);
+                        logger(`ℹ️ Không thể tạo bảng lồng ngang. Chuyển sang điền ô đơn.`);
                         await safeFillCell(context, firstRowCells[1], members[0]);
                         memberIdx = 1;
-                    }
-                } else if (firstRowCells.length >= 2 && members.length === 1) {
-                    await safeFillCell(context, firstRowCells[1], members[0]);
-                    memberIdx = 1;
-                }
 
-                // Điền nốt vào các hàng còn lại có sẵn
-                for (let r = 1; r < rows.length && memberIdx < members.length; r++) {
-                    const rCells = rows[r].cells.items;
-                    // Bỏ qua cột đầu tiên (dưới cột Nơi nhận)
-                    const startC = rCells.length >= 2 ? 1 : 0;
-                    for (let c = startC; c < rCells.length && memberIdx < members.length; c++) {
-                        await safeFillCell(context, rCells[c], members[memberIdx]);
-                        memberIdx++;
+                        // Điền các người còn lại vào các hàng tiếp theo có sẵn
+                        for (let r = 1; r < rows.length && memberIdx < members.length; r++) {
+                            const rCells = rows[r].cells.items;
+                            const startC = rCells.length >= 2 ? 1 : 0;
+                            for (let c = startC; c < rCells.length && memberIdx < members.length; c++) {
+                                await safeFillCell(context, rCells[c], members[memberIdx]);
+                                memberIdx++;
+                            }
+                        }
                     }
                 }
 
                 if (memberIdx < members.length) {
-                    logger(`⚠️ Còn ${members.length - memberIdx} thành viên chưa được điền. (Vui lòng thêm hàng vào bảng của bạn)`);
+                    logger(`⚠️ Còn ${members.length - memberIdx} thành viên chưa được điền. Vui lòng thêm hàng.`);
                 }
             } else {
                 logger(`📝 [B4] Cập nhật đơn vị...`);
