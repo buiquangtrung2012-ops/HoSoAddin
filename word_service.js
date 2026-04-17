@@ -491,12 +491,17 @@ export const WordService = {
                             const text2 = (r2.text || "").toLowerCase().trim();
                             
                             // KIỂM TRA CHỐNG GHI ĐÈ NHẦM TIÊU ĐỀ (Anti-Header Protection)
+                            // Sử dụng regex linh hoạt cho dòng ngày tháng (chấp nhận số lượng dấu chấm bất kỳ)
+                            const dateRegex = /ngày\s+\.{1,}\s+tháng\s+\.{1,}\s+năm/;
                             const isNationalMotto = text2.includes("cộng hòa xã hội") || 
                                                   text2.includes("độc lập - tự do") ||
                                                   text2.includes("độc lập- tự do") ||
-                                                  text2.includes("ngày .... tháng");
+                                                  dateRegex.test(text2);
 
-                            if (isNationalMotto) {
+                            // Bổ sung check "Số:" ở ô 1 - Đặc trưng của Header (Signature table không bao giờ có "Số:")
+                            const isHeaderByNumber = text1.includes("số:") || text1.includes("số ");
+
+                            if (isNationalMotto || isHeaderByNumber) {
                                 console.log("[SignatureTable] Bỏ qua bảng Tiêu đề.");
                                 continue; 
                             }
