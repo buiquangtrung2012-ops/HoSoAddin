@@ -18,7 +18,7 @@ let state = {
         ngayKhoiCong: "",
         ngayHoanThanh: "",
         isLienDanh: false,
-        dvtcMembers: ""
+        dvtcMembers: []
     },
     soHDForExport: "",
     exportFolderHandle: null,
@@ -98,7 +98,15 @@ async function loadState() {
         if (!state.duAn.soHD && state.soHDForExport) {
             state.duAn.soHD = state.soHDForExport;
         }
+        }
     }
+
+    // Migration: Chuyển đổi dvtcMembers từ String (cũ) sang mảng Array
+    if (typeof state.duAn.isLienDanh === 'undefined') state.duAn.isLienDanh = false;
+    if (typeof state.duAn.dvtcMembers === 'string') {
+        state.duAn.dvtcMembers = state.duAn.dvtcMembers.split('\n').map(m => m.trim()).filter(Boolean);
+    }
+    if (!Array.isArray(state.duAn.dvtcMembers)) state.duAn.dvtcMembers = [];
 }
 
 async function saveState() {
@@ -238,29 +246,76 @@ function renderProjectView(container) {
                             <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                         </label>
                     </div>
-                    <div id="jvMembersArea" class="${state.duAn.isLienDanh ? '' : 'hidden'} pt-2 space-y-2 border-t border-slate-50">
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Danh sách thành viên ký tên (mỗi người 1 dòng)</p>
-                        <textarea id="txtDvtcMembers" spellcheck="false" 
-                            class="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-300 transition-all resize-y" 
-                            placeholder="Ví dụ:\nCông ty Cổ phần Xây dựng A\nCông ty TNHH MTV B" rows="3">${state.duAn.dvtcMembers || ""}</textarea>
+                    <div id="jvMembersArea" class="${state.duAn.isLienDanh ? '' : 'hidden'} pt-2 space-y-4 border-t border-slate-50">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Danh sách thành viên ký tên</p>
+                        <div id="membersListContainer" class="space-y-3"></div>
+                        <button id="btnAddMember" class="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-[11px] font-bold hover:bg-indigo-100 transition-all">
+                            <i data-lucide="plus-circle" size="14"></i>
+                            THÊM THÀNH VIÊN
+                        </button>
                     </div>
                 `;
                 wrapper.appendChild(jvToggleArea);
 
                 const chk = jvToggleArea.querySelector('#chkIsLienDanh');
                 const area = jvToggleArea.querySelector('#jvMembersArea');
-                const txt = jvToggleArea.querySelector('#txtDvtcMembers');
+                const listContainer = jvToggleArea.querySelector('#membersListContainer');
+                const btnAdd = jvToggleArea.querySelector('#btnAddMember');
+
+                const renderMembers = () => {
+                    listContainer.innerHTML = "";
+                    if (state.duAn.dvtcMembers.length === 0) {
+                        listContainer.innerHTML = `<p class="text-[10px] text-slate-400 italic">Chưa có thành viên nào. Nhấn nút Thêm bên dưới.</p>`;
+                    }
+                    state.duAn.dvtcMembers.forEach((m, idx) => {
+                        const row = document.createElement("div");
+                        row.className = "flex items-center gap-2 group";
+                        row.innerHTML = `
+                            <div class="flex-1 relative">
+                                <input type="text" value="${m}" placeholder="Tên thành viên ${idx + 1}"
+                                    class="member-input w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 outline-none focus:border-indigo-300 focus:bg-white transition-all">
+                            </div>
+                            <button class="btn-remove-member p-2 text-slate-300 hover:text-red-500 transition-colors">
+                                <i data-lucide="x-circle" size="18"></i>
+                            </button>
+                        `;
+                        
+                        const input = row.querySelector('.member-input');
+                        input.onchange = async () => {
+                            state.duAn.dvtcMembers[idx] = input.value.trim();
+                            await saveState();
+                        };
+
+                        row.querySelector('.btn-remove-member').onclick = async () => {
+                            state.duAn.dvtcMembers.splice(idx, 1);
+                            await saveState();
+                            renderMembers();
+                        };
+
+                        listContainer.appendChild(row);
+                    });
+                    lucide.createIcons();
+                };
 
                 chk.onchange = async () => {
                     state.duAn.isLienDanh = chk.checked;
                     area.classList.toggle('hidden', !chk.checked);
                     await saveState();
+                    if (chk.checked && state.duAn.dvtcMembers.length === 0) {
+                        state.duAn.dvtcMembers.push("");
+                        renderMembers();
+                    }
                 };
 
-                txt.onchange = async () => {
-                    state.duAn.dvtcMembers = txt.value;
+                btnAdd.onclick = async () => {
+                    state.duAn.dvtcMembers.push("");
                     await saveState();
+                    renderMembers();
+                    const inputs = listContainer.querySelectorAll('.member-input');
+                    if (inputs.length > 0) inputs[inputs.length - 1].focus();
                 };
+
+                if (state.duAn.isLienDanh) renderMembers();
             }
         }
     });
@@ -814,7 +869,7 @@ async function syncDataToWord() {
     try {
         updateLog("Cập nhật bảng ký tên...", 85);
         const membersList = state.duAn.isLienDanh 
-            ? state.duAn.dvtcMembers.split('\n').map(m => m.trim()).filter(Boolean)
+            ? (Array.isArray(state.duAn.dvtcMembers) ? state.duAn.dvtcMembers : [])
             : [];
         await WordService.updateSignatureTable(state.duAn.isLienDanh, membersList, state.duAn.dvtc, "bmKyLienDanh", updateLog);
     } catch (e) {
@@ -851,8 +906,9 @@ async function onCapNhatClick() {
             }
             showToast("Đã cập nhật Word & xuất file thành công!", "success");
         } else {
-            showToast("Đã cập nhật dữ liệu vào văn bản!", "success");
+            showToast("Đã cập nhật dữ liệu thành công!", "success");
         }
+        updateLog("✓ Hoàn tất cập nhật hồ sơ.", 100);
     } catch (e) {
         console.error("onCapNhatClick Error:", e);
         const errorDetail = e.message || "Lỗi không xác định";
