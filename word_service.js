@@ -454,20 +454,6 @@ export const WordService = {
                     } catch (e) { /* Bookmark không tồn tại hoặc lỗi */ }
                 }
 
-                // 2. Không thấy Bookmark -> Kiểm tra Selection
-                if (targetTables.length === 0) {
-                    try {
-                        const sel = context.document.getSelection();
-                        const selTable = sel.parentTable;
-                        selTable.load("isNullObject");
-                        await context.sync();
-                        
-                        if (!selTable.isNullObject) {
-                            logger(`🎯 Đang cập nhật bảng đang chọn...`, 15);
-                            targetTables.push(selTable);
-                        }
-                    } catch(e) {}
-                }
 
                 // 3. Quét toàn bộ file (Safely)
                 if (targetTables.length === 0) {
