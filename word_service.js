@@ -348,27 +348,24 @@ export const WordService = {
                     // Xử lý riêng cho ô Nơi nhận theo mẫu (Bold + Italic + Bullets)
                     if (text === "Nơi nhận:") {
                         const p1 = cell.body.insertParagraph("Nơi nhận:", "Replace");
-                        p1.font.bold = true;
-                        p1.font.italic = true;
-                        p1.font.size = 11;
+                        p1.font.set({ bold: true, italic: true, size: 11, name: "Times New Roman" });
 
                         const p2 = cell.body.insertParagraph("  - Như trên;", "End");
-                        p2.font.italic = true;
-                        p2.font.size = 10;
+                        p2.font.set({ italic: true, size: 10, name: "Times New Roman" });
                         
                         const p3 = cell.body.insertParagraph("  - Lưu VT.", "End");
-                        p3.font.italic = true;
-                        p3.font.size = 10;
+                        p3.font.set({ italic: true, size: 10, name: "Times New Roman" });
                         
                         try { p1.alignment = "Left"; p2.alignment = "Left"; p3.alignment = "Left"; } catch(e) {}
                     } else {
+                        // Nội dung in hoa (mặc định cho các đơn vị)
                         cell.body.insertText(text.toUpperCase(), "Replace");
                         cell.body.load("paragraphs/items");
                         await context.sync();
                         
                         if (cell.body.paragraphs && cell.body.paragraphs.items && cell.body.paragraphs.items.length > 0) {
                             const p = cell.body.paragraphs.items[0];
-                            try { p.font.bold = isBold; } catch (e) {}
+                            try { p.font.set({ bold: isBold, name: "Times New Roman" }); } catch (e) {}
                             try { p.alignment = alignment; } catch (e) {}
                         }
                     }
@@ -492,47 +489,52 @@ export const WordService = {
                 logger(`📝 Phân bổ ${members.length} thành viên Liên danh...`);
                 let memberIdx = 0;
                 
-                // KỸ THUẬT: Nếu bảng gốc bị giới hạn 2 cột (do gộp ô), lồng một bảng con (1x2) vào ô bên phải
-                if (cells1.length === 2 && members.length >= 2) {
-                    logger(`📂 Chèn bảng lồng (Nested Table) 1x2 để dàn ngang chữ ký...`);
-                    const targetCell = cells1[1];
-                    const nestedTable = targetCell.body.insertTable(1, 2, "Replace");
-                    nestedTable.set({
-                        styleBuiltIn: "TableGrid",
-                        styleFirstColumn: false,
-                        styleLastColumn: false,
-                        styleRowBands: false,
-                        styleColumnBands: false
-                    });
-                    
-                    // Xóa viền bảng lồng để hài hòa với bảng chính
-                    nestedTable.getBorder("InsideHorizontal").color = "#FFFFFF";
-                    nestedTable.getBorder("InsideVertical").color = "#FFFFFF";
-                    nestedTable.getBorder("OutsideHorizontal").color = "#FFFFFF";
-                    nestedTable.getBorder("OutsideVertical").color = "#FFFFFF";
+                // MỚI: Luôn sử dụng Bảng lồng cưỡng bức (Forced Nested Table) để dàn hàng ngang
+                // Kỹ thuật này giúp phân chia chữ ký thành 2 cột độc lập trong một ô chữ ký của bảng chính
+                if (members.length >= 2) {
+                    try {
+                        logger(`📂 Chèn bảng lồng cưỡng bức 1x2 để dàn ngang chữ ký...`);
+                        const targetCell = cells1[1];
+                        const nestedTable = targetCell.body.insertTable(1, 2, "Replace");
+                        
+                        // Sửa lỗi Border API - Word JS yêu cầu truy cập qua 'borders'
+                        nestedTable.borders.insideHorizontal.color = "#FFFFFF";
+                        nestedTable.borders.insideVertical.color = "#FFFFFF";
+                        nestedTable.borders.outsideHorizontal.color = "#FFFFFF";
+                        nestedTable.borders.outsideVertical.color = "#FFFFFF";
+                        
+                        nestedTable.borders.insideHorizontal.width = 0;
+                        nestedTable.borders.insideVertical.width = 0;
+                        nestedTable.borders.outsideHorizontal.width = 0;
+                        nestedTable.borders.outsideVertical.width = 0;
 
-                    nestedTable.load("rows/items");
-                    await context.sync();
-                    const nRow = nestedTable.rows.items[0];
-                    nRow.cells.load("items");
-                    await context.sync();
-                    
-                    // Điền 2 thành viên đầu tiên vào 2 cột của bảng lồng
-                    await safeFillCell(context, nRow.cells.items[0], members[0]);
-                    await safeFillCell(context, nRow.cells.items[1], members[1]);
-                    memberIdx = 2;
-                } else {
-                    // HÀNG 1 (Bảng 3 cột tiêu chuẩn): Điền vào ô và 2 và 3
-                    for (let c = 1; c < cells1.length && memberIdx < members.length; c++) {
-                        await safeFillCell(context, cells1[c], members[memberIdx]);
-                        memberIdx++;
+                        nestedTable.load("rows/items");
+                        await context.sync();
+                        
+                        const nRow = nestedTable.rows.items[0];
+                        nRow.cells.load("items");
+                        await context.sync();
+                        
+                        // Điền 2 thành viên đầu tiên vào bảng lồng
+                        await safeFillCell(context, nRow.cells.items[0], members[0]);
+                        await safeFillCell(context, nRow.cells.items[1], members[1]);
+                        memberIdx = 2;
+                        logger(`✅ Đã dàn ngang 2 thành viên đầu.`);
+                    } catch (nestedError) {
+                        logger(`⚠ Lỗi chèn bảng lồng: ${nestedError.message}. Chuyển sang điền dọc.`);
+                        // Fallback: Nếu không chèn được bảng lồng, điền dọc vào ô đầu tiên
+                        await safeFillCell(context, cells1[1], members[0]);
+                        memberIdx = 1;
                     }
+                } else if (members.length === 1) {
+                    await safeFillCell(context, cells1[1], members[0]);
+                    memberIdx = 1;
                 }
                 
                 // CÁC HÀNG TIẾP THEO: Thêm hàng mới nếu còn thành viên
                 while (memberIdx < members.length) {
                     try {
-                        logger(`➕ Thêm hàng cho thành viên thứ ${memberIdx + 1}...`);
+                        logger(`➕ Thêm hàng mới (Hàng ${memberIdx + 1}) cho bảng chính...`);
                         const newRows = table.addRows("End", 1);
                         newRows.load("items/cells/items");
                         await context.sync();
