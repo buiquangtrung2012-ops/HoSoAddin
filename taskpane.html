@@ -125,6 +125,20 @@
             margin-bottom: 4px;
         }
 
+        /* Responsive Buttons */
+        @media (max-width: 480px) {
+            .action-card { padding: 1rem 0.5rem; gap: 4px; border-radius: 1rem; }
+            .action-card span { font-size: 10px; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+            .action-card i { transform: scale(0.9); margin-bottom: 2px; }
+            footer.p-8 { padding: 1rem; }
+        }
+
+        @media (max-width: 380px) {
+            .action-card { padding: 0.75rem 0.25rem; }
+            .action-card span { font-size: 8px; font-weight: 800; letter-spacing: -0.02em; }
+            .action-card i { transform: scale(0.75); }
+        }
+
         /* Nút màu sắc theo thiết kế mới */
         .btn-capnhat { background: #e0e7ff; color: #4338ca; }
         .btn-tach { background: #ecfeff; color: #0891b2; }
