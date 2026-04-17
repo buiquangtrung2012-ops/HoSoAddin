@@ -327,49 +327,49 @@ export const WordService = {
             }
         });
     },
-    
+
     /**
      * Cập nhật bảng ký tên Liên danh hoặc Thường (Bookmark: bmKyLienDanh)
      * Bản cập nhật v1130: Ultimate Safety - Chống sập do gộp ô/undefined body
      */
     updateSignatureTable: async (isLienDanh, membersList, dvtcName, bookmarkName, logCallback) => {
         const logger = (msg, percent) => { if (logCallback) logCallback(msg, percent); console.log(`[SignatureTable] ${msg}`); };
-        
+
         // HELPER v1310: Fix căn lề, định dạng & Ép độ cao bằng Spacing
         const safeFillCell = async (context, cell, text, isBold = true, alignment = "Centered") => {
             if (!cell || !text) return false;
             try {
                 const range = cell.body.getRange();
-                
+
                 if (text === "Nơi nhận:") {
                     range.insertText("NƠI NHẬN:\n- Như trên;\n- Lưu VT.", "Replace");
                     await context.sync();
                     const ps = cell.body.paragraphs;
                     ps.load("items");
                     await context.sync();
-                    for(let i=0; i<ps.items.length; i++) {
-                        ps.items[i].font.set({ bold: i===0, italic: true, size: 10, name: "Times New Roman" });
-                        try { ps.items[i].alignment = "Left"; } catch(e) {}
+                    for (let i = 0; i < ps.items.length; i++) {
+                        ps.items[i].font.set({ bold: i === 0, italic: true, size: 10, name: "Times New Roman" });
+                        try { ps.items[i].alignment = "Left"; } catch (e) { }
                     }
                 } else {
                     range.insertText(text.toUpperCase(), "Replace");
-                    range.font.set({ bold: isBold, italic: false, size: 13, name: "Times New Roman" });
+                    range.font.set({ bold: isBold, italic: false, size: 11, name: "Times New Roman" });
                     await context.sync();
-                    
+
                     const firstP = cell.body.paragraphs.getFirst();
-                    try { 
-                        firstP.alignment = alignment; 
+                    try {
+                        firstP.alignment = alignment;
                         // Ép giãn cách để tạo độ cao hàng ~3.8cm (v1320)
                         // Bỏ spaceBefore, dồn toàn bộ xuống spaceAfter = 96pt
                         firstP.spaceBefore = 0;
                         firstP.spaceAfter = 96;
                         firstP.lineSpacing = 12; // Single spacing
-                    } catch(e) {}
+                    } catch (e) { }
 
                     // Căn lên trên cùng của ô để trống chỗ ký tên phía dưới
-                    try { cell.verticalAlignment = "Top"; } catch(e) {}
+                    try { cell.verticalAlignment = "Top"; } catch (e) { }
                 }
-                
+
                 await context.sync();
                 return true;
             } catch (e) {
@@ -381,7 +381,7 @@ export const WordService = {
         const fillOneTable = async (context, tableData) => {
             const members = Array.isArray(membersList) ? membersList.filter(m => m && m.trim() !== "") : [];
             const itemsToFill = [];
-            
+
             if (isLienDanh && members.length > 0) {
                 itemsToFill.push("Nơi nhận:");
                 members.forEach(m => itemsToFill.push(m));
@@ -396,7 +396,7 @@ export const WordService = {
             while (itemIdx < itemsToFill.length) {
                 tableData.rows.load("items");
                 await context.sync();
-                
+
                 if (rowIdx >= tableData.rows.items.length) {
                     tableData.addRows("End", 1);
                     await context.sync();
@@ -427,7 +427,7 @@ export const WordService = {
                         heightRule: "AtLeast"
                     });
                     await context.sync();
-                } catch(e) { /* Lờ đi lỗi row height vì đã dùng spacing */ }
+                } catch (e) { /* Lờ đi lỗi row height vì đã dùng spacing */ }
 
                 rowIdx++;
             }
@@ -461,42 +461,42 @@ export const WordService = {
                     const allTables = context.document.body.tables;
                     allTables.load("items");
                     await context.sync();
-                    
+
                     for (let t of allTables.items) {
                         try {
                             const firstCell = t.getCell(0, 0);
                             const secondCell = t.getCell(0, 1); // Header thường có Quốc hiệu ở ô bên phải
-                            
+
                             const r1 = firstCell.body.getRange();
                             const r2 = secondCell.body.getRange();
                             r1.load("text");
                             r2.load("text");
                             await context.sync();
-                            
+
                             const text1 = (r1.text || "").toLowerCase().trim();
                             const text2 = (r2.text || "").toLowerCase().trim();
-                            
+
                             // KIỂM TRA CHỐNG GHI ĐÈ NHẦM TIÊU ĐỀ (Anti-Header Protection)
                             // Sử dụng regex linh hoạt cho dòng ngày tháng (chấp nhận số lượng dấu chấm bất kỳ)
                             const dateRegex = /ngày\s+\.{1,}\s+tháng\s+\.{1,}\s+năm/;
-                            const isNationalMotto = text2.includes("cộng hòa xã hội") || 
-                                                  text2.includes("độc lập - tự do") ||
-                                                  text2.includes("độc lập- tự do") ||
-                                                  dateRegex.test(text2);
+                            const isNationalMotto = text2.includes("cộng hòa xã hội") ||
+                                text2.includes("độc lập - tự do") ||
+                                text2.includes("độc lập- tự do") ||
+                                dateRegex.test(text2);
 
                             // Bổ sung check "Số:" ở ô 1 - Đặc trưng của Header (Signature table không bao giờ có "Số:")
                             const isHeaderByNumber = text1.includes("số:") || text1.includes("số ");
 
                             if (isNationalMotto || isHeaderByNumber) {
                                 console.log("[SignatureTable] Bỏ qua bảng Tiêu đề.");
-                                continue; 
+                                continue;
                             }
-                            
+
                             // Chỉ nhận nếu nội dung ô 1 bắt đầu bằng "nơi nhận"
                             if (text1.startsWith("nơi nhận")) {
                                 targetTables.push(t);
                             }
-                        } catch(e) {}
+                        } catch (e) { }
                     }
                     logger(`📂 Đã tìm thấy ${targetTables.length} bảng ký tên an toàn.`, 40);
                 }
@@ -507,7 +507,7 @@ export const WordService = {
 
                 for (let i = 0; i < targetTables.length; i++) {
                     const percent = 40 + Math.floor(((i + 1) / targetTables.length) * 55);
-                    logger(`🖋️ [${i+1}/${targetTables.length}] Đang xử lý...`, percent);
+                    logger(`🖋️ [${i + 1}/${targetTables.length}] Đang xử lý...`, percent);
                     await fillOneTable(context, targetTables[i]);
                 }
 
@@ -967,7 +967,7 @@ export const WordService = {
                 {
                     folder: "1. To trinh Nhan su thi cong",
                     bookmarks: ["TT_BCH"],
-                    fileName: "0. QD thanh lap BCH.docx"
+                    fileName: "0.QD thanh lap BCH.docx"
                 },
                 {
                     folder: "1. To trinh Nhan su thi cong",
@@ -1013,8 +1013,8 @@ export const WordService = {
 
             for (let i = 0; i < splitGroups.length; i++) {
                 const group = splitGroups[i];
-                if (onProgress) onProgress(`Đang xử lý ${i+1}/${splitGroups.length}: ${group.folder}...`, 20 + Math.floor((i / splitGroups.length) * 60));
-                
+                if (onProgress) onProgress(`Đang xử lý ${i + 1}/${splitGroups.length}: ${group.folder}...`, 20 + Math.floor((i / splitGroups.length) * 60));
+
                 const ooxmlParts = [];
                 for (const bmName of group.bookmarks) {
                     const ooxml = await WordService.getBookmarkOoxml(bmName);
@@ -1232,10 +1232,10 @@ export const WordService = {
                     for (let r = 0; r < values.length; r++) {
                         const row = values[r];
                         if (!row || row.length < 2) continue;
-                        
+
                         const keyText = WordService.normalizeTextForSearch(row[0]);
                         const valText = (row[1] ?? "").toString().trim();
-                        
+
                         if (valText.length > 0) {
                             if (keyText.includes("so hd") || keyText.includes("so hop dong")) {
                                 if (!result.duAn.soHD) result.duAn.soHD = valText;
