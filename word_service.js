@@ -327,6 +327,112 @@ export const WordService = {
             }
         });
     },
+    
+    /**
+     * Cập nhật bảng ký tên Liên danh hoặc Thường (Bookmark: bmKyLienDanh)
+     */
+    updateSignatureTable: async (isLienDanh, membersList, dvtcName, bookmarkName) => {
+        await Word.run(async (context) => {
+            const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
+            bm.load("isNullObject");
+            await context.sync();
+
+            if (bm.isNullObject) return;
+
+            const bmRange = bm.getRange();
+            const tables = bmRange.tables;
+            tables.load("items");
+            await context.sync();
+
+            if (tables.items.length === 0) return;
+
+            const table = tables.items[0];
+            table.load("rowCount, columns/items");
+            await context.sync();
+
+            const colCount = table.columns.items.length;
+            const targetColCount = isLienDanh ? 3 : 2;
+
+            // Điều chỉnh số cột
+            if (colCount < targetColCount) {
+                table.insertColumns("End", targetColCount - colCount);
+                await context.sync();
+            } else if (colCount > targetColCount) {
+                // Xóa các cột thừa từ phải qua trái
+                for (let c = colCount - 1; c >= targetColCount; c--) {
+                    table.columns.items[c].delete();
+                }
+                await context.sync();
+            }
+
+            // Xóa nội dung cũ (trừ ô Nơi nhận - Cell(0,0))
+            const rowCount = table.rowCount;
+            // Xóa toàn bộ hàng từ hàng 2 trở đi
+            if (rowCount > 1) {
+                table.deleteRows(1, rowCount - 1);
+            }
+            await context.sync();
+
+            // Xóa text ô Đơn vị (Cell 0,1 và 0,2 nếu có)
+            const firstRow = table.rows.getFirst();
+            firstRow.load("cells/items");
+            await context.sync();
+            
+            for (let c = 1; c < firstRow.cells.items.length; c++) {
+                firstRow.cells.items[c].body.clear();
+            }
+
+            if (isLienDanh) {
+                // Phân bổ thành viên vào các ô (bỏ qua Cell 0,0)
+                let currentMemberIdx = 0;
+                
+                // Điền vào hàng đầu tiên (ô 1 và ô 2)
+                for (let c = 1; c < 3 && currentMemberIdx < membersList.length; c++) {
+                    const cell = firstRow.cells.items[c];
+                    cell.body.insertText(membersList[currentMemberIdx].toUpperCase(), "Replace");
+                    cell.body.paragraphs.getFirst().font.bold = true;
+                    cell.body.paragraphs.getFirst().alignment = "Centered";
+                    currentMemberIdx++;
+                }
+
+                // Nếu còn thành viên, thêm hàng mới và điền vào cả 3 cột
+                while (currentMemberIdx < membersList.length) {
+                    const newRow = table.addRows("End", 1);
+                    newRow.load("cells/items");
+                    await context.sync();
+
+                    for (let c = 0; c < 3 && currentMemberIdx < membersList.length; c++) {
+                        const cell = newRow.cells.items[c];
+                        cell.body.insertText(membersList[currentMemberIdx].toUpperCase(), "Replace");
+                        cell.body.paragraphs.getFirst().font.bold = true;
+                        cell.body.paragraphs.getFirst().alignment = "Centered";
+                        currentMemberIdx++;
+                    }
+                }
+            } else {
+                // Chế độ thường: Điền vào ô duy nhất cạnh Nơi nhận
+                const cell = firstRow.cells.items[1];
+                cell.body.insertText((dvtcName || "").toUpperCase(), "Replace");
+                cell.body.paragraphs.getFirst().font.bold = true;
+                cell.body.paragraphs.getFirst().alignment = "Centered";
+            }
+
+            // Căn chỉnh lề dọc cho toàn bảng
+            table.load("rows/items");
+            await context.sync();
+            table.rows.items.forEach(row => {
+               row.cells.load("items");
+            });
+            await context.sync();
+            table.rows.items.forEach(row => {
+                row.cells.items.forEach(cell => {
+                    cell.verticalAlignment = "Center";
+                });
+            });
+
+            await context.sync();
+        });
+    },
 
     /**
      * Lấy nội dung file Word dưới dạng Blob
