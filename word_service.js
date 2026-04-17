@@ -335,33 +335,29 @@ export const WordService = {
     updateSignatureTable: async (isLienDanh, membersList, dvtcName, bookmarkName, logCallback) => {
         const logger = (msg) => { if (logCallback) logCallback(msg); console.log(`[SignatureTable] ${msg}`); };
         
-        // HELPER v1220: Điền ô an toàn - clear+sync+insertParagraph("Start")+sync
+        // HELPER v1225: Đơn giản hóa tối đa để tìm nguyên nhân bảng trống
         const safeFillCell = async (context, cell, text, isBold = true, alignment = "Centered") => {
-            if (!cell || !text || text.trim() === "") return false;
+            if (!cell || !text) return false;
             try {
-                cell.body.clear();
-                await context.sync();
-
+                // Thay vì clear() rồi sync, ta dùng insertParagraph("Replace") hoặc "Start"
+                // Ở đây dùng "Replace" để đè lên toàn bộ body hiện tại cực kỳ an toàn
                 if (text === "Nơi nhận:") {
-                    const p1 = cell.body.insertParagraph("NƠI NHẬN:", "Start");
+                    const p1 = cell.body.insertParagraph("NƠI NHẬN:", "Replace");
                     p1.font.set({ bold: true, italic: true, size: 10, name: "Times New Roman" });
                     try { p1.alignment = "Left"; } catch(e) {}
-                    const p2 = cell.body.insertParagraph("- Như trên;", "End");
-                    p2.font.set({ italic: true, size: 10, name: "Times New Roman" });
-                    try { p2.alignment = "Left"; } catch(e) {}
-                    const p3 = cell.body.insertParagraph("- Lưu VT.", "End");
-                    p3.font.set({ italic: true, size: 10, name: "Times New Roman" });
-                    try { p3.alignment = "Left"; } catch(e) {}
+                    
+                    cell.body.insertParagraph("- Như trên;", "End").font.set({ italic: true, size: 10, name: "Times New Roman" });
+                    cell.body.insertParagraph("- Lưu VT.", "End").font.set({ italic: true, size: 10, name: "Times New Roman" });
                     await context.sync();
                 } else {
-                    const p = cell.body.insertParagraph(text.toUpperCase(), "Start");
+                    const p = cell.body.insertParagraph(text.toUpperCase(), "Replace");
                     p.font.set({ bold: isBold, name: "Times New Roman" });
                     try { p.alignment = alignment; } catch(e) {}
                     await context.sync();
                 }
                 return true;
             } catch (e) {
-                logger(`⚠️ safeFillCell lỗi: ${e.message}`);
+                logger(`⚠️ Cell Lỗi: ${e.message}`);
                 return false;
             }
         };
