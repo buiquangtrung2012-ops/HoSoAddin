@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=17042026.1320';
-import { StorageService } from './storage_service.js?v=17042026.1320';
-import { MockData } from './mock_data.js?v=17042026.1320';
+import { WordService } from './word_service.js?v=17042026.1330';
+import { StorageService } from './storage_service.js?v=17042026.1330';
+import { MockData } from './mock_data.js?v=17042026.1330';
 
 /* global Office, lucide */
 
@@ -334,23 +334,16 @@ function renderProjectView(container) {
                                 ? (Array.isArray(state.duAn.dvtcMembers) ? state.duAn.dvtcMembers : [])
                                 : [];
                             
-                            const logMessages = [];
-                            const logCb = (msg) => { logMessages.push(msg); console.log(`[SigTable] ${msg}`); };
-                            
                             await WordService.updateSignatureTable(
                                 state.duAn.isLienDanh, 
                                 membersList, 
                                 state.duAn.dvtc, 
                                 "bmKyLienDanh", 
-                                logCb
+                                (msg, percent) => updateLog(msg, percent)
                             );
                             
-                            showToast("✓ " + logMessages.join(" | "), "success");
+                            showToast("✓ Đã cập nhật xong bảng ký tên!", "success");
                             btnUpdateSig.innerHTML = `<i data-lucide="check-circle" size="14"></i> CẬP NHẬT BẢNG KÝ TÊN`;
-                            
-                            setTimeout(() => {
-                                btnUpdateSig.innerHTML = `<i data-lucide="refresh-cw" size="14"></i> CẬP NHẬT BẢNG KÝ TÊN`;
-                                btnUpdateSig.disabled = false;
                                 lucide.createIcons();
                             }, 1500);
                         } catch (e) {
