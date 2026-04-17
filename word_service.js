@@ -485,17 +485,38 @@ export const WordService = {
 
             // Đảm bảo ô đầu tiên có chữ "Nơi nhận" (nếu bảng trống)
             const firstCell = firstRow.cells.items[0];
-            firstCell.load("text");
+            if (!firstCell) {
+                logger(`🛑 Không thể truy cập ô đầu tiên. Bảng có thể không tồn tại.`);
+                return;
+            }
+            
+            firstCell.load("body");
             await context.sync();
-            if (!firstCell.text || firstCell.text.trim() === "") {
-                firstCell.body.insertText("Nơi nhận:", "Replace");
-                firstCell.body.paragraphs.getFirst().font.bold = true;
+            
+            if (!firstCell.body) {
+                logger(`🛑 Không thể truy cập body của ô đầu tiên.`);
+                return;
+            }
+            
+            firstCell.body.clear();
+            firstCell.body.insertText("Nơi nhận:", "Replace");
+            
+            // Load paragraphs trước khi format
+            firstCell.body.load("paragraphs/items");
+            await context.sync();
+            if (firstCell.body.paragraphs && firstCell.body.paragraphs.items && firstCell.body.paragraphs.items.length > 0) {
+                firstCell.body.paragraphs.items[0].font.bold = true;
             }
 
             // Xóa nội dung các ô còn lại ở hàng 1
             const initialCellCount = firstRow.cells.items.length;
+            firstRow.load("cells/items/body");
+            await context.sync();
+            
             for (let c = 1; c < initialCellCount; c++) {
-                firstRow.cells.items[c].body.clear();
+                if (firstRow.cells.items[c] && firstRow.cells.items[c].body) {
+                    firstRow.cells.items[c].body.clear();
+                }
             }
             await context.sync();
 
@@ -507,12 +528,24 @@ export const WordService = {
                 for (let c = 1; c < initialCellCount && memberIdx < members.length; c++) {
                     try {
                         const cell = firstRow.cells.items[c];
+                        if (!cell || !cell.body) {
+                            logger(`⚠ Ô[1,${c}] không có body, bỏ qua`);
+                            continue;
+                        }
+                        
+                        cell.body.clear();
                         cell.body.insertText(members[memberIdx].toUpperCase(), "Replace");
-                        cell.body.paragraphs.getFirst().font.bold = true;
-                        cell.body.paragraphs.getFirst().alignment = "Centered";
+                        
+                        cell.body.load("paragraphs/items");
+                        await context.sync();
+                        
+                        if (cell.body.paragraphs && cell.body.paragraphs.items && cell.body.paragraphs.items.length > 0) {
+                            cell.body.paragraphs.items[0].font.bold = true;
+                            cell.body.paragraphs.items[0].alignment = "Centered";
+                        }
                         memberIdx++;
                     } catch (e) {
-                        logger(`⚠ Lỗi điền ô hàng 1: ${e.message}`);
+                        logger(`⚠ Lỗi điền ô hàng 1 cột ${c}: ${e.message}`);
                     }
                 }
                 await context.sync();
@@ -520,18 +553,45 @@ export const WordService = {
                 // CÁC HÀNG TIẾP THEO: Nếu còn thành viên, thêm hàng mới
                 while (memberIdx < members.length) {
                     try {
-                        logger(`➕ Thêm hàng mới cho các thành viên còn lại...`);
-                        const newRow = table.addRows("End", 1);
-                        newRow.load("cells/items");
+                        logger(`➕ Thêm hàng mới cho các thành viên còn lại (${members.length - memberIdx} thành viên)...`);
+                        const newRowAdded = table.addRows("End", 1);
+                        await context.sync();
+                        
+                        // Reload table để lấy hàng mới
+                        table.load("rows/items");
+                        await context.sync();
+                        
+                        const newRow = table.rows.items[table.rows.items.length - 1];
+                        if (!newRow) {
+                            logger(`⚠ Không thể lấy hàng mới đã thêm`);
+                            break;
+                        }
+                        
+                        newRow.load("cells/items/body");
                         await context.sync();
                         
                         const newRowCells = newRow.cells.items;
                         for (let c = 0; c < newRowCells.length && memberIdx < members.length; c++) {
-                            const cell = newRowCells[c];
-                            cell.body.insertText(members[memberIdx].toUpperCase(), "Replace");
-                            cell.body.paragraphs.getFirst().font.bold = true;
-                            cell.body.paragraphs.getFirst().alignment = "Centered";
-                            memberIdx++;
+                            try {
+                                const cell = newRowCells[c];
+                                if (!cell || !cell.body) {
+                                    logger(`⚠ Ô mới không có body ở cột ${c}`);
+                                    continue;
+                                }
+                                
+                                cell.body.clear();
+                                cell.body.insertText(members[memberIdx].toUpperCase(), "Replace");
+                                cell.body.load("paragraphs/items");
+                                await context.sync();
+                                
+                                if (cell.body.paragraphs && cell.body.paragraphs.items && cell.body.paragraphs.items.length > 0) {
+                                    cell.body.paragraphs.items[0].font.bold = true;
+                                    cell.body.paragraphs.items[0].alignment = "Centered";
+                                }
+                                memberIdx++;
+                            } catch (e) {
+                                logger(`⚠ Lỗi điền ô mới cột ${c}: ${e.message}`);
+                            }
                         }
                         await context.sync();
                     } catch (e) {
@@ -545,9 +605,19 @@ export const WordService = {
                 if (initialCellCount > 1) {
                     try {
                         const cell = firstRow.cells.items[1];
-                        cell.body.insertText(dvtcText || " ", "Replace");
-                        cell.body.paragraphs.getFirst().font.bold = true;
-                        cell.body.paragraphs.getFirst().alignment = "Centered";
+                        if (!cell || !cell.body) {
+                            logger(`⚠ Không thể truy cập ô[1,1] để điền tên DVTC`);
+                        } else {
+                            cell.body.clear();
+                            cell.body.insertText(dvtcText || " ", "Replace");
+                            cell.body.load("paragraphs/items");
+                            await context.sync();
+                            
+                            if (cell.body.paragraphs && cell.body.paragraphs.items && cell.body.paragraphs.items.length > 0) {
+                                cell.body.paragraphs.items[0].font.bold = true;
+                                cell.body.paragraphs.items[0].alignment = "Centered";
+                            }
+                        }
                     } catch (e) {
                         logger(`⚠ Lỗi điền tên đơn vị: ${e.message}`);
                     }
@@ -560,14 +630,18 @@ export const WordService = {
                 await context.sync();
                 for (let i = 0; i < table.rows.items.length; i++) {
                     const row = table.rows.items[i];
-                    row.cells.load("items");
+                    row.load("cells/items");
                     await context.sync();
                     row.cells.items.forEach(cell => {
-                        cell.verticalAlignment = "Center";
-                        cell.shadingColor = "#FFFFFF";
+                        if (cell) {
+                            cell.verticalAlignment = "Center";
+                            cell.shadingColor = "#FFFFFF";
+                        }
                     });
                 }
-            } catch (e) {}
+            } catch (e) {
+                logger(`⚠ Lỗi định dạng bảng: ${e.message}`);
+            }
 
             await context.sync();
             logger(`✓ Cập nhật bảng ký thành công.`);
