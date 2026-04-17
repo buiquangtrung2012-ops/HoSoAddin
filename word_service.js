@@ -335,7 +335,7 @@ export const WordService = {
     updateSignatureTable: async (isLienDanh, membersList, dvtcName, bookmarkName, logCallback) => {
         const logger = (msg) => { if (logCallback) logCallback(msg); console.log(`[SignatureTable] ${msg}`); };
         
-        // HELPER v1290: Fix căn lề và định dạng
+        // HELPER v1300: Fix căn lề, định dạng & Bỏ chữ nghiêng cho thành viên
         const safeFillCell = async (context, cell, text, isBold = true, alignment = "Centered") => {
             if (!cell || !text) return false;
             try {
@@ -353,10 +353,10 @@ export const WordService = {
                     }
                 } else {
                     range.insertText(text.toUpperCase(), "Replace");
-                    range.font.set({ bold: isBold, size: 11, name: "Times New Roman" });
+                    // Ép italic: false để chữ đứng thẳng
+                    range.font.set({ bold: isBold, italic: false, size: 11, name: "Times New Roman" });
                     await context.sync();
                     
-                    // Ép căn lề cho paragraph đầu tiên của ô (Chắc chắn hơn range)
                     const firstP = cell.body.paragraphs.getFirst();
                     try { firstP.alignment = alignment; } catch(e) {}
                 }
@@ -396,27 +396,30 @@ export const WordService = {
                 }
 
                 const currentRow = tableData.rows.items[rowIdx];
-                // Thiết đặt độ cao hàng 3.8cm (107.71 points)
-                try {
-                    currentRow.heightRule = "AtLeast";
-                    currentRow.height = 107.71;
-                } catch(e) { logger(`⚠️ Lỗi RowHeight: ${e.message}`); }
-
                 currentRow.cells.load("items");
                 await context.sync();
                 const cells = currentRow.cells.items;
 
                 if (!cells || cells.length === 0) { rowIdx++; continue; }
 
+                // 1. Điền nội dung vào tối đa 2 ô
                 for (let colIdx = 0; colIdx < cells.length && colIdx < 2; colIdx++) {
                     if (itemIdx >= itemsToFill.length) break;
                     const text = itemsToFill[itemIdx];
                     const isNn = (text === "Nơi nhận:");
-                    
-                    logger(`🖋️ Điền Ô (${rowIdx}, ${colIdx}): ${text.substring(0, 15)}... | Căn lề: ${isNn ? "Left" : "Centered"}`);
                     await safeFillCell(context, cells[colIdx], text, !isNn, isNn ? "Left" : "Centered");
                     itemIdx++;
                 }
+
+                // 2. Ép độ cao hàng sau khi đã có nội dung (Bản sửa lỗi v1300)
+                try {
+                    currentRow.set({
+                        height: 107.71,
+                        heightRule: "AtLeast"
+                    });
+                    await context.sync();
+                } catch(e) { logger(`⚠️ Lỗi RowHeight: ${e.message}`); }
+
                 rowIdx++;
             }
         };
@@ -425,17 +428,23 @@ export const WordService = {
             await Word.run(async (context) => {
                 let targetTables = [];
                 
-                // 1. Kiểm tra Selection (Lấy bảng hiện tại nếu con trỏ đang ở đó)
-                const sel = context.document.getSelection();
-                const selTable = sel.parentTable;
-                selTable.load("isNullObject");
-                await context.sync();
-                
-                if (!selTable.isNullObject) {
-                    logger(`🎯 Cập nhật bảng đang chọn...`);
-                    targetTables.push(selTable);
-                } else {
-                    // 2. Scan toàn bộ bảng có từ khóa "Nơi nhận" ở ô (0,0)
+                // 1. Kiểm tra Selection (V1300: Dùng try-catch để tránh crash ItemNotFound)
+                try {
+                    const sel = context.document.getSelection();
+                    const selTable = sel.parentTable;
+                    selTable.load("isNullObject");
+                    await context.sync();
+                    
+                    if (!selTable.isNullObject) {
+                        logger(`🎯 Cập nhật bảng đang chọn...`);
+                        targetTables.push(selTable);
+                    }
+                } catch(e) {
+                    logger(`ℹ️ Không có bảng nào được chọn (Hoặc con trỏ ngoài bảng).`);
+                }
+
+                // 2. Nếu không thấy Selection, Scan toàn bộ file
+                if (targetTables.length === 0) {
                     logger(`🔍 Quét toàn bộ file tìm bảng ký tên...`);
                     const allTables = context.document.body.tables;
                     allTables.load("items");
@@ -453,7 +462,6 @@ export const WordService = {
                             }
                         } catch(e) {}
                     }
-                    logger(`📂 Tìm thấy ${targetTables.length} bảng ký tên hợp lệ.`);
                 }
 
                 if (targetTables.length === 0) {
