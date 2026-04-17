@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=17042026.1330';
-import { StorageService } from './storage_service.js?v=17042026.1330';
-import { MockData } from './mock_data.js?v=17042026.1330';
+import { WordService } from './word_service.js?v=17042026.1335';
+import { StorageService } from './storage_service.js?v=17042026.1335';
+import { MockData } from './mock_data.js?v=17042026.1335';
 
 /* global Office, lucide */
 
@@ -344,8 +344,8 @@ function renderProjectView(container) {
                             
                             showToast("✓ Đã cập nhật xong bảng ký tên!", "success");
                             btnUpdateSig.innerHTML = `<i data-lucide="check-circle" size="14"></i> CẬP NHẬT BẢNG KÝ TÊN`;
-                                lucide.createIcons();
-                            }, 1500);
+                            btnUpdateSig.disabled = false;
+                            lucide.createIcons();
                         } catch (e) {
                             console.error("Update signature table error:", e);
                             showToast(`❌ Lỗi: ${e.message}`, "error");
