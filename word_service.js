@@ -366,7 +366,6 @@ export const WordService = {
                             const p = cell.body.paragraphs.items[0];
                             try { p.font.set({ bold: isBold, name: "Times New Roman" }); } catch (e) {}
                             try { p.alignment = alignment; } catch (e) {}
-                        }
                     }
                 }
                 return true;
