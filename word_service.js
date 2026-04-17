@@ -345,15 +345,32 @@ export const WordService = {
 
                 cell.body.clear();
                 if (text && text.trim() !== "") {
-                    cell.body.insertText(text.toUpperCase(), "Replace");
-                    
-                    cell.body.load("paragraphs/items");
-                    await context.sync();
-                    
-                    if (cell.body.paragraphs && cell.body.paragraphs.items && cell.body.paragraphs.items.length > 0) {
-                        const p = cell.body.paragraphs.items[0];
-                        try { p.font.bold = isBold; } catch (e) {}
-                        try { p.alignment = alignment; } catch (e) {}
+                    // Xử lý riêng cho ô Nơi nhận theo mẫu (Bold + Italic + Bullets)
+                    if (text === "Nơi nhận:") {
+                        const p1 = cell.body.insertParagraph("Nơi nhận:", "Replace");
+                        p1.font.bold = true;
+                        p1.font.italic = true;
+                        p1.font.size = 11;
+
+                        const p2 = cell.body.insertParagraph("  - Như trên;", "End");
+                        p2.font.italic = true;
+                        p2.font.size = 10;
+                        
+                        const p3 = cell.body.insertParagraph("  - Lưu VT.", "End");
+                        p3.font.italic = true;
+                        p3.font.size = 10;
+                        
+                        try { p1.alignment = "Left"; p2.alignment = "Left"; p3.alignment = "Left"; } catch(e) {}
+                    } else {
+                        cell.body.insertText(text.toUpperCase(), "Replace");
+                        cell.body.load("paragraphs/items");
+                        await context.sync();
+                        
+                        if (cell.body.paragraphs && cell.body.paragraphs.items && cell.body.paragraphs.items.length > 0) {
+                            const p = cell.body.paragraphs.items[0];
+                            try { p.font.bold = isBold; } catch (e) {}
+                            try { p.alignment = alignment; } catch (e) {}
+                        }
                     }
                 }
                 return true;
@@ -461,31 +478,62 @@ export const WordService = {
             await safeFillCell(context, cells1[0], "Nơi nhận:", true, "Left");
 
             // Ô 2 & 3 của hàng 1
-            let memberIdx = 0;
             if (isLienDanh) {
                 logger(`📝 Phân bổ ${members.length} thành viên Liên danh...`);
-                for (let c = 1; c < cells1.length && memberIdx < members.length; c++) {
-                    await safeFillCell(context, cells1[c], members[memberIdx]);
-                    memberIdx++;
+                let memberIdx = 0;
+                
+                // KỸ THUẬT: Nếu bảng gốc bị giới hạn 2 cột (do gộp ô), lồng một bảng con (1x2) vào ô bên phải
+                if (cells1.length === 2 && members.length >= 2) {
+                    logger(`📂 Chèn bảng lồng (Nested Table) 1x2 để dàn ngang chữ ký...`);
+                    const targetCell = cells1[1];
+                    const nestedTable = targetCell.body.insertTable(1, 2, "Replace");
+                    nestedTable.set({
+                        styleBuiltIn: "TableGrid",
+                        styleFirstColumn: false,
+                        styleLastColumn: false,
+                        styleRowBands: false,
+                        styleColumnBands: false
+                    });
+                    
+                    // Xóa viền bảng lồng để hài hòa với bảng chính
+                    nestedTable.getBorder("InsideHorizontal").color = "#FFFFFF";
+                    nestedTable.getBorder("InsideVertical").color = "#FFFFFF";
+                    nestedTable.getBorder("OutsideHorizontal").color = "#FFFFFF";
+                    nestedTable.getBorder("OutsideVertical").color = "#FFFFFF";
+
+                    nestedTable.load("rows/items");
+                    await context.sync();
+                    const nRow = nestedTable.rows.items[0];
+                    nRow.cells.load("items");
+                    await context.sync();
+                    
+                    // Điền 2 thành viên đầu tiên vào 2 cột của bảng lồng
+                    await safeFillCell(context, nRow.cells.items[0], members[0]);
+                    await safeFillCell(context, nRow.cells.items[1], members[1]);
+                    memberIdx = 2;
+                } else {
+                    // HÀNG 1 (Bảng 3 cột tiêu chuẩn): Điền vào ô và 2 và 3
+                    for (let c = 1; c < cells1.length && memberIdx < members.length; c++) {
+                        await safeFillCell(context, cells1[c], members[memberIdx]);
+                        memberIdx++;
+                    }
                 }
                 
-                // CÁC HÀNG TIẾP THEO: Nếu còn thành viên, thêm hàng mới
+                // CÁC HÀNG TIẾP THEO: Thêm hàng mới nếu còn thành viên
                 while (memberIdx < members.length) {
                     try {
-                        logger(`➕ Thêm hàng mới cho thành viên thứ ${memberIdx + 1}...`);
-                        const newRowsAdded = table.addRows("End", 1);
-                        newRowsAdded.load("items/cells/items");
+                        logger(`➕ Thêm hàng cho thành viên thứ ${memberIdx + 1}...`);
+                        const newRows = table.addRows("End", 1);
+                        newRows.load("items/cells/items");
                         await context.sync();
                         
-                        if (newRowsAdded.items.length > 0) {
-                            const newRow = newRowsAdded.items[0];
-                            const rowCells = newRow.cells.items;
+                        if (newRows.items.length > 0) {
+                            const newRow = newRows.items[0];
+                            const rCells = newRow.cells.items;
+                            const startC = rCells.length >= 2 ? 1 : 0;
                             
-                            // Nếu bảng có >= 2 cột, chúng ta bỏ qua cột đầu tiên (dưới cột Nơi nhận) để căn chỉnh đẹp hơn
-                            const startCol = rowCells.length >= 2 ? 1 : 0;
-                            
-                            for (let c = startCol; c < rowCells.length && memberIdx < members.length; c++) {
-                                await safeFillCell(context, rowCells[c], members[memberIdx]);
+                            for (let c = startC; c < rCells.length && memberIdx < members.length; c++) {
+                                await safeFillCell(context, rCells[c], members[memberIdx]);
                                 memberIdx++;
                             }
                         } else {
