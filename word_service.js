@@ -348,16 +348,16 @@ export const WordService = {
                     if (!bm.isNullObject) {
                         const bmRange = bm.getRange();
                         
-                        // Kiểm tra: Nếu Bookmark nằm TRONG bảng (ParentTable)
-                        const parentTable = bmRange.parentTable;
-                        parentTable.load("isNullObject");
+                        // Kỹ thuật 1: Bookmark nằm TRONG bảng (ParentTable - Cực kỳ tin cậy)
+                        const pTable = bmRange.parentTable;
+                        pTable.load("isNullObject");
                         await context.sync();
                         
-                        if (!parentTable.isNullObject) {
-                            table = parentTable;
+                        if (!pTable.isNullObject) {
+                            table = pTable;
                             logger(`✓ Tìm thấy bảng CHỨA bookmark này.`);
                         } else {
-                            // Bookmark bao quanh bảng (Contained)
+                            // Kỹ thuật 2: Bookmark BAO QUANH bảng (Contained)
                             const tablesInRange = bmRange.tables;
                             tablesInRange.load("items");
                             await context.sync();
@@ -385,15 +385,15 @@ export const WordService = {
                         }
                     }
                 } catch (e) {
-                    logger(`⚠ Lỗi tìm Bookmark: ${e.message}`);
+                    logger(`⚠ Lỗi logic Bookmark: ${e.message}`);
                 }
             }
 
-            // Bước 2: Dùng Search định vị bảng theo chữ 'Nơi nhận' (Siêu bền bỉ)
+            // Bước 2: Dùng Search định vị bảng theo chữ 'Nơi nhận'
             if (!table) {
                 try {
                     logger(`🔍 Đang dùng lệnh Search tìm văn bản 'Nơi nhận'...`);
-                    const searchResults = context.document.body.search("Nơi nhận", { matchCase: false, matchWholeWord: false });
+                    const searchResults = context.document.body.search("Nơi nhận", { matchCase: false });
                     searchResults.load("items");
                     await context.sync();
 
@@ -415,36 +415,22 @@ export const WordService = {
                 }
             }
 
-            // Bước 3: Nếu vẫn chưa thấy, Quét toàn bộ bảng bằng TỪ KHÓA (Logic hệt xuatBang)
+            // Bước 3: Tìm bảng tại vị trí con trỏ chuột (Hành động cuối cùng)
             if (!table) {
-                logger(`🔍 Quét toàn bộ các bảng tìm từ khóa 'Nơi nhận'...`);
-                const allTables = context.document.tables;
-                allTables.load("items");
-                await context.sync();
-
-                const keyword = "nơi nhận|noi nhan";
-                const keywords = keyword.split('|').map(k => WordService.normalizeTextForSearch(k));
-
-                for (let i = 0; i < allTables.items.length; i++) {
-                    const t = allTables.items[i];
-                    const fRow = t.rows.getFirst();
-                    fRow.load("values");
+                try {
+                    logger(`🔍 Thử tìm bảng tại vị trí con trỏ của bạn...`);
+                    const selTable = context.document.getSelection().parentTable;
+                    selTable.load("isNullObject");
                     await context.sync();
-
-                    if (fRow.values.length > 0) {
-                        const rowText = fRow.values[0].join(" ");
-                        const normRow = WordService.normalizeTextForSearch(rowText);
-                        if (keywords.some(k => normRow.includes(k))) {
-                            table = t;
-                            logger(`✓ Tìm thấy bảng qua từ khóa thủ công.`);
-                            break;
-                        }
+                    if (!selTable.isNullObject) {
+                        table = selTable;
+                        logger(`✓ Đã chọn bảng tại vị trí con trỏ hiện tại.`);
                     }
-                }
+                } catch (e) {}
             }
 
             if (!table) {
-                logger(`⚠️ Không tìm thấy bảng ký tên ( Bookmark lỗi và không thấy chữ 'Nơi nhận' ).`);
+                logger(`⚠️ Không tìm thấy bảng ký tên. (Hãy đặt con trỏ vào bảng và thử lại)`);
                 return;
             }
 
