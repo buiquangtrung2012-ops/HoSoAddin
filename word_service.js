@@ -450,18 +450,28 @@ export const WordService = {
                 }
             }
 
-            // Dọn dẹp toàn bộ hàng cũ (trừ hàng 1) một cách triệt để
-            table.load("rowCount");
+            // Dọn dẹp tuyệt đối: Quét sạch nội dung từng ô trước khi xóa hàng
+            table.load("rows/items");
             await context.sync();
-            if (table.rowCount > 1) {
+            
+            for (let i = 0; i < table.rows.items.length; i++) {
+                const row = table.rows.items[i];
+                row.cells.load("items");
+                await context.sync();
+                for (let j = 0; j < row.cells.items.length; j++) {
+                    await row.cells.items[j].body.clear();
+                }
+            }
+
+            // Xoá tất cả hàng trừ hàng đầu tiên
+            if (table.rows.items.length > 1) {
                 try {
-                    // Xoá hàng từ dưới lên để tránh lỗi index
-                    for (let r = table.rowCount - 1; r >= 1; r--) {
-                        table.rows.getItemAt(r).delete();
+                    for (let r = table.rows.items.length - 1; r >= 1; r--) {
+                        table.rows.items[r].delete();
                     }
                     await context.sync();
                 } catch (e) {
-                    logger(`⚠ Không thể xóa một số hàng cũ, sẽ ghi đè.`);
+                    logger(`⚠ Cảnh báo: Một số hàng gộp không thể xóa, sẽ ghi đè.`);
                 }
             }
 
