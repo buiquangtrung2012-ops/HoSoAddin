@@ -252,6 +252,10 @@ function renderProjectView(container) {
                             <i data-lucide="plus-circle" size="14"></i>
                             THÊM THÀNH VIÊN
                         </button>
+                        <button id="btnUpdateSignatureTable" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-green-50 text-green-700 rounded-lg text-[11px] font-bold hover:bg-green-100 transition-all border border-green-200">
+                            <i data-lucide="refresh-cw" size="14"></i>
+                            CẬP NHẬT BẢNG KÝ TÊN
+                        </button>
                     </div>
                 `;
                 wrapper.appendChild(jvToggleArea);
@@ -316,6 +320,45 @@ function renderProjectView(container) {
                     const inputs = listContainer.querySelectorAll('.member-input');
                     if (inputs.length > 0) inputs[inputs.length - 1].focus();
                 };
+
+                // Nút cập nhật bảng ký tên ngay lập tức
+                const btnUpdateSig = jvToggleArea.querySelector('#btnUpdateSignatureTable');
+                if (btnUpdateSig) {
+                    btnUpdateSig.onclick = async () => {
+                        try {
+                            btnUpdateSig.disabled = true;
+                            btnUpdateSig.innerHTML = `<i data-lucide="loader" size="14"></i> ĐANG CẬP NHẬT...`;
+                            lucide.createIcons();
+                            
+                            const membersList = state.duAn.isLienDanh 
+                                ? (Array.isArray(state.duAn.dvtcMembers) ? state.duAn.dvtcMembers : [])
+                                : [];
+                            
+                            await WordService.updateSignatureTable(
+                                state.duAn.isLienDanh, 
+                                membersList, 
+                                state.duAn.dvtc, 
+                                "bmKyLienDanh", 
+                                (msg) => console.log(`[SigTable] ${msg}`)
+                            );
+                            
+                            showToast("✓ Cập nhật bảng ký tên thành công!", "success");
+                            btnUpdateSig.innerHTML = `<i data-lucide="check-circle" size="14"></i> CẬP NHẬT BẢNG KÝ TÊN`;
+                            
+                            setTimeout(() => {
+                                btnUpdateSig.innerHTML = `<i data-lucide="refresh-cw" size="14"></i> CẬP NHẬT BẢNG KÝ TÊN`;
+                                btnUpdateSig.disabled = false;
+                                lucide.createIcons();
+                            }, 1500);
+                        } catch (e) {
+                            console.error("Update signature table error:", e);
+                            showToast(`❌ Lỗi: ${e.message}`, "error");
+                            btnUpdateSig.innerHTML = `<i data-lucide="alert-circle" size="14"></i> CẬP NHẬT BẢNG KÝ TÊN`;
+                            btnUpdateSig.disabled = false;
+                            lucide.createIcons();
+                        }
+                    };
+                }
 
                 if (state.duAn.isLienDanh) renderMembers();
             }
