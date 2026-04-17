@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=17042026.1240';
-import { StorageService } from './storage_service.js?v=17042026.1240';
-import { MockData } from './mock_data.js?v=17042026.1240';
+import { WordService } from './word_service.js?v=17042026.1250';
+import { StorageService } from './storage_service.js?v=17042026.1250';
+import { MockData } from './mock_data.js?v=17042026.1250';
 
 /* global Office, lucide */
 
