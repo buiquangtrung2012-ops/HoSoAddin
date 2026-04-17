@@ -25,7 +25,8 @@ let state = {
     mayMoc: [],
     vatLieu: [],
     thiNghiem: [],
-    outputMode: 'multiple'
+    outputMode: 'multiple',
+    autoSplitOnUpdate: false
 };
 
 // --- CONFIGURATION ---
@@ -88,6 +89,7 @@ async function loadState() {
         state.hasExportedMaster = syncState.hasExportedMaster || false;
         state.hasSplitFiles = syncState.hasSplitFiles || false;
         state.outputMode = syncState.outputMode || 'multiple';
+        state.autoSplitOnUpdate = syncState.autoSplitOnUpdate ?? false;
         state.soHDForExport = syncState.soHDForExport || "";
         
         // Migration: Tự động chuyển số hợp đồng từ cấu hình tập tin sang thông tin dự án nếu chưa có
@@ -109,6 +111,7 @@ async function saveState() {
         hasExportedMaster: state.hasExportedMaster,
         hasSplitFiles: state.hasSplitFiles,
         outputMode: state.outputMode,
+        autoSplitOnUpdate: state.autoSplitOnUpdate,
         soHDForExport: state.duAn.soHD // Sync back to the old field for compatibility
     });
 }
@@ -537,8 +540,27 @@ function renderExportSettings(container) {
                 <div id="exportFolderLabel" class="text-[12px] text-slate-500">${state.exportFolderLabel ? `Thư mục đã chọn: ${state.exportFolderLabel}` : 'Chưa chọn thư mục lưu. Nếu không chọn, hệ thống sẽ yêu cầu lưu tệp.'}</div>
                 <div class="text-[11px] text-slate-400">Lưu ý: Chức năng chọn thư mục chỉ hoạt động nếu trình duyệt/hệ thống hỗ trợ API File System Access.</div>
             </div>
+
+            <div class="pt-4 border-t border-slate-100">
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Tùy chọn cập nhật</h4>
+                <label class="flex items-center gap-3 p-4 bg-indigo-50/50 border border-indigo-100/50 rounded-2xl cursor-pointer hover:bg-indigo-50 transition-all">
+                    <input type="checkbox" id="chkAutoSplit" ${state.autoSplitOnUpdate ? 'checked' : ''} class="w-5 h-5 text-indigo-600 rounded">
+                    <div>
+                        <p class="text-sm font-bold text-slate-700">Tự động tách hồ sơ</p>
+                        <p class="text-[10px] text-slate-500">Tự động xuất lại các file đã tách khi nhấn "CẬP NHẬT HỒ SƠ"</p>
+                    </div>
+                </label>
+            </div>
         </div>
     `;
+
+    const chkAutoSplit = container.querySelector('#chkAutoSplit');
+    if (chkAutoSplit) {
+        chkAutoSplit.onchange = async () => {
+            state.autoSplitOnUpdate = chkAutoSplit.checked;
+            await saveState();
+        };
+    }
 
     const radioInputs = container.querySelectorAll('input[type="radio"]');
     radioInputs.forEach(input => {
@@ -752,7 +774,7 @@ async function onCapNhatClick() {
         updateLog("✓ Hoàn tất cập nhật dữ liệu vào văn bản.", 95);
         
         // Tự động ghi đè lại file đã xuất nếu có
-        if (state.exportFolderHandle && (state.hasExportedMaster || state.hasSplitFiles)) {
+        if (state.exportFolderHandle && (state.hasExportedMaster || (state.hasSplitFiles && state.autoSplitOnUpdate))) {
             updateLog("Cập nhật thay thế các file DOCX gốc...", 96);
             if (state.hasExportedMaster) {
                 await WordService.processExport('master', state.duAn.tenDuAn, {
@@ -761,18 +783,17 @@ async function onCapNhatClick() {
                 });
                 updateLog("✓ Đã cập nhật ghi đè file tổng.", 97);
             }
-            if (state.hasSplitFiles) {
+            if (state.hasSplitFiles && state.autoSplitOnUpdate) {
                 await WordService.processExport('split', state.duAn.tenDuAn, {
                     folderHandle: state.exportFolderHandle,
                     outputMode: state.outputMode
                 });
                 updateLog("✓ Đã cập nhật ghi đè file tách.", 98);
             }
-            msg = "Đã cập nhật Word & ghi đè toàn bộ file đã xuất!";
+            showToast("Đã cập nhật Word & xuất file thành công!", "success");
+        } else {
+            showToast("Đã cập nhật dữ liệu vào văn bản!", "success");
         }
-        
-        updateLog("ĐÃ CẬP NHẬT HOÀN TẤT!", 100);
-        showToast("Đã cập nhật dữ liệu thành công!", "success");
     } catch (e) {
         console.error("onCapNhatClick Error:", e);
         const errorDetail = e.message || "Lỗi không xác định";
