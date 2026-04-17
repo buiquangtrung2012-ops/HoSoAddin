@@ -331,34 +331,71 @@ export const WordService = {
     /**
      * Cập nhật bảng ký tên Liên danh hoặc Thường (Bookmark: bmKyLienDanh)
      */
-    updateSignatureTable: async (isLienDanh, membersList, dvtcName, bookmarkName) => {
+    updateSignatureTable: async (isLienDanh, membersList, dvtcName, bookmarkName, logCallback) => {
+        const logger = (msg) => { if (logCallback) logCallback(msg); console.log(`[SignatureTable] ${msg}`); };
+        
         await Word.run(async (context) => {
+            let table = null;
+            
+            logger(`🔍 Đang tìm bảng ký tên tại bookmark ${bookmarkName}...`);
             const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
             bm.load("isNullObject");
             await context.sync();
 
-            if (bm.isNullObject) return;
+            if (bm.isNullObject) {
+                logger(`⚠️ Không tìm thấy Bookmark: ${bookmarkName}`);
+                return;
+            }
 
             const bmRange = bm.getRange();
-            const tables = bmRange.tables;
-            tables.load("items");
+            const tablesInRange = bmRange.tables;
+            tablesInRange.load("items");
             await context.sync();
 
-            if (tables.items.length === 0) return;
+            if (tablesInRange.items.length > 0) {
+                table = tablesInRange.items[0];
+                logger(`✓ Tìm thấy bảng CHỨA TRONG bookmark.`);
+            } else {
+                // Thử tìm bảng lân cận bookmark (trước, sau hoặc đè lên)
+                logger(`🔍 Bookmark không chứa bảng, đang tìm bảng lân cận...`);
+                const allTables = context.document.tables;
+                allTables.load("items");
+                await context.sync();
 
-            const table = tables.items[0];
+                for (let i = 0; i < allTables.items.length; i++) {
+                    const t = allTables.items[i];
+                    const tRange = t.getRange();
+                    const relation = tRange.compareLocationWith(bmRange);
+                    await context.sync();
+
+                    if (relation.value === "After" || relation.value === "AdjacentAfter" || relation.value === "Overlapping" || relation.value === "Inside") {
+                        table = t;
+                        logger(`✓ Tìm thấy bảng TRÙNG/SAU bookmark.`);
+                        break;
+                    }
+                }
+            }
+
+            if (!table) {
+                logger(`⚠️ Không tìm thấy bảng nào liên quan đến bookmark ${bookmarkName}`);
+                return;
+            }
+
             table.load("rowCount, columns/items");
             await context.sync();
 
             const colCount = table.columns.items.length;
             const targetColCount = isLienDanh ? 3 : 2;
 
+            logger(`→ Chế độ: ${isLienDanh ? 'Liên danh' : 'Thường'}. Số cột hiện tại: ${colCount}, mục tiêu: ${targetColCount}`);
+
             // Điều chỉnh số cột
             if (colCount < targetColCount) {
+                logger(`➕ Thêm ${targetColCount - colCount} cột...`);
                 table.insertColumns("End", targetColCount - colCount);
                 await context.sync();
             } else if (colCount > targetColCount) {
-                // Xóa các cột thừa từ phải qua trái
+                logger(`➖ Xóa ${colCount - targetColCount} cột dư...`);
                 for (let c = colCount - 1; c >= targetColCount; c--) {
                     table.columns.items[c].delete();
                 }
@@ -367,13 +404,13 @@ export const WordService = {
 
             // Xóa nội dung cũ (trừ ô Nơi nhận - Cell(0,0))
             const rowCount = table.rowCount;
-            // Xóa toàn bộ hàng từ hàng 2 trở đi
             if (rowCount > 1) {
+                logger(`🗑 Xóa ${rowCount - 1} hàng cũ...`);
                 table.deleteRows(1, rowCount - 1);
             }
             await context.sync();
 
-            // Xóa text ô Đơn vị (Cell 0,1 và 0,2 nếu có)
+            // Xóa text các ô đơn vị hàng đầu (trừ ô 0,0)
             const firstRow = table.rows.getFirst();
             firstRow.load("cells/items");
             await context.sync();
@@ -383,13 +420,13 @@ export const WordService = {
             }
 
             if (isLienDanh) {
-                // Phân bổ thành viên vào các ô (bỏ qua Cell 0,0)
+                logger(`📝 Phân bổ ${membersList.length} thành viên vào 3 cột...`);
                 let currentMemberIdx = 0;
                 
                 // Điền vào hàng đầu tiên (ô 1 và ô 2)
                 for (let c = 1; c < 3 && currentMemberIdx < membersList.length; c++) {
                     const cell = firstRow.cells.items[c];
-                    cell.body.insertText(membersList[currentMemberIdx].toUpperCase(), "Replace");
+                    cell.body.insertText(membersList[currentMemberIdx], "Replace");
                     cell.body.paragraphs.getFirst().font.bold = true;
                     cell.body.paragraphs.getFirst().alignment = "Centered";
                     currentMemberIdx++;
@@ -403,16 +440,16 @@ export const WordService = {
 
                     for (let c = 0; c < 3 && currentMemberIdx < membersList.length; c++) {
                         const cell = newRow.cells.items[c];
-                        cell.body.insertText(membersList[currentMemberIdx].toUpperCase(), "Replace");
+                        cell.body.insertText(membersList[currentMemberIdx], "Replace");
                         cell.body.paragraphs.getFirst().font.bold = true;
                         cell.body.paragraphs.getFirst().alignment = "Centered";
                         currentMemberIdx++;
                     }
                 }
             } else {
-                // Chế độ thường: Điền vào ô duy nhất cạnh Nơi nhận
+                logger(`📝 Điền tên Đơn vị vào bảng 2 cột...`);
                 const cell = firstRow.cells.items[1];
-                cell.body.insertText((dvtcName || "").toUpperCase(), "Replace");
+                cell.body.insertText(dvtcName || " ", "Replace");
                 cell.body.paragraphs.getFirst().font.bold = true;
                 cell.body.paragraphs.getFirst().alignment = "Centered";
             }
@@ -431,6 +468,7 @@ export const WordService = {
             });
 
             await context.sync();
+            logger(`✓ Hoàn tất cập nhật bảng ký tên.`);
         });
     },
 
