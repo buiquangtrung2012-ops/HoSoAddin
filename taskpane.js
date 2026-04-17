@@ -280,8 +280,11 @@ function renderProjectView(container) {
                         `;
                         
                         const input = row.querySelector('.member-input');
-                        input.onchange = async () => {
+                        input.oninput = async () => {
                             state.duAn.dvtcMembers[idx] = input.value.trim();
+                            // Không saveState liên tục để tránh lag, chỉ cập nhật memory state
+                        };
+                        input.onblur = async () => {
                             await saveState();
                         };
 
