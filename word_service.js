@@ -380,16 +380,20 @@ export const WordService = {
                 // BƯỚC 1: TÌM BẢNG (Ưu tiên Selection để chính xác nhất)
                 logger(`🔍 [B1] Đang tìm bảng ký tên...`);
                 
-                // 1a. Ưu tiên nhất: Vị trí con trỏ
+                // 1a. Ưu tiên nhất: Vị trí con trỏ (Dùng Range để chắc chắn)
                 try {
-                    const selTable = context.document.getSelection().parentTable;
+                    const sel = context.document.getSelection();
+                    const selRange = sel.getRange();
+                    const selTable = selRange.parentTable;
                     selTable.load("isNullObject");
                     await context.sync();
                     if (!selTable.isNullObject) { 
                         table = selTable; 
-                        logger(`✓ Tìm thấy bảng tại vị trí con trỏ.`); 
+                        logger(`🎯 Tìm thấy bảng tại vị trí con trỏ chuột.`); 
                     }
-                } catch(e) {}
+                } catch(e) {
+                    logger(`ℹ️ Selection không ở trong bảng: ${e.message}`);
+                }
 
                 // 1b. Nhì: Bookmark
                 if (!table && bookmarkName) {
@@ -426,8 +430,20 @@ export const WordService = {
                 }
 
                 if (!table) {
-                    throw new Error("Không tìm thấy bảng ký tên. Hãy đặt con trỏ vào bảng và thử lại.");
+                    throw new Error("Không tìm thấy bảng. Hãy click chuột vào trong bảng ký tên!");
                 }
+
+                // [CỰC QUAN TRỌNG] TÔ VIỀN ĐỎ ĐỂ NHẬN DIỆN
+                try {
+                    const redBorder = { color: "#FF0000", width: 3, type: "Single" };
+                    table.borders.outsideHorizontal.set(redBorder);
+                    table.borders.outsideVertical.set(redBorder);
+                    table.borders.insideHorizontal.set(redBorder);
+                    table.borders.insideVertical.set(redBorder);
+                    await context.sync();
+                    logger(`🚩 ĐÃ TÔ VIỀN ĐỎ BẢNG ĐƯỢC CHỌN.`);
+                } catch(e) { logger(`⚠️ Không thể tô viền: ${e.message}`); }
+
 
                 // BƯỚC 2: CHỈ TẢI HÀNG ĐẦU TIÊN (Minimal Touch - không chạm các hàng gộp ô)
                 logger(`📊 [B2] Đang tải hàng đầu tiên...`);
