@@ -335,26 +335,37 @@ export const WordService = {
     updateSignatureTable: async (isLienDanh, membersList, dvtcName, bookmarkName, logCallback) => {
         const logger = (msg) => { if (logCallback) logCallback(msg); console.log(`[SignatureTable] ${msg}`); };
         
-        // HELPER v1225: Đơn giản hóa tối đa để tìm nguyên nhân bảng trống
+        // HELPER v1230: Dùng range.insertText("Replace") - Cách an toàn nhất để ghi đè ô
         const safeFillCell = async (context, cell, text, isBold = true, alignment = "Centered") => {
             if (!cell || !text) return false;
             try {
-                // Thay vì clear() rồi sync, ta dùng insertParagraph("Replace") hoặc "Start"
-                // Ở đây dùng "Replace" để đè lên toàn bộ body hiện tại cực kỳ an toàn
+                // Lấy range của toàn bộ ô và ghi đè
+                const range = cell.body.getRange();
+                
                 if (text === "Nơi nhận:") {
-                    const p1 = cell.body.insertParagraph("NƠI NHẬN:", "Replace");
+                    range.insertText("NƠI NHẬN:\n- Như trên;\n- Lưu VT.", "Replace");
+                    await context.sync();
+                    
+                    // Định dạng paragraph đầu tiên
+                    const p1 = cell.body.paragraphs.getFirst();
                     p1.font.set({ bold: true, italic: true, size: 10, name: "Times New Roman" });
                     try { p1.alignment = "Left"; } catch(e) {}
                     
-                    cell.body.insertParagraph("- Như trên;", "End").font.set({ italic: true, size: 10, name: "Times New Roman" });
-                    cell.body.insertParagraph("- Lưu VT.", "End").font.set({ italic: true, size: 10, name: "Times New Roman" });
+                    // Các paragraph sau (nếu có)
+                    const ps = cell.body.paragraphs;
+                    ps.load("items");
                     await context.sync();
+                    for(let i=1; i<ps.items.length; i++) {
+                        ps.items[i].font.set({ italic: true, size: 10, name: "Times New Roman" });
+                        try { ps.items[i].alignment = "Left"; } catch(e) {}
+                    }
                 } else {
-                    const p = cell.body.insertParagraph(text.toUpperCase(), "Replace");
-                    p.font.set({ bold: isBold, name: "Times New Roman" });
-                    try { p.alignment = alignment; } catch(e) {}
-                    await context.sync();
+                    range.insertText(text.toUpperCase(), "Replace");
+                    range.font.set({ bold: isBold, name: "Times New Roman" });
+                    try { range.paragraphFormat.alignment = alignment; } catch(e) {}
                 }
+                
+                await context.sync();
                 return true;
             } catch (e) {
                 logger(`⚠️ Cell Lỗi: ${e.message}`);
@@ -448,7 +459,7 @@ export const WordService = {
                     try {
                         const targetCell = cells[1];
                         logger(`📂 Tạo bảng lồng 1×${members.length}...`);
-                        const nestedTable = targetCell.body.insertTable(1, members.length, "Replace");
+                        const nestedTable = targetCell.body.insertTable(1, members.length, "Start");
                         await context.sync();
                         
                         // Ẩn viền
