@@ -335,31 +335,25 @@ export const WordService = {
     updateSignatureTable: async (isLienDanh, membersList, dvtcName, bookmarkName, logCallback) => {
         const logger = (msg) => { if (logCallback) logCallback(msg); console.log(`[SignatureTable] ${msg}`); };
         
-        // HELPER v1200: Điền dữ liệu ô - SỬA LỖI GỐC: thêm sync sau clear, dùng "Start" thay "Replace"
+        // HELPER v1220: Điền ô an toàn - clear+sync+insertParagraph("Start")+sync
         const safeFillCell = async (context, cell, text, isBold = true, alignment = "Centered") => {
             if (!cell || !text || text.trim() === "") return false;
             try {
-                // Xóa nội dung cũ và ĐỒNG BỘ trước khi chèn mới
                 cell.body.clear();
                 await context.sync();
 
                 if (text === "Nơi nhận:") {
-                    // NƠI NHẬN: In hoa, đậm, nghiêng + bullets
                     const p1 = cell.body.insertParagraph("NƠI NHẬN:", "Start");
                     p1.font.set({ bold: true, italic: true, size: 10, name: "Times New Roman" });
                     try { p1.alignment = "Left"; } catch(e) {}
-
                     const p2 = cell.body.insertParagraph("- Như trên;", "End");
                     p2.font.set({ italic: true, size: 10, name: "Times New Roman" });
                     try { p2.alignment = "Left"; } catch(e) {}
-                    
                     const p3 = cell.body.insertParagraph("- Lưu VT.", "End");
                     p3.font.set({ italic: true, size: 10, name: "Times New Roman" });
                     try { p3.alignment = "Left"; } catch(e) {}
-                    
                     await context.sync();
                 } else {
-                    // Nội dung thường (tên đơn vị, v.v.) - in hoa
                     const p = cell.body.insertParagraph(text.toUpperCase(), "Start");
                     p.font.set({ bold: isBold, name: "Times New Roman" });
                     try { p.alignment = alignment; } catch(e) {}
@@ -376,174 +370,140 @@ export const WordService = {
             await Word.run(async (context) => {
                 let table = null;
             
-                // BƯỚC 1: TÌM BẢNG
-                logger(`🔍 [B1] Đang tìm kiếm bảng ký tên...`);
+                // BƯỚC 1: TÌM BẢNG (3 chiến lược với try/catch đầy đủ)
+                logger(`🔍 [B1] Đang tìm bảng ký tên...`);
+                
+                // 1a. Tìm theo Bookmark
                 if (bookmarkName) {
                     try {
                         const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
                         bm.load("isNullObject");
                         await context.sync();
                         if (!bm.isNullObject) {
-                            const pTable = bm.getRange().parentTable;
-                            pTable.load("isNullObject");
-                            await context.sync();
-                            if (!pTable.isNullObject) table = pTable;
-                        }
-                    } catch (e) { logger(`ℹ️ Bookmark "${bookmarkName}" không tìm thấy.`); }
-                }
-
-                if (!table) {
-                    try {
-                        const searchResults = context.document.body.search("Nơi nhận", { matchCase: false });
-                        searchResults.load("items");
-                        await context.sync();
-                        if (searchResults.items.length > 0) {
                             try {
-                                const pTable = searchResults.items[0].parentTable;
+                                const pTable = bm.range.parentTable;
                                 pTable.load("isNullObject");
                                 await context.sync();
-                                if (!pTable.isNullObject) table = pTable;
+                                if (!pTable.isNullObject) { table = pTable; logger(`✓ Tìm bằng bookmark.`); }
+                            } catch(e) {}
+                        }
+                    } catch (e) {}
+                }
+
+                // 1b. Tìm theo chuỗi "Nơi nhận"
+                if (!table) {
+                    try {
+                        const sr = context.document.body.search("Nơi nhận", { matchCase: false });
+                        sr.load("items");
+                        await context.sync();
+                        if (sr.items.length > 0) {
+                            try {
+                                const pTable = sr.items[0].parentTable;
+                                pTable.load("isNullObject");
+                                await context.sync();
+                                if (!pTable.isNullObject) { table = pTable; logger(`✓ Tìm bằng "Nơi nhận".`); }
                             } catch(e) {}
                         }
                     } catch(e) {}
                 }
 
+                // 1c. Tìm theo vị trí con trỏ
                 if (!table) {
                     try {
                         const selTable = context.document.getSelection().parentTable;
                         selTable.load("isNullObject");
                         await context.sync();
-                        if (!selTable.isNullObject) table = selTable;
+                        if (!selTable.isNullObject) { table = selTable; logger(`✓ Tìm bằng con trỏ.`); }
                     } catch(e) {}
                 }
 
                 if (!table) {
-                    logger(`⚠️ KHÔNG TÌM THẤY BẢNG. Hãy đặt con trỏ vào bảng và thử lại!`);
-                    throw new Error("Không tìm thấy bảng ký tên trong tài liệu.");
+                    throw new Error("Không tìm thấy bảng ký tên. Hãy đặt con trỏ vào bảng và thử lại.");
                 }
 
-                // BƯỚC 2: TẢI DỮ LIỆU BẢNG
-                logger(`📊 [B2] Đang phân tích cấu trúc bảng...`);
-                table.load("rows/items");
+                // BƯỚC 2: CHỈ TẢI HÀNG ĐẦU TIÊN (Minimal Touch - không chạm các hàng gộp ô)
+                logger(`📊 [B2] Đang tải hàng đầu tiên...`);
+                const firstRow = table.rows.getFirst();
+                firstRow.cells.load("items");
                 await context.sync();
-                const rows = table.rows.items;
-                logger(`ℹ️ Bảng có ${rows.length} hàng.`);
+                const cells = firstRow.cells.items;
+                logger(`ℹ️ Hàng đầu có ${cells.length} ô.`);
 
-                // BƯỚC 3: LÀM SẠCH BẢNG (từng ô riêng lẻ để tránh lỗi gộp ô)
-                logger(`🧹 [B3] Đang làm sạch nội dung...`);
-                for (let r = 0; r < rows.length; r++) {
-                    try {
-                        rows[r].cells.load("items");
-                        await context.sync();
-                        for (let c = 0; c < rows[r].cells.items.length; c++) {
-                            try {
-                                rows[r].cells.items[c].body.clear();
-                                await context.sync();
-                            } catch(cellErr) {
-                                // Ô gộp/phantom → bỏ qua
-                            }
-                        }
-                    } catch(rowErr) {
-                        // Hàng lỗi → bỏ qua
-                    }
+                if (cells.length === 0) {
+                    throw new Error("Hàng đầu tiên không có ô nào!");
                 }
-                logger(`✓ [B3] Đã làm sạch xong.`);
-
-                // BƯỚC 4: TẢI LẠI BẢNG + ĐIỀN DỮ LIỆU
-                logger(`📝 [B4] Đang tải lại bảng và điền dữ liệu...`);
-                table.load("rows/items");
-                await context.sync();
-                const fillRows = table.rows.items;
-                
-                if (fillRows.length === 0) {
-                    throw new Error("Bảng không có hàng nào sau khi làm sạch!");
-                }
-
-                fillRows[0].cells.load("items");
-                await context.sync();
-                const firstRowCells = fillRows[0].cells.items;
-                logger(`ℹ️ Hàng đầu có ${firstRowCells.length} ô.`);
 
                 const members = Array.isArray(membersList) ? membersList.filter(m => m && m.trim() !== "") : [];
                 const dvtcText = (dvtcName || "").toUpperCase();
-                
-                // 4.1. Điền Nơi nhận
-                if (firstRowCells.length > 0) {
-                    logger(`🖋️ [B4.1] Điền Nơi nhận...`);
-                    const ok = await safeFillCell(context, firstRowCells[0], "Nơi nhận:", true, "Left");
-                    logger(ok ? `✓ [B4.1] Nơi nhận OK` : `✗ [B4.1] Nơi nhận THẤT BẠI`);
-                }
 
-                // 4.2. Điền Chữ ký
-                let memberIdx = 0;
-                if (isLienDanh && members.length > 0) {
-                    logger(`📝 [B4.2] Dàn ${members.length} thành viên Liên danh...`);
+                // BƯỚC 3: ĐIỀN NƠI NHẬN (ô đầu tiên)
+                logger(`🖋️ [B3] Điền Nơi nhận...`);
+                const okNn = await safeFillCell(context, cells[0], "Nơi nhận:", true, "Left");
+                logger(okNn ? `✓ Nơi nhận OK` : `✗ Nơi nhận THẤT BẠI`);
+
+                // BƯỚC 4: ĐIỀN CHỮ KÝ (ô thứ 2 trở đi)
+                if (cells.length < 2) {
+                    logger(`⚠️ Bảng chỉ có 1 ô, không thể điền chữ ký.`);
+                } else if (isLienDanh && members.length > 0) {
+                    logger(`📝 [B4] Dàn ${members.length} thành viên Liên danh...`);
+                    let memberIdx = 0;
                     
-                    if (firstRowCells.length >= 2) {
+                    // Chiến lược A: Tạo bảng lồng ngang trong ô thứ 2
+                    try {
+                        const targetCell = cells[1];
+                        logger(`📂 Tạo bảng lồng 1×${members.length}...`);
+                        const nestedTable = targetCell.body.insertTable(1, members.length, "Replace");
+                        await context.sync();
+                        
+                        // Ẩn viền
                         try {
-                            const targetCell = firstRowCells[1];
-                            logger(`📂 Tạo bảng lồng 1×${members.length}...`);
-                            
-                            // insertTable với "Replace" sẽ tự xóa nội dung cũ
-                            const nestedTable = targetCell.body.insertTable(1, members.length, "Replace");
+                            const noB = { color: "#FFFFFF", width: 0 };
+                            nestedTable.borders.insideHorizontal.set(noB);
+                            nestedTable.borders.insideVertical.set(noB);
+                            nestedTable.borders.outsideHorizontal.set(noB);
+                            nestedTable.borders.outsideVertical.set(noB);
                             await context.sync();
-                            
-                            // Ẩn viền
-                            try {
-                                const noB = { color: "#FFFFFF", width: 0 };
-                                nestedTable.borders.insideHorizontal.set(noB);
-                                nestedTable.borders.insideVertical.set(noB);
-                                nestedTable.borders.outsideHorizontal.set(noB);
-                                nestedTable.borders.outsideVertical.set(noB);
-                                await context.sync();
-                            } catch(e) {}
+                        } catch(e) {}
 
-                            nestedTable.rows.items[0].cells.load("items");
-                            await context.sync();
-                            const nCells = nestedTable.rows.items[0].cells.items;
-                            
-                            for (let i = 0; i < members.length && i < nCells.length; i++) {
-                                const ok = await safeFillCell(context, nCells[i], members[i]);
-                                if (ok) memberIdx++;
-                                logger(`  → Thành viên ${i+1}: ${ok ? '✓' : '✗'} ${members[i]}`);
-                            }
-                            logger(`✅ Dàn hàng ngang: ${memberIdx}/${members.length} thành công.`);
-                        } catch(e) {
-                            logger(`ℹ️ Bảng lồng thất bại: ${e.message}. Điền dọc...`);
-                            // Fallback: điền dọc vào các ô có sẵn
-                            const ok = await safeFillCell(context, firstRowCells[1], members[0]);
-                            if (ok) memberIdx = 1;
-
-                            for (let r = 1; r < fillRows.length && memberIdx < members.length; r++) {
-                                fillRows[r].cells.load("items");
-                                await context.sync();
-                                const rCells = fillRows[r].cells.items;
-                                const startC = rCells.length >= 2 ? 1 : 0;
-                                for (let c = startC; c < rCells.length && memberIdx < members.length; c++) {
-                                    const ok2 = await safeFillCell(context, rCells[c], members[memberIdx]);
-                                    if (ok2) memberIdx++;
-                                }
-                            }
+                        nestedTable.rows.items[0].cells.load("items");
+                        await context.sync();
+                        const nCells = nestedTable.rows.items[0].cells.items;
+                        
+                        for (let i = 0; i < members.length && i < nCells.length; i++) {
+                            const ok = await safeFillCell(context, nCells[i], members[i]);
+                            if (ok) memberIdx++;
+                            logger(`  → ${i+1}: ${ok ? '✓' : '✗'} ${members[i]}`);
                         }
+                        logger(`✅ Dàn ngang: ${memberIdx}/${members.length}`);
+                    } catch(e) {
+                        // Chiến lược B: Điền dọc — chỉ dùng các ô trên hàng 1
+                        logger(`ℹ️ Bảng lồng thất bại: ${e.message}`);
+                        logger(`📂 Chuyển sang điền dọc trên hàng 1...`);
+                        for (let c = 1; c < cells.length && memberIdx < members.length; c++) {
+                            try {
+                                const ok = await safeFillCell(context, cells[c], members[memberIdx]);
+                                if (ok) memberIdx++;
+                            } catch(e2) {}
+                        }
+                        logger(`✅ Điền dọc: ${memberIdx}/${members.length}`);
                     }
 
                     if (memberIdx < members.length) {
-                        logger(`⚠️ Còn ${members.length - memberIdx} thành viên chưa được điền.`);
+                        logger(`⚠️ Còn ${members.length - memberIdx} thành viên chưa điền (thiếu ô).`);
                     }
                 } else {
-                    logger(`📝 [B4.2] Cập nhật đơn vị thi công...`);
-                    if (firstRowCells.length >= 2) {
-                        await safeFillCell(context, firstRowCells[1], dvtcText);
-                    }
+                    // Đơn vị thường (không liên danh)
+                    logger(`📝 [B4] Cập nhật đơn vị thi công...`);
+                    await safeFillCell(context, cells[1], dvtcText);
                 }
 
                 await context.sync();
-                logger(`✅ HOÀN TẤT CẬP NHẬT BẢNG KÝ TÊN.`);
+                logger(`✅ HOÀN TẤT.`);
             });
         } catch (err) {
             logger(`❌ LỖI: ${err.message}`);
             console.error("[SignatureTable] Full error:", err);
-            throw err; // Ném lỗi lên để toast hiển thị đúng trạng thái
+            throw err;
         }
     },
 
