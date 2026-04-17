@@ -347,27 +347,39 @@ export const WordService = {
 
                     if (!bm.isNullObject) {
                         const bmRange = bm.getRange();
-                        const tablesInRange = bmRange.tables;
-                        tablesInRange.load("items");
+                        
+                        // Kiểm tra: Nếu Bookmark nằm TRONG bảng (ParentTable)
+                        const parentTable = bmRange.parentTable;
+                        parentTable.load("isNullObject");
                         await context.sync();
-
-                        if (tablesInRange.items.length > 0) {
-                            table = tablesInRange.items[0];
-                            logger(`✓ Tìm thấy bảng trong vùng Bookmark.`);
+                        
+                        if (!parentTable.isNullObject) {
+                            table = parentTable;
+                            logger(`✓ Tìm thấy bảng CHỨA bookmark này.`);
                         } else {
-                            // Bookmark nằm cạnh bảng - Quét lân cận (Heuristic)
-                            const allTables = context.document.tables;
-                            allTables.load("items");
+                            // Bookmark bao quanh bảng (Contained)
+                            const tablesInRange = bmRange.tables;
+                            tablesInRange.load("items");
                             await context.sync();
-                            for (let i = 0; i < allTables.items.length; i++) {
-                                const t = allTables.items[i];
-                                const tRange = t.getRange();
-                                const relation = tRange.compareLocationWith(bmRange);
+
+                            if (tablesInRange.items.length > 0) {
+                                table = tablesInRange.items[0];
+                                logger(`✓ Tìm thấy bảng nằm TRONG vùng bookmark.`);
+                            } else {
+                                // Bookmark nằm cạnh bảng - Quét lân cận (Heuristic)
+                                const allTables = context.document.tables;
+                                allTables.load("items");
                                 await context.sync();
-                                if (relation.value === "After" || relation.value === "AdjacentAfter" || relation.value === "Overlapping") {
-                                    table = t;
-                                    logger(`✓ Tìm thấy bảng lân cận Bookmark.`);
-                                    break;
+                                for (let i = 0; i < allTables.items.length; i++) {
+                                    const t = allTables.items[i];
+                                    const tRange = t.getRange();
+                                    const relation = tRange.compareLocationWith(bmRange);
+                                    await context.sync();
+                                    if (relation.value === "After" || relation.value === "AdjacentAfter" || relation.value === "Overlapping" || relation.value === "Inside") {
+                                        table = t;
+                                        logger(`✓ Tìm thấy bảng lân cận/chứa bookmark.`);
+                                        break;
+                                    }
                                 }
                             }
                         }
@@ -485,7 +497,16 @@ export const WordService = {
             const members = Array.isArray(membersList) ? membersList.filter(m => m && m.trim() !== "") : [];
             const dvtcText = (dvtcName || "").toUpperCase();
 
-            // Xóa text dòng 1 (trừ ô 0,0)
+            // Đảm bảo ô đầu tiên có chữ "Nơi nhận" (nếu bảng trống)
+            const firstCell = firstRow.cells.items[0];
+            firstCell.load("text");
+            await context.sync();
+            if (!firstCell.text || firstCell.text.trim() === "") {
+                firstCell.body.insertText("Nơi nhận:", "Replace");
+                firstCell.body.paragraphs.getFirst().font.bold = true;
+            }
+
+            // Xóa nội dung các ô còn lại ở hàng 1
             for (let c = 1; c < firstRow.cells.items.length; c++) {
                 firstRow.cells.items[c].body.clear();
             }
