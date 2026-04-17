@@ -98,7 +98,6 @@ async function loadState() {
         if (!state.duAn.soHD && state.soHDForExport) {
             state.duAn.soHD = state.soHDForExport;
         }
-        }
     }
 
     // Migration: Chuyển đổi dvtcMembers từ String (cũ) sang mảng Array
