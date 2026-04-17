@@ -377,11 +377,22 @@ export const WordService = {
             await Word.run(async (context) => {
                 let table = null;
             
-                // BƯỚC 1: TÌM BẢNG (3 chiến lược với try/catch đầy đủ)
+                // BƯỚC 1: TÌM BẢNG (Ưu tiên Selection để chính xác nhất)
                 logger(`🔍 [B1] Đang tìm bảng ký tên...`);
                 
-                // 1a. Tìm theo Bookmark
-                if (bookmarkName) {
+                // 1a. Ưu tiên nhất: Vị trí con trỏ
+                try {
+                    const selTable = context.document.getSelection().parentTable;
+                    selTable.load("isNullObject");
+                    await context.sync();
+                    if (!selTable.isNullObject) { 
+                        table = selTable; 
+                        logger(`✓ Tìm thấy bảng tại vị trí con trỏ.`); 
+                    }
+                } catch(e) {}
+
+                // 1b. Nhì: Bookmark
+                if (!table && bookmarkName) {
                     try {
                         const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
                         bm.load("isNullObject");
@@ -391,13 +402,13 @@ export const WordService = {
                                 const pTable = bm.range.parentTable;
                                 pTable.load("isNullObject");
                                 await context.sync();
-                                if (!pTable.isNullObject) { table = pTable; logger(`✓ Tìm bằng bookmark.`); }
+                                if (!pTable.isNullObject) { table = pTable; logger(`✓ Tìm thấy bảng qua Bookmark.`); }
                             } catch(e) {}
                         }
                     } catch (e) {}
                 }
 
-                // 1b. Tìm theo chuỗi "Nơi nhận"
+                // 1c. Ba: Search "Nơi nhận"
                 if (!table) {
                     try {
                         const sr = context.document.body.search("Nơi nhận", { matchCase: false });
@@ -408,19 +419,9 @@ export const WordService = {
                                 const pTable = sr.items[0].parentTable;
                                 pTable.load("isNullObject");
                                 await context.sync();
-                                if (!pTable.isNullObject) { table = pTable; logger(`✓ Tìm bằng "Nơi nhận".`); }
+                                if (!pTable.isNullObject) { table = pTable; logger(`✓ Tìm thấy bảng qua từ khóa "Nơi nhận".`); }
                             } catch(e) {}
                         }
-                    } catch(e) {}
-                }
-
-                // 1c. Tìm theo vị trí con trỏ
-                if (!table) {
-                    try {
-                        const selTable = context.document.getSelection().parentTable;
-                        selTable.load("isNullObject");
-                        await context.sync();
-                        if (!selTable.isNullObject) { table = selTable; logger(`✓ Tìm bằng con trỏ.`); }
                     } catch(e) {}
                 }
 
