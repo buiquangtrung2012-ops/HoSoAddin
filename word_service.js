@@ -380,209 +380,136 @@ export const WordService = {
         await Word.run(async (context) => {
             let table = null;
             
-            // Bước 1: Tìm bảng (Bookmark -> Search -> Selection)
+            // BƯỚC 1: TÌM BẢNG
+            logger(`🔍 [B1] Đang tìm kiếm bảng ký tên...`);
             if (bookmarkName) {
                 try {
                     const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
                     bm.load("isNullObject");
                     await context.sync();
                     if (!bm.isNullObject) {
-                        logger(`📌 Tìm thấy Bookmark: ${bookmarkName}`);
-                        const bmRange = bm.getRange();
-                        const pTable = bmRange.parentTable;
+                        const pTable = bm.getRange().parentTable;
                         pTable.load("isNullObject");
                         await context.sync();
                         if (!pTable.isNullObject) table = pTable;
-                        else {
-                            const tablesInRange = bmRange.tables;
-                            tablesInRange.load("items");
-                            await context.sync();
-                            if (tablesInRange.items.length > 0) table = tablesInRange.items[0];
-                        }
-                    }
-                } catch (e) {
-                    logger(`ℹ️ Bookmark lỗi: ${e.message}`);
-                }
-            }
-
-            if (!table) {
-                try {
-                    logger(`🔍 Đang tìm bảng chứa từ khóa "Nơi nhận"...`);
-                    const searchResults = context.document.body.search("Nơi nhận", { matchCase: false });
-                    searchResults.load("items");
-                    await context.sync();
-                    
-                    for (let i = 0; i < searchResults.items.length; i++) {
-                        const foundTable = searchResults.items[i].parentTable;
-                        foundTable.load("isNullObject");
-                        await context.sync();
-                        if (!foundTable.isNullObject) {
-                            table = foundTable;
-                            logger(`✅ Đã tìm thấy bảng qua từ khóa.`);
-                            break;
-                        }
-                    }
-                } catch (e) {
-                    logger(`ℹ️ Lỗi tìm kiếm: ${e.message}`);
-                }
-            }
-
-            if (!table) {
-                try {
-                    logger(`🖱 Thử tìm bảng tại vị trí con trỏ...`);
-                    const selTable = context.document.getSelection().parentTable;
-                    selTable.load("isNullObject");
-                    await context.sync();
-                    if (!selTable.isNullObject) {
-                        table = selTable;
-                        logger(`✅ Đã xác nhận bảng tại vị trí con trỏ.`);
                     }
                 } catch (e) {}
             }
 
+            if (!table) {
+                const searchResults = context.document.body.search("Nơi nhận", { matchCase: false });
+                searchResults.load("items");
+                await context.sync();
+                if (searchResults.items.length > 0) {
+                    const pTable = searchResults.items[0].parentTable;
+                    pTable.load("isNullObject");
+                    await context.sync();
+                    if (!pTable.isNullObject) table = pTable;
+                }
+            }
+
+            if (!table) {
+                const selTable = context.document.getSelection().parentTable;
+                selTable.load("isNullObject");
+                await context.sync();
+                if (!selTable.isNullObject) table = selTable;
+            }
+
             if (!table || table.isNullObject) {
-                logger(`⚠️ KHÔNG TÌM THẤY BẢNG. Vui lòng đặt con trỏ vào bảng và thử lại!`);
+                logger(`⚠️ KHÔNG TÌM THẤY BẢNG. Hãy đặt con trỏ vào bảng và thử lại!`);
                 return;
             }
 
-            // Bước 2: Chuẩn bị cấu trúc
-            table.load("rowCount, columns/items");
-            await context.sync();
-
-            const colCount = table.columns.items.length;
-            const targetColCount = isLienDanh ? 3 : 2;
-
-            // Thử chèn cột (nếu bảng không gộp ô)
-            if (colCount < targetColCount) {
-                try {
-                    table.insertColumns("End", targetColCount - colCount);
-                    await context.sync();
-                } catch (e) {
-                    logger(`ℹ Bảng gộp ô, giữ nguyên ${colCount} cột để xử lý.`);
-                }
-            }
-
-            // Dọn dẹp tuyệt đối: Quét sạch nội dung từng ô trước khi xóa hàng
+            // BƯỚC 2: TẢI DỮ LIỆU BẢNG (KHÔNG THAY ĐỔI CẤU TRÚC)
+            logger(`🔍 [B2] Đang phân tích cấu trúc bảng...`);
             table.load("rows/items");
             await context.sync();
-            
-            for (let i = 0; i < table.rows.items.length; i++) {
-                const row = table.rows.items[i];
-                row.cells.load("items");
+
+            const rows = table.rows.items;
+            logger(`ℹ️ Bảng có ${rows.length} hàng.`);
+
+            // BƯỚC 3: LÀM SẠCH BẢNG (Duyệt qua từng ô hiện có)
+            logger(`🧹 [B3] Đang làm sạch nội dung các ô...`);
+            for (let r = 0; r < rows.length; r++) {
+                rows[r].cells.load("items");
                 await context.sync();
-                for (let j = 0; j < row.cells.items.length; j++) {
-                    await row.cells.items[j].body.clear();
+                for (let c = 0; c < rows[r].cells.items.length; c++) {
+                    await rows[r].cells.items[c].body.clear();
                 }
             }
 
-            // Xoá tất cả hàng trừ hàng đầu tiên
-            if (table.rows.items.length > 1) {
-                try {
-                    for (let r = table.rows.items.length - 1; r >= 1; r--) {
-                        table.rows.items[r].delete();
-                    }
-                    await context.sync();
-                } catch (e) {
-                    logger(`⚠ Cảnh báo: Một số hàng gộp không thể xóa, sẽ ghi đè.`);
-                }
-            }
-
-            // Bước 3: Phân bổ dữ liệu
+            // BƯỚC 4: ĐIỀN DỮ LIỆU
             const members = Array.isArray(membersList) ? membersList.filter(m => m && m.trim() !== "") : [];
             const dvtcText = (dvtcName || "").toUpperCase();
             
-            const firstRow = table.rows.getFirst();
-            firstRow.load("cells/items");
-            await context.sync();
-            const cells1 = firstRow.cells.items;
-
-            // Ô 1: Nơi nhận (Dùng safeFillCell)
-            await safeFillCell(context, cells1[0], "Nơi nhận:", true, "Left");
+            // 4.1. Điền Nơi nhận vào ô 1 hàng 1
+            const firstRowCells = rows[0].cells.items;
+            await safeFillCell(context, firstRowCells[0], "Nơi nhận:", true, "Left");
 
             if (isLienDanh) {
-                logger(`📝 Phân bổ ${members.length} thành viên Liên danh...`);
+                logger(`📝 [B4] Đang phân bổ<sup>${members.length}</sup> thành viên Liên danh...`);
                 let memberIdx = 0;
-                
-                if (members.length >= 2) {
-                    try {
-                        logger(`📂 Đang tạo Bảng lồng (1x2) cho thành viên...`);
-                        const targetCell = cells1[1];
-                        const nestedTable = targetCell.body.insertTable(1, 2, "Replace");
-                        await context.sync(); // Đồng bộ ngay sau khi chèn để nhận diện bảng mới
-                        
-                        // Cấu hình viền (An toàn - không gờ sập script)
-                        try {
-                            const noBorder = { color: "#FFFFFF", width: 0 };
-                            nestedTable.borders.insideHorizontal.set(noBorder);
-                            nestedTable.borders.insideVertical.set(noBorder);
-                            nestedTable.borders.outsideHorizontal.set(noBorder);
-                            nestedTable.borders.outsideVertical.set(noBorder);
-                        } catch (be) { logger(`ℹ️ Bỏ qua định dạng viền bảng con.`); }
 
-                        nestedTable.load("rows/items");
+                // Ưu tiên hàng 1: Sử dụng Bảng lồng nếu có 2 cột chính
+                if (firstRowCells.length >= 2 && members.length >= 2) {
+                    try {
+                        logger(`📂 Thử tạo bảng lồng tại ô 2 hàng 1...`);
+                        const nestedTable = firstRowCells[1].body.insertTable(1, 2, "Replace");
                         await context.sync();
                         
-                        const nRow = nestedTable.rows.items[0];
-                        nRow.cells.load("items");
+                        // Viền vô hình
+                        try {
+                            const noB = { color: "#FFFFFF", width: 0 };
+                            nestedTable.borders.insideHorizontal.set(noB);
+                            nestedTable.borders.insideVertical.set(noB);
+                            nestedTable.borders.outsideHorizontal.set(noB);
+                            nestedTable.borders.outsideVertical.set(noB);
+                        } catch(e) {}
+
+                        nestedTable.rows.items[0].cells.load("items");
                         await context.sync();
+                        const nCells = nestedTable.rows.items[0].cells.items;
                         
-                        await safeFillCell(context, nRow.cells.items[0], members[0]);
-                        await safeFillCell(context, nRow.cells.items[1], members[1]);
+                        await safeFillCell(context, nCells[0], members[0]);
+                        await safeFillCell(context, nCells[1], members[1]);
                         memberIdx = 2;
-                        logger(`✅ Đã dàn ngang thành công.`);
-                    } catch (nestedError) {
-                        logger(`⚠ Lỗi logic bảng lồng: ${nestedError.message}`);
-                        await safeFillCell(context, cells1[1], members[0]);
+                    } catch(e) {
+                        logger(`ℹ️ Bảng gộp ô nặng, điền dọc vào ô chính.`);
+                        await safeFillCell(context, firstRowCells[1], members[0]);
                         memberIdx = 1;
                     }
-                } else if (members.length === 1) {
-                    await safeFillCell(context, cells1[1], members[0]);
+                } else if (firstRowCells.length >= 2 && members.length === 1) {
+                    await safeFillCell(context, firstRowCells[1], members[0]);
                     memberIdx = 1;
                 }
-                
-                // CÁC HÀNG TIẾP THEO
-                while (memberIdx < members.length) {
-                    try {
-                        logger(`➕ Thêm hàng mới (Hàng ${memberIdx + 1})...`);
-                        const newRows = table.addRows("End", 1);
-                        await context.sync();
-                        newRows.load("items/cells/items");
-                        await context.sync();
-                        
-                        if (newRows.items.length > 0) {
-                            const newRow = newRows.items[0];
-                            const rCols = newRow.cells.items;
-                            const startC = rCols.length >= 2 ? 1 : 0;
-                            
-                            for (let c = startC; c < rCols.length && memberIdx < members.length; c++) {
-                                await safeFillCell(context, rCols[c], members[memberIdx]);
-                                memberIdx++;
-                            }
-                        } else break;
-                    } catch (e) {
-                        logger(`🛑 Dừng thêm hàng: ${e.message}`);
-                        break;
+
+                // Điền nốt vào các hàng còn lại có sẵn
+                for (let r = 1; r < rows.length && memberIdx < members.length; r++) {
+                    const rCells = rows[r].cells.items;
+                    // Bỏ qua cột đầu tiên (dưới cột Nơi nhận)
+                    const startC = rCells.length >= 2 ? 1 : 0;
+                    for (let c = startC; c < rCells.length && memberIdx < members.length; c++) {
+                        await safeFillCell(context, rCells[c], members[memberIdx]);
+                        memberIdx++;
                     }
                 }
+
+                if (memberIdx < members.length) {
+                    logger(`⚠️ Còn ${members.length - memberIdx} thành viên chưa được điền. (Vui lòng thêm hàng vào bảng của bạn)`);
+                }
             } else {
-                logger(`📝 Cập nhật đơn vị...`);
-                if (cells1.length > 1) {
-                    await safeFillCell(context, cells1[1], dvtcText);
+                logger(`📝 [B4] Cập nhật đơn vị...`);
+                if (firstRowCells.length >= 2) {
+                    await safeFillCell(context, firstRowCells[1], dvtcText);
                 }
             }
 
-            // Định dạng lại giao diện bảng gốc (Tùy chọn)
-            try {
-                table.verticalAlignment = "Center";
-                table.shadingColor = "#FFFFFF";
-            } catch (e) {}
-
             await context.sync();
-            logger(`✓ HOÀN TẤT CẬP NHẬT BẢNG KÝ.`);
+            logger(`✓ HOÀN TẤT.`);
         });
-    } catch (globalErr) {
-        logCallback(`❌ Lỗi hệ thống: ${globalErr.message}`);
-        console.error(globalErr);
+    } catch (err) {
+        logCallback(`❌ Lỗi: ${err.message}`);
+        console.error(err);
     }
 },
 
