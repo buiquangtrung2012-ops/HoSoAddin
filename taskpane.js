@@ -816,7 +816,7 @@ async function syncDataToWord() {
         const membersList = state.duAn.isLienDanh 
             ? state.duAn.dvtcMembers.split('\n').map(m => m.trim()).filter(Boolean)
             : [];
-        await WordService.updateSignatureTable(state.duAn.isLienDanh, membersList, state.duAn.dvtc, "bmKyLienDanh");
+        await WordService.updateSignatureTable(state.duAn.isLienDanh, membersList, state.duAn.dvtc, "bmKyLienDanh", updateLog);
     } catch (e) {
         updateLog("Không thể cập nhật bảng ký: " + e.message);
     }
