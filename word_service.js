@@ -1028,6 +1028,10 @@ export const WordService = {
                 const values = table.values;
                 if (values.length < 1) continue;
 
+                const columnCount = values[0].length;
+                const headerRowText = values[0].join(" ");
+                const normHeader = WordService.normalizeTextForSearch(headerRowText);
+
                 // --- NEW: Heuristic for Summary Tables (2 columns, Key-Value pairs) ---
                 if (columnCount === 2 || (columnCount > 1 && values[0][0].length < 50)) {
                     for (let r = 0; r < values.length; r++) {
@@ -1050,10 +1054,6 @@ export const WordService = {
                         }
                     }
                 }
-
-                const headerRowText = values[0].join(" ");
-                const columnCount = values[0].length;
-                const normHeader = WordService.normalizeTextForSearch(headerRowText);
 
                 // Dấu hiệu nhận biết bảng Nhân sự (Phải có ít nhất 4 cột để tránh bảng tóm tắt ở trang 1)
                 const isNhanSuTable = (normHeader.includes("ho va ten") || normHeader.includes("ten nhan su") || normHeader.includes("ho ten"))
