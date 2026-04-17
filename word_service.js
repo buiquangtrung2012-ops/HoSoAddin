@@ -337,58 +337,68 @@ export const WordService = {
         await Word.run(async (context) => {
             let table = null;
             
-            logger(`🔍 Đang tìm bảng ký tên (Bookmark: ${bookmarkName})...`);
-            const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
-            bm.load("isNullObject");
-            await context.sync();
-
-            if (!bm.isNullObject) {
-                const bmRange = bm.getRange();
-                const tablesInRange = bmRange.tables;
-                tablesInRange.load("items");
-                await context.sync();
-
-                if (tablesInRange.items.length > 0) {
-                    table = tablesInRange.items[0];
-                    logger(`✓ Tìm thấy bảng CHỨA TRONG bookmark.`);
-                } else {
-                    logger(`🔍 Bookmark không trực tiếp chứa bảng, đang quét lân cận...`);
-                    const allTables = context.document.tables;
-                    allTables.load("items");
+            // Bước 1: Thử tìm theo Bookmark trước (giống logic xuatBang)
+            if (bookmarkName) {
+                try {
+                    logger(`🔍 Thử tìm bảng qua Bookmark: ${bookmarkName}...`);
+                    const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
+                    bm.load("isNullObject");
                     await context.sync();
 
-                    for (let i = 0; i < allTables.items.length; i++) {
-                        const t = allTables.items[i];
-                        const tRange = t.getRange();
-                        const relation = tRange.compareLocationWith(bmRange);
+                    if (!bm.isNullObject) {
+                        const bmRange = bm.getRange();
+                        const tablesInRange = bmRange.tables;
+                        tablesInRange.load("items");
                         await context.sync();
 
-                        if (relation.value === "After" || relation.value === "AdjacentAfter" || relation.value === "Overlapping" || relation.value === "Inside") {
-                            table = t;
-                            logger(`✓ Tìm thấy bảng TRÙNG/SAU bookmark.`);
-                            break;
+                        if (tablesInRange.items.length > 0) {
+                            table = tablesInRange.items[0];
+                            logger(`✓ Tìm thấy bảng trong vùng Bookmark.`);
+                        } else {
+                            // Bookmark nằm cạnh bảng - Quét lân cận (Heuristic)
+                            const allTables = context.document.tables;
+                            allTables.load("items");
+                            await context.sync();
+                            for (let i = 0; i < allTables.items.length; i++) {
+                                const t = allTables.items[i];
+                                const tRange = t.getRange();
+                                const relation = tRange.compareLocationWith(bmRange);
+                                await context.sync();
+                                if (relation.value === "After" || relation.value === "AdjacentAfter" || relation.value === "Overlapping") {
+                                    table = t;
+                                    logger(`✓ Tìm thấy bảng lân cận Bookmark.`);
+                                    break;
+                                }
+                            }
                         }
                     }
+                } catch (e) {
+                    logger(`⚠ Lỗi tìm Bookmark: ${e.message}`);
                 }
             }
 
-            // Fallback: Tìm bảng theo nội dung "Nơi nhận"
+            // Bước 2: Nếu chưa thấy, Quét toàn bộ bảng bằng TỪ KHÓA (Logic hệt xuatBang)
             if (!table) {
-                logger(`🔍 Không tìm thấy theo bookmark, đang quét toàn bộ văn bản tìm bảng có chữ 'Nơi nhận'...`);
+                logger(`🔍 Đang quét toàn bộ bảng tìm từ khóa 'Nơi nhận'...`);
                 const allTables = context.document.tables;
                 allTables.load("items");
                 await context.sync();
 
+                const keyword = "nơi nhận|noi nhan";
+                const keywords = keyword.split('|').map(k => WordService.normalizeTextForSearch(k));
+
                 for (let i = 0; i < allTables.items.length; i++) {
                     const t = allTables.items[i];
-                    t.load("values");
+                    const fRow = t.rows.getFirst();
+                    fRow.load("values");
                     await context.sync();
-                    
-                    if (t.values.length > 0 && t.values[0].length > 0) {
-                        const firstCell = String(t.values[0][0]).toLowerCase();
-                        if (firstCell.includes("nơi nhận") || firstCell.includes("noi nhan")) {
+
+                    if (fRow.values.length > 0) {
+                        const rowText = fRow.values[0].join(" ");
+                        const normRow = WordService.normalizeTextForSearch(rowText);
+                        if (keywords.some(k => normRow.includes(k))) {
                             table = t;
-                            logger(`✓ Đã tìm thấy bảng ký tên dựa trên nội dung 'Nơi nhận'.`);
+                            logger(`✓ Tìm thấy bảng qua từ khóa 'Nơi nhận'`);
                             break;
                         }
                     }
@@ -396,10 +406,11 @@ export const WordService = {
             }
 
             if (!table) {
-                logger(`⚠️ Không thấy bảng ký tên nào (bookmark hỏng và không tìm thấy chữ 'Nơi nhận').`);
+                logger(`⚠️ Không tìm thấy bảng ký tên ( Bookmark lỗi và không thấy chữ 'Nơi nhận' ).`);
                 return;
             }
 
+            // Bước 3: Xử lý cấu trúc bảng
             table.load("rowCount, columns/items");
             await context.sync();
 
@@ -408,94 +419,88 @@ export const WordService = {
 
             logger(`→ Chế độ: ${isLienDanh ? 'Liên danh' : 'Thường'}. Bảng hiện có ${colCount} cột.`);
 
-            // Điều chỉnh số cột (Sử dụng try-catch cho mỗi thao tác)
+            // Cập nhật số cột
             if (colCount < targetColCount) {
                 try {
-                    const colsToAdd = targetColCount - colCount;
-                    logger(`➕ Đang chèn thêm ${colsToAdd} cột...`);
-                    table.insertColumns("End", colsToAdd);
+                    logger(`➕ Đang chèn thêm cột...`);
+                    table.insertColumns("End", targetColCount - colCount);
                     await context.sync();
                 } catch (e) {
-                    logger(`🛑 Lỗi chèn cột: ${e.message}`);
+                    logger(`🛑 Không thể chèn cột: ${e.message}`);
                 }
             } else if (colCount > targetColCount) {
                 try {
-                    logger(`➖ Đang xóa ${colCount - targetColCount} cột dư...`);
+                    logger(`➖ Đang xóa bớt cột...`);
                     for (let c = colCount - 1; c >= targetColCount; c--) {
                         table.columns.items[c].delete();
                     }
                     await context.sync();
                 } catch (e) {
-                    logger(`🛑 Lỗi xóa cột: ${e.message}`);
+                    logger(`🛑 Không thể xóa cột: ${e.message}`);
                 }
             }
 
-            // Load lại cấu trúc sau khi thay đổi cột
-            table.load("rowCount, columns/items");
+            // Load lại sau khi sửa cột
+            table.load("rowCount");
             const firstRow = table.rows.getFirst();
             firstRow.load("cells/items");
             await context.sync();
 
-            // Xóa dọn dẹp hàng cũ
-            const rowCount = table.rowCount;
-            if (rowCount > 1) {
+            // Xóa dọn hàng cũ (nếu có)
+            if (table.rowCount > 1) {
                 try {
-                    logger(`🗑 Đang dọn dẹp hàng cũ...`);
-                    table.deleteRows(1, rowCount - 1);
+                    logger(`🗑 Dọn hàng cũ...`);
+                    table.deleteRows(1, table.rowCount - 1);
                     await context.sync();
-                } catch (e) {
-                    logger(`⚠️ Không thể xóa hàng (fallback xóa text)...`);
-                }
+                } catch (e) {}
             }
 
-            // Xóa text các ô đơn vị hàng đầu (trừ ô 0,0 - Nơi nhận)
+            // Phân bổ thành viên
+            const members = Array.isArray(membersList) ? membersList.filter(m => m && m.trim() !== "") : [];
+            const dvtcText = (dvtcName || "").toUpperCase();
+
+            // Xóa text dòng 1 (trừ ô 0,0)
             for (let c = 1; c < firstRow.cells.items.length; c++) {
                 firstRow.cells.items[c].body.clear();
             }
             await context.sync();
 
-            const members = Array.isArray(membersList) ? membersList.filter(m => m && m.trim() !== "") : [];
-
             if (isLienDanh) {
-                logger(`📝 Phân bổ ${members.length} thành viên vào 3 cột...`);
-                let currentMemberIdx = 0;
-                
-                // Hàng 1 (Cột 2 và 3)
-                const cells = firstRow.cells.items;
-                for (let c = 1; c < cells.length && currentMemberIdx < members.length; c++) {
-                    const cell = cells[c];
-                    cell.body.insertText(members[currentMemberIdx].toUpperCase(), "Replace");
+                logger(`📝 Phân bổ ${members.length} thành viên vào bảng 3 cột...`);
+                let memberIdx = 0;
+                // Điền hàng 1 (ô 1 và ô 2)
+                for (let c = 1; c < 3 && memberIdx < members.length; c++) {
+                    const cell = firstRow.cells.items[c];
+                    cell.body.insertText(members[memberIdx].toUpperCase(), "Replace");
                     cell.body.paragraphs.getFirst().font.bold = true;
                     cell.body.paragraphs.getFirst().alignment = "Centered";
-                    currentMemberIdx++;
+                    memberIdx++;
                 }
-
-                // Các hàng tiếp theo
-                while (currentMemberIdx < members.length) {
+                // Hàng tiếp theo
+                while (memberIdx < members.length) {
                     const newRow = table.addRows("End", 1);
                     newRow.load("cells/items");
                     await context.sync();
-
-                    for (let c = 0; c < newRow.cells.items.length && currentMemberIdx < members.length; c++) {
+                    for (let c = 0; c < 3 && memberIdx < members.length; c++) {
                         const cell = newRow.cells.items[c];
-                        cell.body.insertText(members[currentMemberIdx].toUpperCase(), "Replace");
+                        cell.body.insertText(members[memberIdx].toUpperCase(), "Replace");
                         cell.body.paragraphs.getFirst().font.bold = true;
                         cell.body.paragraphs.getFirst().alignment = "Centered";
-                        currentMemberIdx++;
+                        memberIdx++;
                     }
                     await context.sync();
                 }
             } else {
-                logger(`📝 Cập nhật tên Đơn vị vào bảng 2 cột...`);
+                logger(`📝 Cập nhật tên đơn vị vào bảng 2 cột...`);
                 if (firstRow.cells.items.length > 1) {
                     const cell = firstRow.cells.items[1];
-                    cell.body.insertText((dvtcName || "").toUpperCase(), "Replace");
+                    cell.body.insertText(dvtcText || " ", "Replace");
                     cell.body.paragraphs.getFirst().font.bold = true;
                     cell.body.paragraphs.getFirst().alignment = "Centered";
                 }
             }
 
-            // Căn chỉnh lề và màu sắc nền
+            // Căn lề dọc
             table.load("rows/items");
             await context.sync();
             for (let i = 0; i < table.rows.items.length; i++) {
@@ -509,7 +514,7 @@ export const WordService = {
             }
 
             await context.sync();
-            logger(`✓ Hoàn tất cập nhật bảng ký tên.`);
+            logger(`✓ Cập nhật bảng ký thành công.`);
         });
     },
 
