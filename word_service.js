@@ -335,33 +335,26 @@ export const WordService = {
     updateSignatureTable: async (isLienDanh, membersList, dvtcName, bookmarkName, logCallback) => {
         const logger = (msg) => { if (logCallback) logCallback(msg); console.log(`[SignatureTable] ${msg}`); };
         
-        // HELPER v1230: Dùng range.insertText("Replace") - Cách an toàn nhất để ghi đè ô
+        // HELPER v1285: Dùng range.insertText("Replace") - Cách an toàn nhất để ghi đè ô
         const safeFillCell = async (context, cell, text, isBold = true, alignment = "Centered") => {
             if (!cell || !text) return false;
             try {
-                // Lấy range của toàn bộ ô và ghi đè
                 const range = cell.body.getRange();
+                const fontSize = (text === "Nơi nhận:") ? 10 : 11;
                 
                 if (text === "Nơi nhận:") {
                     range.insertText("NƠI NHẬN:\n- Như trên;\n- Lưu VT.", "Replace");
                     await context.sync();
-                    
-                    // Định dạng paragraph đầu tiên
-                    const p1 = cell.body.paragraphs.getFirst();
-                    p1.font.set({ bold: true, italic: true, size: 10, name: "Times New Roman" });
-                    try { p1.alignment = "Left"; } catch(e) {}
-                    
-                    // Các paragraph sau (nếu có)
                     const ps = cell.body.paragraphs;
                     ps.load("items");
                     await context.sync();
-                    for(let i=1; i<ps.items.length; i++) {
-                        ps.items[i].font.set({ italic: true, size: 10, name: "Times New Roman" });
+                    for(let i=0; i<ps.items.length; i++) {
+                        ps.items[i].font.set({ bold: i===0, italic: true, size: 10, name: "Times New Roman" });
                         try { ps.items[i].alignment = "Left"; } catch(e) {}
                     }
                 } else {
                     range.insertText(text.toUpperCase(), "Replace");
-                    range.font.set({ bold: isBold, name: "Times New Roman" });
+                    range.font.set({ bold: isBold, size: 11, name: "Times New Roman" });
                     try { range.paragraphFormat.alignment = alignment; } catch(e) {}
                 }
                 
@@ -373,123 +366,100 @@ export const WordService = {
             }
         };
 
+        const fillOneTable = async (context, tableData) => {
+            const members = Array.isArray(membersList) ? membersList.filter(m => m && m.trim() !== "") : [];
+            const itemsToFill = [];
+            
+            if (isLienDanh && members.length > 0) {
+                itemsToFill.push("Nơi nhận:");
+                members.forEach(m => itemsToFill.push(m));
+            } else {
+                itemsToFill.push("Nơi nhận:");
+                itemsToFill.push((dvtcName || "").toUpperCase());
+            }
+
+            let itemIdx = 0;
+            let rowIdx = 0;
+
+            while (itemIdx < itemsToFill.length) {
+                tableData.rows.load("items");
+                await context.sync();
+                
+                if (rowIdx >= tableData.rows.items.length) {
+                    tableData.addRows("End", 1);
+                    await context.sync();
+                    tableData.rows.load("items");
+                    await context.sync();
+                }
+
+                const currentRow = tableData.rows.items[rowIdx];
+                // Thiết đặt độ cao hàng ~3.8cm (107.7 points)
+                try {
+                    currentRow.height = 107.7;
+                    currentRow.heightRule = "AtLeast";
+                } catch(e) {}
+
+                currentRow.cells.load("items");
+                await context.sync();
+                const cells = currentRow.cells.items;
+
+                if (!cells || cells.length === 0) { rowIdx++; continue; }
+
+                for (let colIdx = 0; colIdx < cells.length && colIdx < 2; colIdx++) {
+                    if (itemIdx >= itemsToFill.length) break;
+                    const text = itemsToFill[itemIdx];
+                    const isNn = (text === "Nơi nhận:");
+                    await safeFillCell(context, cells[colIdx], text, !isNn, isNn ? "Left" : "Centered");
+                    itemIdx++;
+                }
+                rowIdx++;
+            }
+        };
+
         try {
             await Word.run(async (context) => {
-                let table = null;
-            
-                // BƯỚC 1: TÌM BẢNG (Ưu tiên Selection để chính xác nhất)
-                logger(`🔍 [B1] Đang tìm bảng ký tên...`);
+                let targetTables = [];
                 
-                // 1a. Ưu tiên nhất: Vị trí con trỏ (Dùng Range để chắc chắn)
-                try {
-                    const sel = context.document.getSelection();
-                    const selRange = sel.getRange();
-                    const selTable = selRange.parentTable;
-                    selTable.load("isNullObject");
-                    await context.sync();
-                    if (!selTable.isNullObject) { 
-                        table = selTable; 
-                        logger(`🎯 Tìm thấy bảng tại vị trí con trỏ chuột.`); 
-                    }
-                } catch(e) {
-                    logger(`ℹ️ Selection không ở trong bảng: ${e.message}`);
-                }
-
-                // 1b. Nhì: Bookmark
-                if (!table && bookmarkName) {
-                    try {
-                        const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
-                        bm.load("isNullObject");
-                        await context.sync();
-                        if (!bm.isNullObject) {
-                            try {
-                                const pTable = bm.range.parentTable;
-                                pTable.load("isNullObject");
-                                await context.sync();
-                                if (!pTable.isNullObject) { table = pTable; logger(`✓ Tìm thấy bảng qua Bookmark.`); }
-                            } catch(e) {}
-                        }
-                    } catch (e) {}
-                }
-
-                // 1c. Ba: Search "Nơi nhận"
-                if (!table) {
-                    try {
-                        const sr = context.document.body.search("Nơi nhận", { matchCase: false });
-                        sr.load("items");
-                        await context.sync();
-                        if (sr.items.length > 0) {
-                            try {
-                                const pTable = sr.items[0].parentTable;
-                                pTable.load("isNullObject");
-                                await context.sync();
-                                if (!pTable.isNullObject) { table = pTable; logger(`✓ Tìm thấy bảng qua từ khóa "Nơi nhận".`); }
-                            } catch(e) {}
-                        }
-                    } catch(e) {}
-                }
-
-                if (!table) {
-                    throw new Error("Không tìm thấy bảng. Hãy click chuột vào trong bảng ký tên!");
-                }
-
-                // [CỰC QUAN TRỌNG] TÔ VIỀN (Đã xác định được bảng nên trả về viền chuẩn hoặc ẩn viền nếu là bảng mẫu)
-                // v1270: Xóa mã tô viền đỏ chẩn đoán
-
-                const members = Array.isArray(membersList) ? membersList.filter(m => m && m.trim() !== "") : [];
-                const itemsToFill = [];
+                // 1. Kiểm tra Selection
+                const sel = context.document.getSelection();
+                const selRange = sel.getRange();
+                const selTable = selRange.parentTable;
+                selTable.load("isNullObject");
+                await context.sync();
                 
-                if (isLienDanh && members.length > 0) {
-                    itemsToFill.push("Nơi nhận:");
-                    members.forEach(m => itemsToFill.push(m));
+                if (!selTable.isNullObject) {
+                    logger(`🎯 Đang cập nhật bảng tại vị trí con trỏ...`);
+                    targetTables.push(selTable);
                 } else {
-                    itemsToFill.push("Nơi nhận:");
-                    itemsToFill.push((dvtcName || "").toUpperCase());
+                    // 2. Nếu không có Selection, tìm tất cả bảng có "Nơi nhận"
+                    logger(`🔍 Không thấy con trỏ trong bảng. Đang quét toàn bộ file...`);
+                    const allTables = context.document.body.tables;
+                    allTables.load("items");
+                    await context.sync();
+                    
+                    for (let t of allTables.items) {
+                        const firstCell = t.getCellOrNullObject(0, 0);
+                        firstCell.load("value");
+                        await context.sync();
+                        
+                        if (!firstCell.isNullObject && firstCell.value && firstCell.value.toLowerCase().includes("nơi nhận")) {
+                            targetTables.push(t);
+                        }
+                    }
+                    logger(`📂 Tìm thấy ${targetTables.length} bảng ký tên phù hợp.`);
                 }
 
-                logger(`📝 [B2] Bắt đầu dàn ${itemsToFill.length} mục theo dạng lưới...`);
+                if (targetTables.length === 0) {
+                    throw new Error("Không tìm thấy bảng ký tên nào. Hãy click vào bảng hoặc đảm bảo bảng có chữ 'Nơi nhận'.");
+                }
 
-                let itemIdx = 0;
-                let rowIdx = 0;
-
-                while (itemIdx < itemsToFill.length) {
-                    // 1. Đảm bảo hàng tồn tại
-                    table.rows.load("items");
-                    await context.sync();
-                    const rowCount = table.rows.items.length;
-                    
-                    if (rowIdx >= rowCount) {
-                        logger(`➕ Thêm hàng mới cho mục thứ ${itemIdx + 1}...`);
-                        table.addRows("End", 1);
-                        await context.sync();
-                        table.rows.load("items");
-                        await context.sync();
-                    }
-
-                    const currentRow = table.rows.items[rowIdx];
-                    currentRow.cells.load("items");
-                    await context.sync();
-                    const cells = currentRow.cells.items;
-
-                    if (!cells || cells.length === 0) { rowIdx++; continue; }
-
-                    // 2. Điền tối đa 2 ô trên mỗi hàng (Z-pattern)
-                    for (let colIdx = 0; colIdx < cells.length && colIdx < 2; colIdx++) {
-                        if (itemIdx >= itemsToFill.length) break;
-                        
-                        const text = itemsToFill[itemIdx];
-                        const isNn = (text === "Nơi nhận:");
-                        
-                        logger(`🖋️ Ô (${rowIdx}, ${colIdx}): ${text.substring(0, 15)}...`);
-                        await safeFillCell(context, cells[colIdx], text, !isNn, isNn ? "Left" : "Centered");
-                        
-                        itemIdx++;
-                    }
-                    rowIdx++;
+                for (let i = 0; i < targetTables.length; i++) {
+                    logger(`🖋️ Đang cập nhật bảng ${i + 1}/${targetTables.length}...`);
+                    await fillOneTable(context, targetTables[i]);
                 }
 
                 await context.sync();
-                logger(`✅ HOÀN TẤT: Đã điền ${itemIdx}/${itemsToFill.length} mục.`);
+                logger(`✅ THÀNH CÔNG: Đã cập nhật ${targetTables.length} bảng.`);
             });
         } catch (err) {
             logger(`❌ LỖI: ${err.message}`);
