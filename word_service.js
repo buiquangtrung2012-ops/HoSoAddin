@@ -335,7 +335,7 @@ export const WordService = {
     updateSignatureTable: async (isLienDanh, membersList, dvtcName, bookmarkName, logCallback) => {
         const logger = (msg) => { if (logCallback) logCallback(msg); console.log(`[SignatureTable] ${msg}`); };
         
-        // HELPER v1300: Fix căn lề, định dạng & Bỏ chữ nghiêng cho thành viên
+        // HELPER v1310: Fix căn lề, định dạng & Ép độ cao bằng Spacing
         const safeFillCell = async (context, cell, text, isBold = true, alignment = "Centered") => {
             if (!cell || !text) return false;
             try {
@@ -353,12 +353,21 @@ export const WordService = {
                     }
                 } else {
                     range.insertText(text.toUpperCase(), "Replace");
-                    // Ép italic: false để chữ đứng thẳng
                     range.font.set({ bold: isBold, italic: false, size: 11, name: "Times New Roman" });
                     await context.sync();
                     
                     const firstP = cell.body.paragraphs.getFirst();
-                    try { firstP.alignment = alignment; } catch(e) {}
+                    try { 
+                        firstP.alignment = alignment; 
+                        // Ép giãn cách để tạo độ cao hàng ~3.8cm (v1310)
+                        // 48 + 48 + 11 (font) = 107pt ~ 3.8cm
+                        firstP.spaceBefore = 48;
+                        firstP.spaceAfter = 48;
+                        firstP.lineSpacing = 12; // Single spacing
+                    } catch(e) {}
+
+                    // Căn giữa theo chiều dọc của ô
+                    try { cell.verticalAlignment = "Center"; } catch(e) {}
                 }
                 
                 await context.sync();
