@@ -436,25 +436,42 @@ export const WordService = {
         try {
             await Word.run(async (context) => {
                 let targetTables = [];
-                
-                // 1. Kiểm tra Selection (V1300: Dùng try-catch để tránh crash ItemNotFound)
-                try {
-                    const sel = context.document.getSelection();
-                    const selTable = sel.parentTable;
-                    selTable.load("isNullObject");
-                    await context.sync();
-                    
-                    if (!selTable.isNullObject) {
-                        logger(`🎯 Đang cập nhật bảng đang chọn...`, 10);
-                        targetTables.push(selTable);
-                    }
-                } catch(e) {
-                    logger(`🔍 Không thấy bảng tại con trỏ. Chuyển sang quét tự động...`, 5);
+                // 1. Ưu tiên Bookmark nếu có
+                if (bookmarkName) {
+                    try {
+                        const bm = context.document.bookmarks.getByNameOrNullObject(bookmarkName);
+                        bm.load("isNullObject");
+                        await context.sync();
+                        if (!bm.isNullObject) {
+                            const bmTable = bm.getRange().parentTable;
+                            bmTable.load("isNullObject");
+                            await context.sync();
+                            if (!bmTable.isNullObject) {
+                                logger(`🔖 Đã tìm thấy bảng qua Bookmark: ${bookmarkName}`, 10);
+                                targetTables.push(bmTable);
+                            }
+                        }
+                    } catch (e) { /* Bookmark không tồn tại hoặc lỗi */ }
                 }
 
-                // 2. Nếu không thấy Selection, Scan toàn bộ file
+                // 2. Không thấy Bookmark -> Kiểm tra Selection
                 if (targetTables.length === 0) {
-                    logger(`🔍 Quét toàn bộ file tìm bảng ký tên...`, 20);
+                    try {
+                        const sel = context.document.getSelection();
+                        const selTable = sel.parentTable;
+                        selTable.load("isNullObject");
+                        await context.sync();
+                        
+                        if (!selTable.isNullObject) {
+                            logger(`🎯 Đang cập nhật bảng đang chọn...`, 15);
+                            targetTables.push(selTable);
+                        }
+                    } catch(e) {}
+                }
+
+                // 3. Quét toàn bộ file (Safely)
+                if (targetTables.length === 0) {
+                    logger(`🔍 Quét toàn bộ tài liệu tìm bảng ký tên...`, 20);
                     const allTables = context.document.body.tables;
                     allTables.load("items");
                     await context.sync();
@@ -462,20 +479,39 @@ export const WordService = {
                     for (let t of allTables.items) {
                         try {
                             const firstCell = t.getCell(0, 0);
-                            const range = firstCell.body.getRange();
-                            range.load("text");
+                            const secondCell = t.getCell(0, 1); // Header thường có Quốc hiệu ở ô bên phải
+                            
+                            const r1 = firstCell.body.getRange();
+                            const r2 = secondCell.body.getRange();
+                            r1.load("text");
+                            r2.load("text");
                             await context.sync();
                             
-                            if (range.text && range.text.toLowerCase().includes("nơi nhận")) {
+                            const text1 = (r1.text || "").toLowerCase().trim();
+                            const text2 = (r2.text || "").toLowerCase().trim();
+                            
+                            // KIỂM TRA CHỐNG GHI ĐÈ NHẦM TIÊU ĐỀ (Anti-Header Protection)
+                            const isNationalMotto = text2.includes("cộng hòa xã hội") || 
+                                                  text2.includes("độc lập - tự do") ||
+                                                  text2.includes("độc lập- tự do") ||
+                                                  text2.includes("ngày .... tháng");
+
+                            if (isNationalMotto) {
+                                console.log("[SignatureTable] Bỏ qua bảng Tiêu đề.");
+                                continue; 
+                            }
+                            
+                            // Chỉ nhận nếu nội dung ô 1 bắt đầu bằng "nơi nhận"
+                            if (text1.startsWith("nơi nhận")) {
                                 targetTables.push(t);
                             }
                         } catch(e) {}
                     }
-                    logger(`📂 Tìm thấy ${targetTables.length} bảng ký tên.`, 40);
+                    logger(`📂 Đã tìm thấy ${targetTables.length} bảng ký tên an toàn.`, 40);
                 }
 
                 if (targetTables.length === 0) {
-                    throw new Error("Không tìm thấy bảng. Hãy click vào bảng hoặc đảm bảo bảng có chữ 'Nơi nhận'.");
+                    throw new Error("Không tìm thấy bảng ký tên. (Nếu file có bảng, hãy Click vào bảng đó rồi bấm Cập nhật)");
                 }
 
                 for (let i = 0; i < targetTables.length; i++) {
