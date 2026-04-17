@@ -333,7 +333,7 @@ export const WordService = {
      * Bản cập nhật v1130: Ultimate Safety - Chống sập do gộp ô/undefined body
      */
     updateSignatureTable: async (isLienDanh, membersList, dvtcName, bookmarkName, logCallback) => {
-        const logger = (msg) => { if (logCallback) logCallback(msg); console.log(`[SignatureTable] ${msg}`); };
+        const logger = (msg, percent) => { if (logCallback) logCallback(msg, percent); console.log(`[SignatureTable] ${msg}`); };
         
         // HELPER v1310: Fix căn lề, định dạng & Ép độ cao bằng Spacing
         const safeFillCell = async (context, cell, text, isBold = true, alignment = "Centered") => {
@@ -373,7 +373,7 @@ export const WordService = {
                 await context.sync();
                 return true;
             } catch (e) {
-                logger(`⚠️ Cell Lỗi: ${e.message}`);
+                logger(`⚠️ Cell Lỗi: ${e.message}`, undefined);
                 return false;
             }
         };
@@ -427,7 +427,7 @@ export const WordService = {
                         heightRule: "AtLeast"
                     });
                     await context.sync();
-                } catch(e) { logger(`⚠️ Lỗi RowHeight: ${e.message}`); }
+                } catch(e) { /* Lờ đi lỗi row height vì đã dùng spacing */ }
 
                 rowIdx++;
             }
@@ -445,16 +445,16 @@ export const WordService = {
                     await context.sync();
                     
                     if (!selTable.isNullObject) {
-                        logger(`🎯 Cập nhật bảng đang chọn...`);
+                        logger(`🎯 Đang cập nhật bảng đang chọn...`, 10);
                         targetTables.push(selTable);
                     }
                 } catch(e) {
-                    logger(`ℹ️ Không có bảng nào được chọn (Hoặc con trỏ ngoài bảng).`);
+                    logger(`🔍 Không thấy bảng tại con trỏ. Chuyển sang quét tự động...`, 5);
                 }
 
                 // 2. Nếu không thấy Selection, Scan toàn bộ file
                 if (targetTables.length === 0) {
-                    logger(`🔍 Quét toàn bộ file tìm bảng ký tên...`);
+                    logger(`🔍 Quét toàn bộ file tìm bảng ký tên...`, 20);
                     const allTables = context.document.body.tables;
                     allTables.load("items");
                     await context.sync();
@@ -471,6 +471,7 @@ export const WordService = {
                             }
                         } catch(e) {}
                     }
+                    logger(`📂 Tìm thấy ${targetTables.length} bảng ký tên.`, 40);
                 }
 
                 if (targetTables.length === 0) {
