@@ -472,9 +472,10 @@ export const WordService = {
                             await context.sync();
                         } catch(e) {}
 
-                        nestedTable.rows.items[0].cells.load("items");
+                        const firstNestedRow = nestedTable.rows.getFirst();
+                        firstNestedRow.cells.load("items");
                         await context.sync();
-                        const nCells = nestedTable.rows.items[0].cells.items;
+                        const nCells = firstNestedRow.cells.items;
                         
                         for (let i = 0; i < members.length && i < nCells.length; i++) {
                             const ok = await safeFillCell(context, nCells[i], members[i]);
