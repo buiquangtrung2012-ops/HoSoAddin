@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=17042026.1220';
-import { StorageService } from './storage_service.js?v=17042026.1220';
-import { MockData } from './mock_data.js?v=17042026.1220';
+import { WordService } from './word_service.js?v=17042026.1225';
+import { StorageService } from './storage_service.js?v=17042026.1225';
+import { MockData } from './mock_data.js?v=17042026.1225';
 
 /* global Office, lucide */
 
@@ -334,15 +334,18 @@ function renderProjectView(container) {
                                 ? (Array.isArray(state.duAn.dvtcMembers) ? state.duAn.dvtcMembers : [])
                                 : [];
                             
+                            const logMessages = [];
+                            const logCb = (msg) => { logMessages.push(msg); console.log(`[SigTable] ${msg}`); };
+                            
                             await WordService.updateSignatureTable(
                                 state.duAn.isLienDanh, 
                                 membersList, 
                                 state.duAn.dvtc, 
                                 "bmKyLienDanh", 
-                                (msg) => console.log(`[SigTable] ${msg}`)
+                                logCb
                             );
                             
-                            showToast("✓ Cập nhật bảng ký tên thành công!", "success");
+                            showToast("✓ " + logMessages.join(" | "), "success");
                             btnUpdateSig.innerHTML = `<i data-lucide="check-circle" size="14"></i> CẬP NHẬT BẢNG KÝ TÊN`;
                             
                             setTimeout(() => {
