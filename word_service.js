@@ -437,26 +437,46 @@ export const WordService = {
                 }
             }
 
-            // BƯỚC 4: ĐIỀN DỮ LIỆU
+            // BƯỚC 4: ĐIỀN DỮ LIỆU (Tải lại tham chiếu ô để đảm bảo an toàn sau khi xóa)
+            logger(`🔍 [B4] Đang chuẩn bị điền dữ liệu mới...`);
+            table.load("rows/items");
+            await context.sync();
+            const fillRows = table.rows.items;
+            
+            if (fillRows.length === 0) {
+                logger(`⚠️ Bảng không có hàng nào để điền!`);
+                return;
+            }
+
+            fillRows[0].cells.load("items");
+            await context.sync();
+            const firstRowCells = fillRows[0].cells.items;
+
             const members = Array.isArray(membersList) ? membersList.filter(m => m && m.trim() !== "") : [];
             const dvtcText = (dvtcName || "").toUpperCase();
             
             // 4.1. Điền Nơi nhận vào ô 1 hàng 1
-            const firstRowCells = rows[0].cells.items;
-            await safeFillCell(context, firstRowCells[0], "Nơi nhận:", true, "Left");
+            if (firstRowCells.length > 0) {
+                logger(`🖋️ [B4.1] Đang điền Nơi nhận...`);
+                await safeFillCell(context, firstRowCells[0], "Nơi nhận:", true, "Left");
+            }
 
+            // 4.2. Điền Chữ ký
+            let memberIdx = 0;
             if (isLienDanh) {
-                logger(`📝 [B4] Đang phân bổ<sup>${members.length}</sup> thành viên Liên danh...`);
-                // CHIẾN LƯỢC DÀN NGANG MỚI (v1160): Ép tất cả vào 1 hàng ngang nếu có thể
+                logger(`📝 [B4.2] Phân bổ ${members.length} thành viên Liên danh...`);
+                
                 if (firstRowCells.length >= 2 && members.length > 0) {
                     try {
-                        logger(`📂 [B4] Đang dàn ngang ${members.length} thành viên vào 1 hàng...`);
+                        logger(`📂 Thử dàn ngang ${members.length} thành viên...`);
                         const targetCell = firstRowCells[1];
-                        // Tạo bảng lồng 1 hàng x n cột (n = số thành viên)
+                        // Xóa sạch lần nữa cho chắc chắn
+                        targetCell.body.clear();
+                        
                         const nestedTable = targetCell.body.insertTable(1, members.length, "Replace");
                         await context.sync();
                         
-                        // Xóa viền bảng lồng
+                        // Viền vô hình
                         try {
                             const noB = { color: "#FFFFFF", width: 0 };
                             nestedTable.borders.insideHorizontal.set(noB);
@@ -473,15 +493,17 @@ export const WordService = {
                             await safeFillCell(context, nCells[i], members[i]);
                         }
                         memberIdx = members.length;
-                        logger(`✅ Đã dàn ngang thành công.`);
+                        logger(`✅ Dàn hàng ngang thành công.`);
                     } catch(e) {
-                        logger(`ℹ️ Không thể tạo bảng lồng ngang. Chuyển sang điền ô đơn.`);
+                        logger(`ℹ️ Không thể dàn ngang (Bảng gộp/Ô hẹp). Chuyển sang điền dọc.`);
                         await safeFillCell(context, firstRowCells[1], members[0]);
                         memberIdx = 1;
 
                         // Điền các người còn lại vào các hàng tiếp theo có sẵn
-                        for (let r = 1; r < rows.length && memberIdx < members.length; r++) {
-                            const rCells = rows[r].cells.items;
+                        for (let r = 1; r < fillRows.length && memberIdx < members.length; r++) {
+                            fillRows[r].cells.load("items");
+                            await context.sync();
+                            const rCells = fillRows[r].cells.items;
                             const startC = rCells.length >= 2 ? 1 : 0;
                             for (let c = startC; c < rCells.length && memberIdx < members.length; c++) {
                                 await safeFillCell(context, rCells[c], members[memberIdx]);
@@ -490,22 +512,22 @@ export const WordService = {
                         }
                     }
                 }
-
-                if (memberIdx < members.length) {
-                    logger(`⚠️ Còn ${members.length - memberIdx} thành viên chưa được điền. Vui lòng thêm hàng.`);
-                }
             } else {
-                logger(`📝 [B4] Cập nhật đơn vị...`);
+                logger(`📝 [B4.2] Cập nhật đơn vị...`);
                 if (firstRowCells.length >= 2) {
                     await safeFillCell(context, firstRowCells[1], dvtcText);
                 }
             }
 
+            if (isLienDanh && memberIdx < members.length) {
+                logger(`⚠️ Còn ${members.length - memberIdx} thành viên chưa được điền. Vui lòng thêm hàng.`);
+            }
+
             await context.sync();
-            logger(`✓ HOÀN TẤT.`);
+            logger(`✓ HOÀN TẤT CẬP NHẬT.`);
         });
     } catch (err) {
-        logCallback(`❌ Lỗi: ${err.message}`);
+        logCallback(`❌ Lỗi hệ thống: ${err.message}`);
         console.error(err);
     }
 },
