@@ -337,7 +337,7 @@ export const WordService = {
         await Word.run(async (context) => {
             let table = null;
             
-            // Bước 1: Thử tìm theo Bookmark trước (giống logic xuatBang)
+            // Bước 1: Thử tìm qua Bookmark trước (giống logic xuatBang)
             if (bookmarkName) {
                 try {
                     logger(`🔍 Thử tìm bảng qua Bookmark: ${bookmarkName}...`);
@@ -377,9 +377,35 @@ export const WordService = {
                 }
             }
 
-            // Bước 2: Nếu chưa thấy, Quét toàn bộ bảng bằng TỪ KHÓA (Logic hệt xuatBang)
+            // Bước 2: Dùng Search định vị bảng theo chữ 'Nơi nhận' (Siêu bền bỉ)
             if (!table) {
-                logger(`🔍 Đang quét toàn bộ bảng tìm từ khóa 'Nơi nhận'...`);
+                try {
+                    logger(`🔍 Đang dùng lệnh Search tìm văn bản 'Nơi nhận'...`);
+                    const searchResults = context.document.body.search("Nơi nhận", { matchCase: false, matchWholeWord: false });
+                    searchResults.load("items");
+                    await context.sync();
+
+                    if (searchResults.items.length > 0) {
+                        for (let i = 0; i < searchResults.items.length; i++) {
+                            const foundTable = searchResults.items[i].parentTable;
+                            foundTable.load("isNullObject");
+                            await context.sync();
+                            
+                            if (!foundTable.isNullObject) {
+                                table = foundTable;
+                                logger(`✓ Đã định vị chính xác bảng qua văn bản 'Nơi nhận'.`);
+                                break;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    logger(`⚠ Lỗi khi Search: ${e.message}`);
+                }
+            }
+
+            // Bước 3: Nếu vẫn chưa thấy, Quét toàn bộ bảng bằng TỪ KHÓA (Logic hệt xuatBang)
+            if (!table) {
+                logger(`🔍 Quét toàn bộ các bảng tìm từ khóa 'Nơi nhận'...`);
                 const allTables = context.document.tables;
                 allTables.load("items");
                 await context.sync();
@@ -398,7 +424,7 @@ export const WordService = {
                         const normRow = WordService.normalizeTextForSearch(rowText);
                         if (keywords.some(k => normRow.includes(k))) {
                             table = t;
-                            logger(`✓ Tìm thấy bảng qua từ khóa 'Nơi nhận'`);
+                            logger(`✓ Tìm thấy bảng qua từ khóa thủ công.`);
                             break;
                         }
                     }
