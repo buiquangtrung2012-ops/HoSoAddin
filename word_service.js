@@ -377,8 +377,9 @@ export const WordService = {
             }
         };
 
-        await Word.run(async (context) => {
-            let table = null;
+        try {
+            await Word.run(async (context) => {
+                let table = null;
             
             // BƯỚC 1: TÌM BẢNG
             logger(`🔍 [B1] Đang tìm kiếm bảng ký tên...`);
