@@ -16,7 +16,9 @@ let state = {
         daiDienCDT: "",
         tvgs: "",
         ngayKhoiCong: "",
-        ngayHoanThanh: ""
+        ngayHoanThanh: "",
+        isLienDanh: false,
+        dvtcMembers: ""
     },
     soHDForExport: "",
     exportFolderHandle: null,
@@ -215,6 +217,51 @@ function renderProjectView(container) {
         } else {
             dateGrid = null;
             wrapper.appendChild(card);
+
+            // Thêm tùy chọn Liên danh ngay sau ô Đơn vị thi công
+            if (field === 'dvtc') {
+                const jvToggleArea = document.createElement("div");
+                jvToggleArea.className = "px-5 py-4 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-4 transition-all";
+                jvToggleArea.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+                                <i data-lucide="users" size="16"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-700">Chế độ Liên danh</h4>
+                                <p class="text-[10px] text-slate-500">Sử dụng bảng ký tên 3 cột cho nhiều thành viên</p>
+                            </div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="chkIsLienDanh" class="sr-only peer" ${state.duAn.isLienDanh ? 'checked' : ''}>
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
+                    </div>
+                    <div id="jvMembersArea" class="${state.duAn.isLienDanh ? '' : 'hidden'} pt-2 space-y-2 border-t border-slate-50">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Danh sách thành viên ký tên (mỗi người 1 dòng)</p>
+                        <textarea id="txtDvtcMembers" spellcheck="false" 
+                            class="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-300 transition-all resize-y" 
+                            placeholder="Ví dụ:\nCông ty Cổ phần Xây dựng A\nCông ty TNHH MTV B" rows="3">${state.duAn.dvtcMembers || ""}</textarea>
+                    </div>
+                `;
+                wrapper.appendChild(jvToggleArea);
+
+                const chk = jvToggleArea.querySelector('#chkIsLienDanh');
+                const area = jvToggleArea.querySelector('#jvMembersArea');
+                const txt = jvToggleArea.querySelector('#txtDvtcMembers');
+
+                chk.onchange = async () => {
+                    state.duAn.isLienDanh = chk.checked;
+                    area.classList.toggle('hidden', !chk.checked);
+                    await saveState();
+                };
+
+                txt.onchange = async () => {
+                    state.duAn.dvtcMembers = txt.value;
+                    await saveState();
+                };
+            }
         }
     });
     
@@ -703,7 +750,8 @@ async function syncDataToWord() {
         "DaiDienCDT": state.duAn.daiDienCDT,
         "TVGS": state.duAn.tvgs,
         "NgayKhoiCong": state.duAn.ngayKhoiCong,
-        "NgayHoanThanh": state.duAn.ngayHoanThanh
+        "NgayHoanThanh": state.duAn.ngayHoanThanh,
+        "IsLienDanh": state.duAn.isLienDanh ? "True" : "False"
     };
     
     try {
@@ -762,6 +810,17 @@ async function syncDataToWord() {
     updateLog(`📊 Đang chèn bảng Thí nghiệm...`, 80);
     await WordService.xuatBang(state.thiNghiem, "Đơn vị thí nghiệm", "bmThiNghiem", updateLog);
     
+    // Xử lý bảng ký tên Liên danh hoặc Thường
+    try {
+        updateLog("Cập nhật bảng ký tên...", 85);
+        const membersList = state.duAn.isLienDanh 
+            ? state.duAn.dvtcMembers.split('\n').map(m => m.trim()).filter(Boolean)
+            : [];
+        await WordService.updateSignatureTable(state.duAn.isLienDanh, membersList, state.duAn.dvtc, "bmKyLienDanh");
+    } catch (e) {
+        updateLog("Không thể cập nhật bảng ký: " + e.message);
+    }
+
     // Format căn lề bảng đã được tích hợp trực tiếp trong xuatBang
     updateLog("Áp dụng kiểu dáng cuối cùng...", 90);
     await WordService.applyModernStyleToDocument();
