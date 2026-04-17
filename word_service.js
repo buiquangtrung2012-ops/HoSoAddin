@@ -387,6 +387,7 @@ export const WordService = {
                     bm.load("isNullObject");
                     await context.sync();
                     if (!bm.isNullObject) {
+                        logger(`📌 Tìm thấy Bookmark: ${bookmarkName}`);
                         const bmRange = bm.getRange();
                         const pTable = bmRange.parentTable;
                         pTable.load("isNullObject");
@@ -399,34 +400,48 @@ export const WordService = {
                             if (tablesInRange.items.length > 0) table = tablesInRange.items[0];
                         }
                     }
-                } catch (e) {}
+                } catch (e) {
+                    logger(`ℹ️ Bookmark lỗi: ${e.message}`);
+                }
             }
 
             if (!table) {
                 try {
+                    logger(`🔍 Đang tìm bảng chứa từ khóa "Nơi nhận"...`);
                     const searchResults = context.document.body.search("Nơi nhận", { matchCase: false });
                     searchResults.load("items");
                     await context.sync();
-                    if (searchResults.items.length > 0) {
-                        const foundTable = searchResults.items[0].parentTable;
+                    
+                    for (let i = 0; i < searchResults.items.length; i++) {
+                        const foundTable = searchResults.items[i].parentTable;
                         foundTable.load("isNullObject");
                         await context.sync();
-                        if (!foundTable.isNullObject) table = foundTable;
+                        if (!foundTable.isNullObject) {
+                            table = foundTable;
+                            logger(`✅ Đã tìm thấy bảng qua từ khóa.`);
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    logger(`ℹ️ Lỗi tìm kiếm: ${e.message}`);
+                }
+            }
+
+            if (!table) {
+                try {
+                    logger(`🖱 Thử tìm bảng tại vị trí con trỏ...`);
+                    const selTable = context.document.getSelection().parentTable;
+                    selTable.load("isNullObject");
+                    await context.sync();
+                    if (!selTable.isNullObject) {
+                        table = selTable;
+                        logger(`✅ Đã xác nhận bảng tại vị trí con trỏ.`);
                     }
                 } catch (e) {}
             }
 
-            if (!table) {
-                try {
-                    const selTable = context.document.getSelection().parentTable;
-                    selTable.load("isNullObject");
-                    await context.sync();
-                    if (!selTable.isNullObject) table = selTable;
-                } catch (e) {}
-            }
-
-            if (!table) {
-                logger(`⚠️ Không tìm thấy bảng ký tên. (Hãy đặt con trỏ vào bảng và thử lại)`);
+            if (!table || table.isNullObject) {
+                logger(`⚠️ KHÔNG TÌM THẤY BẢNG. Vui lòng đặt con trỏ vào bảng và thử lại!`);
                 return;
             }
 
@@ -484,29 +499,25 @@ export const WordService = {
             // Ô 1: Nơi nhận (Dùng safeFillCell)
             await safeFillCell(context, cells1[0], "Nơi nhận:", true, "Left");
 
-            // Ô 2 & 3 của hàng 1
             if (isLienDanh) {
                 logger(`📝 Phân bổ ${members.length} thành viên Liên danh...`);
                 let memberIdx = 0;
                 
-                // MỚI: Luôn sử dụng Bảng lồng cưỡng bức (Forced Nested Table) để dàn hàng ngang
-                // Kỹ thuật này giúp phân chia chữ ký thành 2 cột độc lập trong một ô chữ ký của bảng chính
                 if (members.length >= 2) {
                     try {
-                        logger(`📂 Chèn bảng lồng cưỡng bức 1x2 để dàn ngang chữ ký...`);
+                        logger(`📂 Đang tạo Bảng lồng (1x2) cho thành viên...`);
                         const targetCell = cells1[1];
                         const nestedTable = targetCell.body.insertTable(1, 2, "Replace");
+                        await context.sync(); // Đồng bộ ngay sau khi chèn để nhận diện bảng mới
                         
-                        // Sửa lỗi Border API - Word JS yêu cầu truy cập qua 'borders'
-                        nestedTable.borders.insideHorizontal.color = "#FFFFFF";
-                        nestedTable.borders.insideVertical.color = "#FFFFFF";
-                        nestedTable.borders.outsideHorizontal.color = "#FFFFFF";
-                        nestedTable.borders.outsideVertical.color = "#FFFFFF";
-                        
-                        nestedTable.borders.insideHorizontal.width = 0;
-                        nestedTable.borders.insideVertical.width = 0;
-                        nestedTable.borders.outsideHorizontal.width = 0;
-                        nestedTable.borders.outsideVertical.width = 0;
+                        // Cấu hình viền (An toàn - không gờ sập script)
+                        try {
+                            const noBorder = { color: "#FFFFFF", width: 0 };
+                            nestedTable.borders.insideHorizontal.set(noBorder);
+                            nestedTable.borders.insideVertical.set(noBorder);
+                            nestedTable.borders.outsideHorizontal.set(noBorder);
+                            nestedTable.borders.outsideVertical.set(noBorder);
+                        } catch (be) { logger(`ℹ️ Bỏ qua định dạng viền bảng con.`); }
 
                         nestedTable.load("rows/items");
                         await context.sync();
@@ -515,14 +526,12 @@ export const WordService = {
                         nRow.cells.load("items");
                         await context.sync();
                         
-                        // Điền 2 thành viên đầu tiên vào bảng lồng
                         await safeFillCell(context, nRow.cells.items[0], members[0]);
                         await safeFillCell(context, nRow.cells.items[1], members[1]);
                         memberIdx = 2;
-                        logger(`✅ Đã dàn ngang 2 thành viên đầu.`);
+                        logger(`✅ Đã dàn ngang thành công.`);
                     } catch (nestedError) {
-                        logger(`⚠ Lỗi chèn bảng lồng: ${nestedError.message}. Chuyển sang điền dọc.`);
-                        // Fallback: Nếu không chèn được bảng lồng, điền dọc vào ô đầu tiên
+                        logger(`⚠ Lỗi logic bảng lồng: ${nestedError.message}`);
                         await safeFillCell(context, cells1[1], members[0]);
                         memberIdx = 1;
                     }
@@ -531,59 +540,51 @@ export const WordService = {
                     memberIdx = 1;
                 }
                 
-                // CÁC HÀNG TIẾP THEO: Thêm hàng mới nếu còn thành viên
+                // CÁC HÀNG TIẾP THEO
                 while (memberIdx < members.length) {
                     try {
-                        logger(`➕ Thêm hàng mới (Hàng ${memberIdx + 1}) cho bảng chính...`);
+                        logger(`➕ Thêm hàng mới (Hàng ${memberIdx + 1})...`);
                         const newRows = table.addRows("End", 1);
+                        await context.sync();
                         newRows.load("items/cells/items");
                         await context.sync();
                         
                         if (newRows.items.length > 0) {
                             const newRow = newRows.items[0];
-                            const rCells = newRow.cells.items;
-                            const startC = rCells.length >= 2 ? 1 : 0;
+                            const rCols = newRow.cells.items;
+                            const startC = rCols.length >= 2 ? 1 : 0;
                             
-                            for (let c = startC; c < rCells.length && memberIdx < members.length; c++) {
-                                await safeFillCell(context, rCells[c], members[memberIdx]);
+                            for (let c = startC; c < rCols.length && memberIdx < members.length; c++) {
+                                await safeFillCell(context, rCols[c], members[memberIdx]);
                                 memberIdx++;
                             }
-                        } else {
-                            break;
-                        }
+                        } else break;
                     } catch (e) {
-                        logger(`🛑 Lỗi cấu trúc bảng khi thêm hàng: ${e.message}`);
+                        logger(`🛑 Dừng thêm hàng: ${e.message}`);
                         break;
                     }
                 }
             } else {
-                logger(`📝 Cập nhật đơn vị vào bảng (Chế độ Thường)...`);
+                logger(`📝 Cập nhật đơn vị...`);
                 if (cells1.length > 1) {
                     await safeFillCell(context, cells1[1], dvtcText);
                 }
             }
 
-            // Định dạng cuối cùng (An toàn)
+            // Định dạng lại giao diện bảng gốc (Tùy chọn)
             try {
-                table.load("rows/items");
-                await context.sync();
-                for (let i = 0; i < table.rows.items.length; i++) {
-                    const row = table.rows.items[i];
-                    row.cells.load("items");
-                    await context.sync();
-                    row.cells.items.forEach(cell => {
-                        if (cell) {
-                            cell.verticalAlignment = "Center";
-                            cell.shadingColor = "#FFFFFF";
-                        }
-                    });
-                }
+                table.verticalAlignment = "Center";
+                table.shadingColor = "#FFFFFF";
             } catch (e) {}
 
             await context.sync();
-            logger(`✓ Cập nhật bảng ký thành công.`);
+            logger(`✓ HOÀN TẤT CẬP NHẬT BẢNG KÝ.`);
         });
-    },
+    } catch (globalErr) {
+        logCallback(`❌ Lỗi hệ thống: ${globalErr.message}`);
+        console.error(globalErr);
+    }
+},
 
     /**
      * Lấy nội dung file Word dưới dạng Blob
