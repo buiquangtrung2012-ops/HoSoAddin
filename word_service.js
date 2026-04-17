@@ -1028,18 +1028,20 @@ export const WordService = {
                 const values = table.values;
                 if (values.length < 1) continue;
 
-                const columnCount = values[0].length;
-                const headerRowText = values[0].join(" ");
+                const columnCount = values[0]?.length || 0;
+                const headerRowText = values[0]?.join(" ") || "";
                 const normHeader = WordService.normalizeTextForSearch(headerRowText);
 
                 // --- NEW: Heuristic for Summary Tables (2 columns, Key-Value pairs) ---
-                if (columnCount === 2 || (columnCount > 1 && values[0][0].length < 50)) {
+                // Chuyển values[0][0] sang String để tránh lỗi .length trên kiểu dữ liệu khác
+                const firstCellText = values[0] && values[0][0] ? String(values[0][0]) : "";
+                if (columnCount === 2 || (columnCount > 1 && firstCellText.length < 50)) {
                     for (let r = 0; r < values.length; r++) {
                         const row = values[r];
-                        if (row.length < 2) continue;
+                        if (!row || row.length < 2) continue;
                         
                         const keyText = WordService.normalizeTextForSearch(row[0]);
-                        const valText = (row[1] || "").toString().trim();
+                        const valText = (row[1] ?? "").toString().trim();
                         
                         if (valText.length > 0) {
                             if (keyText.includes("so hd") || keyText.includes("so hop dong")) {
