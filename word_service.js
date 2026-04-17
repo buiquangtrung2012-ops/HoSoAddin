@@ -479,12 +479,13 @@ export const WordService = {
                 }
 
                 for (let i = 0; i < targetTables.length; i++) {
-                    logger(`🖋️ [${i+1}/${targetTables.length}] Cập nhật bảng...`);
+                    const percent = 40 + Math.floor(((i + 1) / targetTables.length) * 55);
+                    logger(`🖋️ [${i+1}/${targetTables.length}] Đang xử lý...`, percent);
                     await fillOneTable(context, targetTables[i]);
                 }
 
                 await context.sync();
-                logger(`✅ HOÀN TẤT: Đã cập nhật ${targetTables.length} bảng.`);
+                logger(`✅ Hoàn tất cập nhật ${targetTables.length} bảng ký tên.`, 100);
             });
         } catch (err) {
             logger(`❌ LỖI: ${err.message}`);
