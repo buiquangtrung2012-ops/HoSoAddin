@@ -493,66 +493,81 @@ export const WordService = {
             }
 
             // Xóa nội dung các ô còn lại ở hàng 1
-            for (let c = 1; c < firstRow.cells.items.length; c++) {
+            const initialCellCount = firstRow.cells.items.length;
+            for (let c = 1; c < initialCellCount; c++) {
                 firstRow.cells.items[c].body.clear();
             }
             await context.sync();
 
             if (isLienDanh) {
-                logger(`📝 Phân bổ ${members.length} thành viên vào bảng 3 cột...`);
-                logger(`💡 Dàn đều: bắt đầu từ ô 2 hàng 1 (sau "Nơi nhận") → hàng 2+ dùng toàn bộ 3 cột`);
-                
+                logger(`📝 Phân bổ ${members.length} thành viên Liên danh...`);
                 let memberIdx = 0;
                 
-                // HÀNG 1: Điền ô 1 (cột 2) và ô 2 (cột 3) với 2 thành viên đầu tiên
-                for (let c = 1; c < 3 && memberIdx < members.length; c++) {
-                    const cell = firstRow.cells.items[c];
-                    cell.body.insertText(members[memberIdx].toUpperCase(), "Replace");
-                    cell.body.paragraphs.getFirst().font.bold = true;
-                    cell.body.paragraphs.getFirst().alignment = "Centered";
-                    memberIdx++;
-                }
-                await context.sync();
-                
-                // CÁC HÀN TIẾP THEO: Mỗi hàng dùng toàn bộ 3 cột (0, 1, 2) để dàn đều hơn
-                while (memberIdx < members.length) {
-                    const newRow = table.addRows("End", 1);
-                    newRow.load("cells/items");
-                    await context.sync();
-                    
-                    // Dàn 3 thành viên mỗi hàng từ cột 0
-                    for (let c = 0; c < 3 && memberIdx < members.length; c++) {
-                        const cell = newRow.cells.items[c];
+                // HÀNG 1: Điền vào các ô còn lại của hàng 1 (thường là ô index 1 và 2)
+                for (let c = 1; c < initialCellCount && memberIdx < members.length; c++) {
+                    try {
+                        const cell = firstRow.cells.items[c];
                         cell.body.insertText(members[memberIdx].toUpperCase(), "Replace");
                         cell.body.paragraphs.getFirst().font.bold = true;
                         cell.body.paragraphs.getFirst().alignment = "Centered";
                         memberIdx++;
+                    } catch (e) {
+                        logger(`⚠ Lỗi điền ô hàng 1: ${e.message}`);
                     }
-                    await context.sync();
+                }
+                await context.sync();
+                
+                // CÁC HÀNG TIẾP THEO: Nếu còn thành viên, thêm hàng mới
+                while (memberIdx < members.length) {
+                    try {
+                        logger(`➕ Thêm hàng mới cho các thành viên còn lại...`);
+                        const newRow = table.addRows("End", 1);
+                        newRow.load("cells/items");
+                        await context.sync();
+                        
+                        const newRowCells = newRow.cells.items;
+                        for (let c = 0; c < newRowCells.length && memberIdx < members.length; c++) {
+                            const cell = newRowCells[c];
+                            cell.body.insertText(members[memberIdx].toUpperCase(), "Replace");
+                            cell.body.paragraphs.getFirst().font.bold = true;
+                            cell.body.paragraphs.getFirst().alignment = "Centered";
+                            memberIdx++;
+                        }
+                        await context.sync();
+                    } catch (e) {
+                        logger(`🛑 Dừng phân bổ do lỗi thêm hàng: ${e.message}`);
+                        break;
+                    }
                 }
                 
             } else {
-                logger(`📝 Cập nhật tên đơn vị vào bảng 2 cột (Chế độ Thường)...`);
-                if (firstRow.cells.items.length > 1) {
-                    const cell = firstRow.cells.items[1];
-                    cell.body.insertText(dvtcText || " ", "Replace");
-                    cell.body.paragraphs.getFirst().font.bold = true;
-                    cell.body.paragraphs.getFirst().alignment = "Centered";
+                logger(`📝 Cập nhật tên đơn vị vào bảng (Chế độ Thường)...`);
+                if (initialCellCount > 1) {
+                    try {
+                        const cell = firstRow.cells.items[1];
+                        cell.body.insertText(dvtcText || " ", "Replace");
+                        cell.body.paragraphs.getFirst().font.bold = true;
+                        cell.body.paragraphs.getFirst().alignment = "Centered";
+                    } catch (e) {
+                        logger(`⚠ Lỗi điền tên đơn vị: ${e.message}`);
+                    }
                 }
             }
 
-            // Căn lề dọc
-            table.load("rows/items");
-            await context.sync();
-            for (let i = 0; i < table.rows.items.length; i++) {
-                const row = table.rows.items[i];
-                row.cells.load("items");
+            // Đảm bảo định dạng chuẩn cho toàn bảng
+            try {
+                table.load("rows/items");
                 await context.sync();
-                row.cells.items.forEach(cell => {
-                    cell.verticalAlignment = "Center";
-                    cell.shadingColor = "#FFFFFF";
-                });
-            }
+                for (let i = 0; i < table.rows.items.length; i++) {
+                    const row = table.rows.items[i];
+                    row.cells.load("items");
+                    await context.sync();
+                    row.cells.items.forEach(cell => {
+                        cell.verticalAlignment = "Center";
+                        cell.shadingColor = "#FFFFFF";
+                    });
+                }
+            } catch (e) {}
 
             await context.sync();
             logger(`✓ Cập nhật bảng ký thành công.`);
