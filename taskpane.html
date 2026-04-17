@@ -127,17 +127,20 @@
 
         /* Responsive Buttons */
         @media (max-width: 480px) {
-            .action-card { padding: 1rem 0.5rem; gap: 4px; border-radius: 1rem; }
-            .action-card span { font-size: 10px; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-            .action-card i { transform: scale(0.9); margin-bottom: 2px; }
+            .action-card { padding: 0.75rem; gap: 0; border-radius: 1rem; min-width: 44px; }
+            .action-card span { display: none; }
+            .action-card i { transform: scale(0.95); margin-bottom: 0; }
             footer.p-8 { padding: 1rem; }
         }
 
         @media (max-width: 380px) {
-            .action-card { padding: 0.75rem 0.25rem; }
-            .action-card span { font-size: 8px; font-weight: 800; letter-spacing: -0.02em; }
-            .action-card i { transform: scale(0.75); }
+            .action-card { padding: 0.5rem; }
+            .action-card i { transform: scale(0.8); }
         }
+
+        .action-card span { display: none; } /* Mặc định ẩn chữ theo yêu cầu mới */
+        .action-card { padding: 1rem; gap: 0; min-height: 3.5rem; justify-content: center; }
+        .action-card i { margin-bottom: 0; }
 
         /* Nút màu sắc theo thiết kế mới */
         .btn-capnhat { background: #e0e7ff; color: #4338ca; }
@@ -222,7 +225,7 @@
                     <div class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
                     UPDATE
                 </button>
-                <div id="statusInfo" class="text-[9px] font-bold text-slate-400">v16042026.1245</div>
+                <div id="statusInfo" class="text-[9px] font-bold text-slate-400">v17042026.0907</div>
             </div>
         </header>
 
@@ -235,26 +238,26 @@
 
         <!-- Footer Actions -->
         <footer class="p-8 bg-[#f3f6f9] border-t border-slate-200">
-            <div class="grid grid-cols-5 gap-4 max-w-4xl mx-auto">
-                <button id="btnCapNhat" class="action-card btn-capnhat">
+            <div class="grid grid-cols-5 gap-3 max-w-4xl mx-auto">
+                <button id="btnCapNhat" class="action-card btn-capnhat" title="Cập nhật dữ liệu từ trang tính vào văn bản Word">
                     <i data-lucide="refresh-cw" size="24"></i>
-                    <span>CẬP NHẬT<br>HỒ SƠ</span>
+                    <span>CẬP NHẬT HỒ SƠ</span>
                 </button>
-                <button id="btnSplit" class="action-card btn-tach">
+                <button id="btnSplit" class="action-card btn-tach" title="Tách tài liệu thành nhiều tệp nhỏ theo các Bookmark đã đánh dấu">
                     <i data-lucide="split" size="24"></i>
-                    <span>TÁCH<br>HỒ SƠ</span>
+                    <span>TÁCH HỒ SƠ</span>
                 </button>
-                <button id="btnImportDoc" class="action-card btn-nhap">
+                <button id="btnImportDoc" class="action-card btn-nhap" title="Đọc dữ liệu ngược từ tệp Word đã điền thông tin vào lại ứng dụng">
                     <i data-lucide="cloud-download" size="24"></i>
-                    <span>NHẬP<br>DỮ LIỆU</span>
+                    <span>NHẬP DỮ LIỆU</span>
                 </button>
-                <button id="btnExport" class="action-card btn-xuat">
+                <button id="btnExport" class="action-card btn-xuat" title="Xuất tệp Word tổng hợp tất cả thông tin đã đồng bộ">
                     <i data-lucide="file-text" size="24"></i>
-                    <span>XUẤT<br>HỒ SƠ TỔNG</span>
+                    <span>XUẤT HỒ SƠ TỔNG</span>
                 </button>
-                <button id="btnResetFooter" class="action-card btn-reset">
+                <button id="btnResetFooter" class="action-card btn-reset" title="Xóa toàn bộ dữ liệu hiện tại và nạp lại dữ liệu mẫu">
                     <i data-lucide="rotate-ccw" size="24"></i>
-                    <span>KHỞI TẠO LẠI<br>DỮ LIỆU</span>
+                    <span>KHỞI TẠO LẠI DỮ LIỆU</span>
                 </button>
             </div>
             <div id="loadingProgressContainer" class="mt-4 w-full flex flex-col items-center hidden">
@@ -300,7 +303,7 @@
         </div>
     </div>
 
-    <script type="module" src="taskpane.js?v=17042026.0850"></script>
+    <script type="module" src="taskpane.js?v=17042026.0907"></script>
     <script>lucide.createIcons();</script>
 </body>
 
