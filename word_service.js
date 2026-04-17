@@ -359,15 +359,15 @@ export const WordService = {
                     const firstP = cell.body.paragraphs.getFirst();
                     try { 
                         firstP.alignment = alignment; 
-                        // Ép giãn cách để tạo độ cao hàng ~3.8cm (v1310)
-                        // 48 + 48 + 11 (font) = 107pt ~ 3.8cm
-                        //firstP.spaceBefore = 48;
+                        // Ép giãn cách để tạo độ cao hàng ~3.8cm (v1320)
+                        // Bỏ spaceBefore, dồn toàn bộ xuống spaceAfter = 96pt
+                        firstP.spaceBefore = 0;
                         firstP.spaceAfter = 96;
                         firstP.lineSpacing = 12; // Single spacing
                     } catch(e) {}
 
-                    // Căn giữa theo chiều dọc của ô
-                    try { cell.verticalAlignment = "Center"; } catch(e) {}
+                    // Căn lên trên cùng của ô để trống chỗ ký tên phía dưới
+                    try { cell.verticalAlignment = "Top"; } catch(e) {}
                 }
                 
                 await context.sync();
