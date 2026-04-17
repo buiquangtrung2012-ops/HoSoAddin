@@ -429,16 +429,24 @@ export const WordService = {
                 const rows = table.rows.items;
                 logger(`ℹ️ Bảng có ${rows.length} hàng.`);
 
-                // BƯỚC 3: LÀM SẠCH BẢNG
+                // BƯỚC 3: LÀM SẠCH BẢNG (từng ô riêng lẻ để tránh lỗi gộp ô)
                 logger(`🧹 [B3] Đang làm sạch nội dung...`);
                 for (let r = 0; r < rows.length; r++) {
-                    rows[r].cells.load("items");
-                    await context.sync();
-                    for (let c = 0; c < rows[r].cells.items.length; c++) {
-                        rows[r].cells.items[c].body.clear();
+                    try {
+                        rows[r].cells.load("items");
+                        await context.sync();
+                        for (let c = 0; c < rows[r].cells.items.length; c++) {
+                            try {
+                                rows[r].cells.items[c].body.clear();
+                                await context.sync();
+                            } catch(cellErr) {
+                                // Ô gộp/phantom → bỏ qua
+                            }
+                        }
+                    } catch(rowErr) {
+                        // Hàng lỗi → bỏ qua
                     }
                 }
-                await context.sync();
                 logger(`✓ [B3] Đã làm sạch xong.`);
 
                 // BƯỚC 4: TẢI LẠI BẢNG + ĐIỀN DỮ LIỆU
