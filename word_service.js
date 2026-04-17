@@ -335,12 +335,11 @@ export const WordService = {
     updateSignatureTable: async (isLienDanh, membersList, dvtcName, bookmarkName, logCallback) => {
         const logger = (msg) => { if (logCallback) logCallback(msg); console.log(`[SignatureTable] ${msg}`); };
         
-        // HELPER v1285: Dùng range.insertText("Replace") - Cách an toàn nhất để ghi đè ô
+        // HELPER v1290: Fix căn lề và định dạng
         const safeFillCell = async (context, cell, text, isBold = true, alignment = "Centered") => {
             if (!cell || !text) return false;
             try {
                 const range = cell.body.getRange();
-                const fontSize = (text === "Nơi nhận:") ? 10 : 11;
                 
                 if (text === "Nơi nhận:") {
                     range.insertText("NƠI NHẬN:\n- Như trên;\n- Lưu VT.", "Replace");
@@ -355,7 +354,11 @@ export const WordService = {
                 } else {
                     range.insertText(text.toUpperCase(), "Replace");
                     range.font.set({ bold: isBold, size: 11, name: "Times New Roman" });
-                    try { range.paragraphFormat.alignment = alignment; } catch(e) {}
+                    await context.sync();
+                    
+                    // Ép căn lề cho paragraph đầu tiên của ô (Chắc chắn hơn range)
+                    const firstP = cell.body.paragraphs.getFirst();
+                    try { firstP.alignment = alignment; } catch(e) {}
                 }
                 
                 await context.sync();
@@ -393,11 +396,11 @@ export const WordService = {
                 }
 
                 const currentRow = tableData.rows.items[rowIdx];
-                // Thiết đặt độ cao hàng ~3.8cm (107.7 points)
+                // Thiết đặt độ cao hàng 3.8cm (107.71 points)
                 try {
-                    currentRow.height = 107.7;
                     currentRow.heightRule = "AtLeast";
-                } catch(e) {}
+                    currentRow.height = 107.71;
+                } catch(e) { logger(`⚠️ Lỗi RowHeight: ${e.message}`); }
 
                 currentRow.cells.load("items");
                 await context.sync();
@@ -409,6 +412,8 @@ export const WordService = {
                     if (itemIdx >= itemsToFill.length) break;
                     const text = itemsToFill[itemIdx];
                     const isNn = (text === "Nơi nhận:");
+                    
+                    logger(`🖋️ Điền Ô (${rowIdx}, ${colIdx}): ${text.substring(0, 15)}... | Căn lề: ${isNn ? "Left" : "Centered"}`);
                     await safeFillCell(context, cells[colIdx], text, !isNn, isNn ? "Left" : "Centered");
                     itemIdx++;
                 }
@@ -420,46 +425,48 @@ export const WordService = {
             await Word.run(async (context) => {
                 let targetTables = [];
                 
-                // 1. Kiểm tra Selection
+                // 1. Kiểm tra Selection (Lấy bảng hiện tại nếu con trỏ đang ở đó)
                 const sel = context.document.getSelection();
-                const selRange = sel.getRange();
-                const selTable = selRange.parentTable;
+                const selTable = sel.parentTable;
                 selTable.load("isNullObject");
                 await context.sync();
                 
                 if (!selTable.isNullObject) {
-                    logger(`🎯 Đang cập nhật bảng tại vị trí con trỏ...`);
+                    logger(`🎯 Cập nhật bảng đang chọn...`);
                     targetTables.push(selTable);
                 } else {
-                    // 2. Nếu không có Selection, tìm tất cả bảng có "Nơi nhận"
-                    logger(`🔍 Không thấy con trỏ trong bảng. Đang quét toàn bộ file...`);
+                    // 2. Scan toàn bộ bảng có từ khóa "Nơi nhận" ở ô (0,0)
+                    logger(`🔍 Quét toàn bộ file tìm bảng ký tên...`);
                     const allTables = context.document.body.tables;
                     allTables.load("items");
                     await context.sync();
                     
                     for (let t of allTables.items) {
-                        const firstCell = t.getCellOrNullObject(0, 0);
-                        firstCell.load("value");
-                        await context.sync();
-                        
-                        if (!firstCell.isNullObject && firstCell.value && firstCell.value.toLowerCase().includes("nơi nhận")) {
-                            targetTables.push(t);
-                        }
+                        try {
+                            const firstCell = t.getCell(0, 0);
+                            const range = firstCell.body.getRange();
+                            range.load("text");
+                            await context.sync();
+                            
+                            if (range.text && range.text.toLowerCase().includes("nơi nhận")) {
+                                targetTables.push(t);
+                            }
+                        } catch(e) {}
                     }
-                    logger(`📂 Tìm thấy ${targetTables.length} bảng ký tên phù hợp.`);
+                    logger(`📂 Tìm thấy ${targetTables.length} bảng ký tên hợp lệ.`);
                 }
 
                 if (targetTables.length === 0) {
-                    throw new Error("Không tìm thấy bảng ký tên nào. Hãy click vào bảng hoặc đảm bảo bảng có chữ 'Nơi nhận'.");
+                    throw new Error("Không tìm thấy bảng. Hãy click vào bảng hoặc đảm bảo bảng có chữ 'Nơi nhận'.");
                 }
 
                 for (let i = 0; i < targetTables.length; i++) {
-                    logger(`🖋️ Đang cập nhật bảng ${i + 1}/${targetTables.length}...`);
+                    logger(`🖋️ [${i+1}/${targetTables.length}] Cập nhật bảng...`);
                     await fillOneTable(context, targetTables[i]);
                 }
 
                 await context.sync();
-                logger(`✅ THÀNH CÔNG: Đã cập nhật ${targetTables.length} bảng.`);
+                logger(`✅ HOÀN TẤT: Đã cập nhật ${targetTables.length} bảng.`);
             });
         } catch (err) {
             logger(`❌ LỖI: ${err.message}`);
