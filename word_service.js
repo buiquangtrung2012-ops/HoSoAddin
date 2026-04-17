@@ -454,12 +454,13 @@ export const WordService = {
 
                 while (itemIdx < itemsToFill.length) {
                     // 1. Đảm bảo hàng tồn tại
-                    table.rows.load("items/count");
+                    table.rows.load("items");
                     await context.sync();
+                    const rowCount = table.rows.items.length;
                     
-                    if (rowIdx >= table.rows.items.length) {
+                    if (rowIdx >= rowCount) {
                         logger(`➕ Thêm hàng mới cho mục thứ ${itemIdx + 1}...`);
-                        table.addRows(1);
+                        table.addRows("End", 1);
                         await context.sync();
                         table.rows.load("items");
                         await context.sync();
@@ -470,7 +471,7 @@ export const WordService = {
                     await context.sync();
                     const cells = currentRow.cells.items;
 
-                    if (cells.length === 0) { rowIdx++; continue; }
+                    if (!cells || cells.length === 0) { rowIdx++; continue; }
 
                     // 2. Điền tối đa 2 ô trên mỗi hàng (Z-pattern)
                     for (let colIdx = 0; colIdx < cells.length && colIdx < 2; colIdx++) {
@@ -479,7 +480,7 @@ export const WordService = {
                         const text = itemsToFill[itemIdx];
                         const isNn = (text === "Nơi nhận:");
                         
-                        logger(`🖋️ Điền Ô (${rowIdx}, ${colIdx}): ${text.substring(0, 20)}...`);
+                        logger(`🖋️ Ô (${rowIdx}, ${colIdx}): ${text.substring(0, 15)}...`);
                         await safeFillCell(context, cells[colIdx], text, !isNn, isNn ? "Left" : "Centered");
                         
                         itemIdx++;
