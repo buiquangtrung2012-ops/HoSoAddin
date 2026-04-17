@@ -464,20 +464,30 @@ export const WordService = {
                     memberIdx++;
                 }
                 
-                // Thêm hàng mới nếu cần
+                // CÁC HÀNG TIẾP THEO: Nếu còn thành viên, thêm hàng mới
                 while (memberIdx < members.length) {
                     try {
-                        const newRowAdded = table.addRows("End", 1);
-                        newRowAdded.load("cells/items");
+                        logger(`➕ Thêm hàng mới cho thành viên thứ ${memberIdx + 1}...`);
+                        const newRowsAdded = table.addRows("End", 1);
+                        newRowsAdded.load("items/cells/items");
                         await context.sync();
                         
-                        const newCells = newRowAdded.cells.items;
-                        for (let c = 0; c < newCells.length && memberIdx < members.length; c++) {
-                            await safeFillCell(context, newCells[c], members[memberIdx]);
-                            memberIdx++;
+                        if (newRowsAdded.items.length > 0) {
+                            const newRow = newRowsAdded.items[0];
+                            const rowCells = newRow.cells.items;
+                            
+                            // Nếu bảng có >= 2 cột, chúng ta bỏ qua cột đầu tiên (dưới cột Nơi nhận) để căn chỉnh đẹp hơn
+                            const startCol = rowCells.length >= 2 ? 1 : 0;
+                            
+                            for (let c = startCol; c < rowCells.length && memberIdx < members.length; c++) {
+                                await safeFillCell(context, rowCells[c], members[memberIdx]);
+                                memberIdx++;
+                            }
+                        } else {
+                            break;
                         }
                     } catch (e) {
-                        logger(`🛑 Lỗi cấu trúc bảng khi thêm hàng.`);
+                        logger(`🛑 Lỗi cấu trúc bảng khi thêm hàng: ${e.message}`);
                         break;
                     }
                 }
