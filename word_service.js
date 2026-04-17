@@ -500,8 +500,11 @@ export const WordService = {
 
             if (isLienDanh) {
                 logger(`📝 Phân bổ ${members.length} thành viên vào bảng 3 cột...`);
+                logger(`💡 Dàn đều: bắt đầu từ ô 2 hàng 1 (sau "Nơi nhận") → hàng 2+ dùng toàn bộ 3 cột`);
+                
                 let memberIdx = 0;
-                // Điền hàng 1 (ô 1 và ô 2)
+                
+                // HÀNG 1: Điền ô 1 (cột 2) và ô 2 (cột 3) với 2 thành viên đầu tiên
                 for (let c = 1; c < 3 && memberIdx < members.length; c++) {
                     const cell = firstRow.cells.items[c];
                     cell.body.insertText(members[memberIdx].toUpperCase(), "Replace");
@@ -509,11 +512,15 @@ export const WordService = {
                     cell.body.paragraphs.getFirst().alignment = "Centered";
                     memberIdx++;
                 }
-                // Hàng tiếp theo
+                await context.sync();
+                
+                // CÁC HÀN TIẾP THEO: Mỗi hàng dùng toàn bộ 3 cột (0, 1, 2) để dàn đều hơn
                 while (memberIdx < members.length) {
                     const newRow = table.addRows("End", 1);
                     newRow.load("cells/items");
                     await context.sync();
+                    
+                    // Dàn 3 thành viên mỗi hàng từ cột 0
                     for (let c = 0; c < 3 && memberIdx < members.length; c++) {
                         const cell = newRow.cells.items[c];
                         cell.body.insertText(members[memberIdx].toUpperCase(), "Replace");
@@ -523,8 +530,9 @@ export const WordService = {
                     }
                     await context.sync();
                 }
+                
             } else {
-                logger(`📝 Cập nhật tên đơn vị vào bảng 2 cột...`);
+                logger(`📝 Cập nhật tên đơn vị vào bảng 2 cột (Chế độ Thường)...`);
                 if (firstRow.cells.items.length > 1) {
                     const cell = firstRow.cells.items[1];
                     cell.body.insertText(dvtcText || " ", "Replace");
