@@ -357,7 +357,7 @@ export const WordService = {
                 logger(`✓ Tìm thấy bảng CHỨA TRONG bookmark.`);
             } else {
                 // Thử tìm bảng lân cận bookmark (trước, sau hoặc đè lên)
-                logger(`🔍 Bookmark không chứa bảng, đang tìm bảng lân cận...`);
+                logger(`🔍 Bookmark không trực tiếp chứa bảng, đang quét lân cận...`);
                 const allTables = context.document.tables;
                 allTables.load("items");
                 await context.sync();
@@ -377,7 +377,7 @@ export const WordService = {
             }
 
             if (!table) {
-                logger(`⚠️ Không tìm thấy bảng nào liên quan đến bookmark ${bookmarkName}`);
+                logger(`⚠️ Không thấy bảng ký tên nào gần bookmark ${bookmarkName}`);
                 return;
             }
 
@@ -387,28 +387,50 @@ export const WordService = {
             const colCount = table.columns.items.length;
             const targetColCount = isLienDanh ? 3 : 2;
 
-            logger(`→ Chế độ: ${isLienDanh ? 'Liên danh' : 'Thường'}. Số cột hiện tại: ${colCount}, mục tiêu: ${targetColCount}`);
+            logger(`→ Chế độ: ${isLienDanh ? 'Liên danh' : 'Thường'}. Số cột: ${colCount} -> ${targetColCount}`);
 
             // Điều chỉnh số cột
             if (colCount < targetColCount) {
-                logger(`➕ Thêm ${targetColCount - colCount} cột...`);
-                table.insertColumns("End", targetColCount - colCount);
-                await context.sync();
-            } else if (colCount > targetColCount) {
-                logger(`➖ Xóa ${colCount - targetColCount} cột dư...`);
-                for (let c = colCount - 1; c >= targetColCount; c--) {
-                    table.columns.items[c].delete();
+                try {
+                    logger(`➕ Đang chèn thêm cột...`);
+                    table.insertColumns("End", targetColCount - colCount);
+                    await context.sync();
+                } catch (e) {
+                    logger(`🛑 Không thể chèn cột (Bảng bị gộp?): ${e.message}`);
                 }
-                await context.sync();
+            } else if (colCount > targetColCount) {
+                try {
+                    logger(`➖ Đang xóa cột dư...`);
+                    for (let c = colCount - 1; c >= targetColCount; c--) {
+                        table.columns.items[c].delete();
+                    }
+                    await context.sync();
+                } catch (e) {
+                    logger(`🛑 Không thể xóa cột: ${e.message}`);
+                }
             }
 
             // Xóa nội dung cũ (trừ ô Nơi nhận - Cell(0,0))
             const rowCount = table.rowCount;
             if (rowCount > 1) {
-                logger(`🗑 Xóa ${rowCount - 1} hàng cũ...`);
-                table.deleteRows(1, rowCount - 1);
+                try {
+                    logger(`🗑 Đang dọn dẹp ${rowCount - 1} hàng cũ...`);
+                    table.deleteRows(1, rowCount - 1);
+                    await context.sync();
+                } catch (e) {
+                    logger(`🛑 Lỗi xóa hàng: ${e.message}`);
+                    // Fallback: xóa nội dung từng ô
+                    table.load("rows/items");
+                    await context.sync();
+                    for (let j = 1; j < table.rows.items.length; j++) {
+                        table.rows.items[j].load("cells/items");
+                    }
+                    await context.sync();
+                    for (let j = 1; j < table.rows.items.length; j++) {
+                        table.rows.items[j].cells.items.forEach(c => c.body.clear());
+                    }
+                }
             }
-            await context.sync();
 
             // Xóa text các ô đơn vị hàng đầu (trừ ô 0,0)
             const firstRow = table.rows.getFirst();
@@ -420,50 +442,58 @@ export const WordService = {
             }
 
             if (isLienDanh) {
-                logger(`📝 Phân bổ ${membersList.length} thành viên vào 3 cột...`);
+                const members = Array.isArray(membersList) ? membersList.filter(m => m && m.trim() !== "") : [];
+                logger(`📝 Đang phân bổ ${members.length} thành viên Liên danh...`);
                 let currentMemberIdx = 0;
                 
                 // Điền vào hàng đầu tiên (ô 1 và ô 2)
-                for (let c = 1; c < 3 && currentMemberIdx < membersList.length; c++) {
+                for (let c = 1; c < 3 && currentMemberIdx < members.length; c++) {
                     const cell = firstRow.cells.items[c];
-                    cell.body.insertText(membersList[currentMemberIdx], "Replace");
+                    cell.body.insertText(members[currentMemberIdx].toUpperCase(), "Replace");
                     cell.body.paragraphs.getFirst().font.bold = true;
                     cell.body.paragraphs.getFirst().alignment = "Centered";
                     currentMemberIdx++;
                 }
 
                 // Nếu còn thành viên, thêm hàng mới và điền vào cả 3 cột
-                while (currentMemberIdx < membersList.length) {
+                while (currentMemberIdx < members.length) {
+                    logger(`➕ Thêm hàng mới cho thành viên tiếp theo...`);
                     const newRow = table.addRows("End", 1);
                     newRow.load("cells/items");
                     await context.sync();
 
-                    for (let c = 0; c < 3 && currentMemberIdx < membersList.length; c++) {
+                    for (let c = 0; c < 3 && currentMemberIdx < members.length; c++) {
                         const cell = newRow.cells.items[c];
-                        cell.body.insertText(membersList[currentMemberIdx], "Replace");
+                        cell.body.insertText(members[currentMemberIdx].toUpperCase(), "Replace");
                         cell.body.paragraphs.getFirst().font.bold = true;
                         cell.body.paragraphs.getFirst().alignment = "Centered";
                         currentMemberIdx++;
                     }
+                    await context.sync();
                 }
             } else {
                 logger(`📝 Điền tên Đơn vị vào bảng 2 cột...`);
-                const cell = firstRow.cells.items[1];
-                cell.body.insertText(dvtcName || " ", "Replace");
-                cell.body.paragraphs.getFirst().font.bold = true;
-                cell.body.paragraphs.getFirst().alignment = "Centered";
+                // Trong TH không phải Liên danh, ô đơn vị là ô index 1
+                if (firstRow.cells.items.length > 1) {
+                    const cell = firstRow.cells.items[1];
+                    cell.body.insertText((dvtcName || "").toUpperCase(), "Replace");
+                    cell.body.paragraphs.getFirst().font.bold = true;
+                    cell.body.paragraphs.getFirst().alignment = "Centered";
+                }
             }
 
             // Căn chỉnh lề dọc cho toàn bảng
             table.load("rows/items");
             await context.sync();
-            table.rows.items.forEach(row => {
-               row.cells.load("items");
-            });
+            for(let r=0; r < table.rows.items.length; r++) {
+               table.rows.items[r].cells.load("items");
+            }
             await context.sync();
+            
             table.rows.items.forEach(row => {
                 row.cells.items.forEach(cell => {
                     cell.verticalAlignment = "Center";
+                    cell.shadingColor = "#FFFFFF";
                 });
             });
 
