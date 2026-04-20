@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=17042026.1741';
-import { StorageService } from './storage_service.js?v=17042026.1741';
-import { MockData } from './mock_data.js?v=17042026.1741';
+import { WordService } from './word_service.js?v=20042026.1006';
+import { StorageService } from './storage_service.js?v=20042026.1006';
+import { MockData } from './mock_data.js?v=20042026.1006';
 
 /* global Office, lucide */
 
@@ -726,6 +726,10 @@ function renderExportSettings(container) {
                 const folderHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
                 state.exportFolderHandle = folderHandle;
                 state.exportFolderLabel = folderHandle.name || 'Thư mục được chọn';
+                
+                // Cập nhật: Lưu handle vào IndexedDB để dùng cho lần sau (Bền vững)
+                await StorageService.saveFolderHandle(folderHandle);
+                
                 exportFolderLabel.innerText = `Thư mục đã chọn: ${state.exportFolderLabel}`;
                 showToast('Đã chọn thư mục lưu.', 'success');
             } catch (err) {
@@ -1180,6 +1184,11 @@ function registerEvents() {
             state.soHDForExport = "";
             state.hasExportedMaster = false;
             state.hasSplitFiles = false;
+            
+            // Cập nhật: Xóa thông tin thư mục đã chọn
+            state.exportFolderHandle = null;
+            state.exportFolderLabel = "";
+            await StorageService.clearFolderHandle();
             
             await saveState();
             renderContent();
