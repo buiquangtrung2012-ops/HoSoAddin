@@ -71,6 +71,22 @@ export const StorageService = {
         }
     },
 
+    /**
+     * Xóa Directory Handle khỏi IndexedDB
+     */
+    clearFolderHandle: async () => {
+        try {
+            const db = await StorageService._openDB();
+            const tx = db.transaction("handles", "readwrite");
+            const store = tx.objectStore("handles");
+            await store.delete("exportFolder");
+            return true;
+        } catch (e) {
+            console.error("Lỗi xóa Handle khỏi IDB:", e);
+            return false;
+        }
+    },
+
     _openDB: () => {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open("HoSoAddinDB", 1);
