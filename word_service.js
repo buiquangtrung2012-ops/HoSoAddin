@@ -970,7 +970,7 @@ export const WordService = {
                 {
                     folder: "1. To trinh Nhan su thi cong",
                     bookmarks: ["TT_BCH"],
-                    fileName: "0.QD thanh lap BCH.docx"
+                    fileName: "0. QD thanh lap BCH.docx"
                 },
                 {
                     folder: "1. To trinh Nhan su thi cong",
