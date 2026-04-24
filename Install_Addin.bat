@@ -2,49 +2,55 @@
 setlocal
 chcp 65001 >nul
 
-set "INSTALL_DIR=%APPDATA%\HoSoAddin"
-set "GITHUB_URL=https://raw.githubusercontent.com/buiquangtrung2012-ops/HoSoAddin/main"
-
 echo ==================================================
-echo CHUONG TRINH CAI DAT ADD-IN (FIX POWERSHELL CMD)
+echo CHUONG TRINH CAI DAT ADD-IN (FINAL FIX)
 echo ==================================================
 
-:: 1. Tao thu muc
-if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
+:: 1. Tao file script PowerShell tam thoi de xu ly chinh xac
+set "PS_SCRIPT=%TEMP%\install_hoso.ps1"
 
-echo [1/4] Dang tai file manifest.xml moi nhat...
-powershell -ExecutionPolicy Bypass -Command "(New-Object Net.WebClient).DownloadFile('%GITHUB_URL%/manifest.xml', '%INSTALL_DIR%\manifest.xml')"
+echo $appdata = [System.Environment]::GetFolderPath('ApplicationData') > "%PS_SCRIPT%"
+echo $installDir = Join-Path $appdata "HoSoAddin" >> "%PS_SCRIPT%"
+echo if (!(Test-Path $installDir)) { New-Item -ItemType Directory -Path $installDir -Force } >> "%PS_SCRIPT%"
+echo. >> "%PS_SCRIPT%"
+echo # Tai manifest tu GitHub >> "%PS_SCRIPT%"
+echo $url = "https://raw.githubusercontent.com/buiquangtrung2012-ops/HoSoAddin/main/manifest.xml" >> "%PS_SCRIPT%"
+echo $dest = Join-Path $installDir "manifest.xml" >> "%PS_SCRIPT%"
+echo (New-Object Net.WebClient).DownloadFile($url, $dest) >> "%PS_SCRIPT%"
+echo. >> "%PS_SCRIPT%"
+echo # Dang ky Registry >> "%PS_SCRIPT%"
+echo $guid = "{B1A9908E-1C4F-40E2-9EED-7C919D12DF01}" >> "%PS_SCRIPT%"
+echo $wefPath = "HKCU:\Software\Microsoft\Office\16.0\WEF\TrustedCatalogs\$guid" >> "%PS_SCRIPT%"
+echo if (!(Test-Path $wefPath)) { New-Item -Path $wefPath -Force } >> "%PS_SCRIPT%"
+echo Set-ItemProperty -Path $wefPath -Name "Id" -Value $guid >> "%PS_SCRIPT%"
+echo Set-ItemProperty -Path $wefPath -Name "Url" -Value $installDir >> "%PS_SCRIPT%"
+echo Set-ItemProperty -Path $wefPath -Name "Flags" -Value 1 -Type DWord >> "%PS_SCRIPT%"
+echo. >> "%PS_SCRIPT%"
+echo # Word Trusted Location >> "%PS_SCRIPT%"
+echo $wordLoc = "HKCU:\Software\Microsoft\Office\16.0\Word\Security\Trusted Locations\HoSoAddin" >> "%PS_SCRIPT%"
+echo if (!(Test-Path $wordLoc)) { New-Item -Path $wordLoc -Force } >> "%PS_SCRIPT%"
+echo Set-ItemProperty -Path $wordLoc -Name "Path" -Value $installDir >> "%PS_SCRIPT%"
+echo Set-ItemProperty -Path $wordLoc -Name "AllowSubfolders" -Value 1 -Type DWord >> "%PS_SCRIPT%"
+echo Set-ItemProperty -Path $wordLoc -Name "Description" -Value "HoSoAddin Catalog" >> "%PS_SCRIPT%"
+echo. >> "%PS_SCRIPT%"
+echo # Xoa cache Office >> "%PS_SCRIPT%"
+echo $cachePath = Join-Path $env:LOCALAPPDATA "Microsoft\Office\16.0\Wef" >> "%PS_SCRIPT%"
+echo if (Test-Path $cachePath) { Remove-Item -Recurse -Force $cachePath } >> "%PS_SCRIPT%"
 
-echo [2/4] Dang tai file Mau_ToTrinh.docx...
-powershell -ExecutionPolicy Bypass -Command "(New-Object Net.WebClient).DownloadFile('%GITHUB_URL%/Mau_ToTrinh.docx', '%INSTALL_DIR%\Mau_ToTrinh.docx')"
+:: 2. Chay script vua tao
+powershell -ExecutionPolicy Bypass -File "%PS_SCRIPT%"
 
-echo [3/4] Xoa bo nho dem va cac thiet lap cu...
-rmdir /s /q "%LocalAppData%\Microsoft\Office\16.0\Wef" >nul 2>&1
-
-echo [4/4] Dang ky he thong tin cay (Sua loi lenh PowerShell)...
-powershell -ExecutionPolicy Bypass -Command ^
-    "$dir = '%INSTALL_DIR%';" ^
-    "$guid = '{B1A9908E-1C4F-40E2-9EED-7C919D12DF01}';" ^
-    "$wefPath = \"HKCU:\Software\Microsoft\Office\16.0\WEF\TrustedCatalogs\$guid\";" ^
-    "if (!(Test-Path $wefPath)) { New-Item -Path $wefPath -Force };" ^
-    "Set-ItemProperty -Path $wefPath -Name 'Id' -Value $guid;" ^
-    "Set-ItemProperty -Path $wefPath -Name 'Url' -Value $dir;" ^
-    "Set-ItemProperty -Path $wefPath -Name 'Flags' -Value 1 -Type DWord;" ^
-    "$wordLoc = 'HKCU:\Software\Microsoft\Office\16.0\Word\Security\Trusted Locations\HoSoAddin';" ^
-    "if (!(Test-Path $wordLoc)) { New-Item -Path $wordLoc -Force };" ^
-    "Set-ItemProperty -Path $wordLoc -Name 'Path' -Value $dir;" ^
-    "Set-ItemProperty -Path $wordLoc -Name 'AllowSubfolders' -Value 1 -Type DWord;" ^
-    "Set-ItemProperty -Path $wordLoc -Name 'Description' -Value 'HoSoAddin Catalog';"
+:: 3. Xoa file tam
+del "%PS_SCRIPT%"
 
 echo.
 echo ==================================================
 echo DA CAI DAT XONG! 
 echo.
-echo QUY TRINH CUOI CUNG:
-echo 1. Tat tat ca cac cua so Word dang mo.
-echo 2. Mo lai Word.
-echo 3. Vao tab Insert -^> My Add-ins.
-echo 4. Bam nut "Refresh" (lam moi) o goc tren ben phai.
-echo 5. Tab "SHARED FOLDER" se hien ra va co Add-in o do.
+echo HAY LAM THEO BUOC NAY:
+echo 1. Tat het Word va mo lai.
+echo 2. Vao tab Insert -^> My Add-ins.
+echo 3. Bam nut "Refresh" (lam moi) o goc tren ben phai.
+echo 4. Tab "SHARED FOLDER" se hien ra ngay lap tuc.
 echo ==================================================
 pause
