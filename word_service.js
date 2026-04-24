@@ -929,23 +929,13 @@ export const WordService = {
         const { folderHandle = null, outputMode = 'zip', useProjectNameFolder = true, onProgress = null } = options || {};
         const useZip = outputMode === 'zip' || !folderHandle;
 
-        let rootFolderName = "HoSo";
-        let baseName = "Du_An";
-        
-        if (useProjectNameFolder && tenDuAn) {
-            baseName = WordService._removeDiacritics(tenDuAn)
-                .replace(/[\/\\:*?"<>|]/g, '_')
-                .replace(/\s+/g, ' ')
-                .trim();
-            rootFolderName = baseName || "HoSo";
-        } else {
-            baseName = WordService.xuLyLayTenDuAn(tenDuAn || "Du_An")
-                .replace(/[\/\\:*?"<>|]/g, '_')
-                .replace(/\s+/g, '_')
-                .replace(/_+/g, '_')
-                .replace(/^_+|_+$/, '');
-            rootFolderName = baseName || "HoSo";
-        }
+        const baseName = WordService.xuLyLayTenDuAn(tenDuAn || "Du_An")
+            .replace(/[\/\\:*?"<>|]/g, '_')
+            .replace(/\s+/g, '_')
+            .replace(/_+/g, '_')
+            .replace(/^_+|_+$/, '');
+
+        const rootFolderName = useProjectNameFolder ? "1. Ho so dau vao" : (baseName || "HoSo");
 
         const fullBlob = await WordService.getFileContent();
 
@@ -959,7 +949,7 @@ export const WordService = {
         if (mode === 'master') {
             if (onProgress) onProgress("Đang tạo file tổng...", 50);
             const folderName = rootFolderName;
-            const fileName = useProjectNameFolder ? "1. Ho so dau vao.docx" : `HoSoTongHop_${baseName}.docx`;
+            const fileName = `HoSoTongHop_${baseName}.docx`;
             if (folderHandle) {
                 await WordService._saveBlobToFolder(folderHandle, `${folderName}/${fileName}`, fullBlob);
                 console.log(`✅ Lưu file tổng vào thư mục đã chọn: ${folderName}/${fileName}`);
