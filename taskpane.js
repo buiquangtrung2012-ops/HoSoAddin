@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=24042026.1116';
-import { StorageService } from './storage_service.js?v=24042026.1116';
-import { MockData } from './mock_data.js?v=24042026.1116';
+import { WordService } from './word_service.js?v=24042026.1659';
+import { StorageService } from './storage_service.js?v=24042026.1659';
+import { MockData } from './mock_data.js?v=24042026.1659';
 
 /* global Office, lucide */
 
@@ -1219,7 +1219,7 @@ function registerEvents() {
             // Thay vì nạp MockData vào state, chúng ta reset state về rỗng
             // Điều này sẽ làm cho các Placeholder (chữ mờ) hiện lên
             state.duAn = {
-                tenDuAn: "", goiThau: "", dvtc: "", daiDienCDT: "", tvgs: "", ngayKhoiCong: "", ngayHoanThanh: ""
+                tenDuAn: "", goiThau: "", dvtc: "", daiDienCDT: "", tvgs: "", ngayKhoiCong: "", ngayHoanThanh: "", isLienDanh: false, dvtcMembers: []
             };
             state.nhanSu = [];
             state.mayMoc = [];
@@ -1238,8 +1238,13 @@ function registerEvents() {
             await saveState();
             renderContent();
             lucide.createIcons();
-            showToast("Đã làm mới dữ liệu và hiển thị ghi chú mờ!", "success");
-            updateLog("✓ Đã hoàn thành khởi tạo lại giao diện mẫu.");
+            
+            // Xóa dữ liệu cũ trong Word bằng cách đồng bộ state rỗng
+            updateLog("Đang xóa trắng dữ liệu trong file Word...");
+            await syncDataToWord();
+            
+            showToast("Đã làm mới toàn bộ dữ liệu!", "success");
+            updateLog("✓ Đã xóa dữ liệu trên Add-in và trong file Word.");
         } catch (err) {
             showToast("Lỗi khi xóa dữ liệu: " + err.message, "error");
         }
