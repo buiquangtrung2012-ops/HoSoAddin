@@ -6,7 +6,7 @@ set "INSTALL_DIR=%APPDATA%\HoSoAddin"
 set "GITHUB_URL=https://raw.githubusercontent.com/buiquangtrung2012-ops/HoSoAddin/main"
 
 echo ==================================================
-echo CHUONG TRINH CAI DAT ADD-IN (FIX TRUNCATION)
+echo CHUONG TRINH CAI DAT ADD-IN (FIX POWERSHELL CMD)
 echo ==================================================
 
 :: 1. Tao thu muc
@@ -21,7 +21,7 @@ powershell -ExecutionPolicy Bypass -Command "(New-Object Net.WebClient).Download
 echo [3/4] Xoa bo nho dem va cac thiet lap cu...
 rmdir /s /q "%LocalAppData%\Microsoft\Office\16.0\Wef" >nul 2>&1
 
-echo [4/4] Dang ky he thong tin cay bang PowerShell (Cuc ky chinh xac)...
+echo [4/4] Dang ky he thong tin cay (Sua loi lenh PowerShell)...
 powershell -ExecutionPolicy Bypass -Command ^
     "$dir = '%INSTALL_DIR%';" ^
     "$guid = '{B1A9908E-1C4F-40E2-9EED-7C919D12DF01}';" ^
@@ -29,11 +29,11 @@ powershell -ExecutionPolicy Bypass -Command ^
     "if (!(Test-Path $wefPath)) { New-Item -Path $wefPath -Force };" ^
     "Set-ItemProperty -Path $wefPath -Name 'Id' -Value $guid;" ^
     "Set-ItemProperty -Path $wefPath -Name 'Url' -Value $dir;" ^
-    "Set-ItemProperty -Path $wefPath -Name 'Flags' -Value 1 -PropertyType DWord;" ^
+    "Set-ItemProperty -Path $wefPath -Name 'Flags' -Value 1 -Type DWord;" ^
     "$wordLoc = 'HKCU:\Software\Microsoft\Office\16.0\Word\Security\Trusted Locations\HoSoAddin';" ^
     "if (!(Test-Path $wordLoc)) { New-Item -Path $wordLoc -Force };" ^
     "Set-ItemProperty -Path $wordLoc -Name 'Path' -Value $dir;" ^
-    "Set-ItemProperty -Path $wordLoc -Name 'AllowSubfolders' -Value 1 -PropertyType DWord;" ^
+    "Set-ItemProperty -Path $wordLoc -Name 'AllowSubfolders' -Value 1 -Type DWord;" ^
     "Set-ItemProperty -Path $wordLoc -Name 'Description' -Value 'HoSoAddin Catalog';"
 
 echo.
