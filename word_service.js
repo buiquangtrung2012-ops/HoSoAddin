@@ -664,10 +664,11 @@ export const WordService = {
                 if (idx !== -1 && (idx === 0 || segLower[idx - 1] === ' ')) {
                     const nameRaw = seg.slice(idx + kw.length).trim();
                     if (nameRaw) {
-                        // Bỏ dấu + xóa khoảng trắng → "VanHoa", "BaVi"
+                        // Bỏ dấu, giữ lại khoảng trắng, xóa ký tự đặc biệt
                         const clean = WordService._removeDiacritics(nameRaw)
-                            .replace(/\s+/g, '')
-                            .replace(/[^A-Za-z0-9]/g, '');
+                            .replace(/[^A-Za-z0-9\s]/g, '')
+                            .replace(/\s+/g, ' ')
+                            .trim();
                         if (clean) locationNames.push(clean);
                         break; // Mỗi segment chỉ lấy 1 tên
                     }
@@ -931,9 +932,10 @@ export const WordService = {
 
         const baseName = WordService.xuLyLayTenDuAn(tenDuAn || "Du_An")
             .replace(/[\/\\:*?"<>|]/g, '_')
-            .replace(/\s+/g, '_')
+            .replace(/\s+/g, ' ')
             .replace(/_+/g, '_')
-            .replace(/^_+|_+$/, '');
+            .replace(/^_+|_+$/, '')
+            .trim();
 
         const rootFolderName = useProjectNameFolder ? "1. Ho so dau vao" : (baseName || "HoSo");
 
