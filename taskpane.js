@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=24042026.1015';
-import { StorageService } from './storage_service.js?v=24042026.1015';
-import { MockData } from './mock_data.js?v=24042026.1015';
+import { WordService } from './word_service.js?v=24042026.1027';
+import { StorageService } from './storage_service.js?v=24042026.1027';
+import { MockData } from './mock_data.js?v=24042026.1027';
 
 /* global Office, lucide */
 
@@ -28,7 +28,8 @@ let state = {
     vatLieu: [],
     thiNghiem: [],
     outputMode: 'multiple',
-    autoSplitOnUpdate: false
+    autoSplitOnUpdate: false,
+    useProjectNameFolder: true
 };
 
 // --- CONFIGURATION ---
@@ -92,6 +93,7 @@ async function loadState() {
         state.hasSplitFiles = syncState.hasSplitFiles || false;
         state.outputMode = syncState.outputMode || 'multiple';
         state.autoSplitOnUpdate = syncState.autoSplitOnUpdate ?? false;
+        state.useProjectNameFolder = syncState.useProjectNameFolder ?? true;
         state.soHDForExport = syncState.soHDForExport || "";
         
         // Migration: Tự động chuyển số hợp đồng từ cấu hình tập tin sang thông tin dự án nếu chưa có
@@ -121,6 +123,7 @@ async function saveState() {
         hasSplitFiles: state.hasSplitFiles,
         outputMode: state.outputMode,
         autoSplitOnUpdate: state.autoSplitOnUpdate,
+        useProjectNameFolder: state.useProjectNameFolder,
         soHDForExport: state.duAn.soHD // Sync back to the old field for compatibility
     });
 }
@@ -693,6 +696,13 @@ function renderExportSettings(container) {
                         <p class="text-[10px] text-slate-500">Tự động xuất lại các file đã tách khi nhấn "CẬP NHẬT HỒ SƠ"</p>
                     </div>
                 </label>
+                <label class="flex items-center gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl cursor-pointer hover:bg-slate-100 transition-all mt-3">
+                    <input type="checkbox" id="chkUseProjectName" ${state.useProjectNameFolder ? 'checked' : ''} class="w-5 h-5 text-indigo-600 rounded">
+                    <div>
+                        <p class="text-sm font-bold text-slate-700">Tạo thư mục theo tên dự án</p>
+                        <p class="text-[10px] text-slate-500">Đặt tên thư mục tổng là Tên dự án, file tổng là "1. Ho so dau vao"</p>
+                    </div>
+                </label>
             </div>
         </div>
     `;
@@ -701,6 +711,14 @@ function renderExportSettings(container) {
     if (chkAutoSplit) {
         chkAutoSplit.onchange = async () => {
             state.autoSplitOnUpdate = chkAutoSplit.checked;
+            await saveState();
+        };
+    }
+
+    const chkUseProjectName = container.querySelector('#chkUseProjectName');
+    if (chkUseProjectName) {
+        chkUseProjectName.onchange = async () => {
+            state.useProjectNameFolder = chkUseProjectName.checked;
             await saveState();
         };
     }
@@ -951,14 +969,16 @@ async function onCapNhatClick() {
                 if (state.hasExportedMaster) {
                     await WordService.processExport('master', state.duAn.tenDuAn, {
                         folderHandle: state.exportFolderHandle,
-                        outputMode: state.outputMode
+                        outputMode: state.outputMode,
+                        useProjectNameFolder: state.useProjectNameFolder
                     });
                     updateLog("✓ Đã cập nhật ghi đè file tổng.", 97);
                 }
                 if (state.hasSplitFiles && state.autoSplitOnUpdate) {
                     await WordService.processExport('split', state.duAn.tenDuAn, {
                         folderHandle: state.exportFolderHandle,
-                        outputMode: state.outputMode
+                        outputMode: state.outputMode,
+                        useProjectNameFolder: state.useProjectNameFolder
                     });
                     updateLog("✓ Đã cập nhật ghi đè file tách.", 98);
                 }
@@ -1098,6 +1118,7 @@ async function onTachClick() {
         await WordService.processExport('split', state.duAn.tenDuAn, {
             folderHandle: state.exportFolderHandle,
             outputMode: state.outputMode,
+            useProjectNameFolder: state.useProjectNameFolder,
             onProgress: (msg, percent) => updateLog(msg, percent)
         });
         state.hasSplitFiles = true;
@@ -1158,6 +1179,7 @@ async function onXuatClick() {
         await WordService.processExport('master', state.duAn.tenDuAn, {
             folderHandle: state.exportFolderHandle,
             outputMode: state.outputMode,
+            useProjectNameFolder: state.useProjectNameFolder,
             onProgress: (msg, percent) => updateLog(msg, percent)
         });
         state.hasExportedMaster = true;
