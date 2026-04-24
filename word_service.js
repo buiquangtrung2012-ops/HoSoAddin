@@ -926,15 +926,26 @@ export const WordService = {
      * Đóng gói Hồ sơ (Xuất Tổng hoặc Tách Folder ZIP theo Bookmark)
      */
     processExport: async (mode, tenDuAn, options = {}) => {
-        const { folderHandle = null, outputMode = 'zip', onProgress = null } = options || {};
+        const { folderHandle = null, outputMode = 'zip', useProjectNameFolder = true, onProgress = null } = options || {};
         const useZip = outputMode === 'zip' || !folderHandle;
 
-        // Trích xuất địa danh làm tên file/folder
-        const baseName = WordService.xuLyLayTenDuAn(tenDuAn || "Du_An")
-            .replace(/[\/\\:*?"<>|]/g, '_')
-            .replace(/\s+/g, '_')
-            .replace(/_+/g, '_')
-            .replace(/^_+|_+$/, '');
+        let rootFolderName = "HoSo";
+        let baseName = "Du_An";
+        
+        if (useProjectNameFolder && tenDuAn) {
+            baseName = WordService._removeDiacritics(tenDuAn)
+                .replace(/[\/\\:*?"<>|]/g, '_')
+                .replace(/\s+/g, ' ')
+                .trim();
+            rootFolderName = baseName || "HoSo";
+        } else {
+            baseName = WordService.xuLyLayTenDuAn(tenDuAn || "Du_An")
+                .replace(/[\/\\:*?"<>|]/g, '_')
+                .replace(/\s+/g, '_')
+                .replace(/_+/g, '_')
+                .replace(/^_+|_+$/, '');
+            rootFolderName = baseName || "HoSo";
+        }
 
         const fullBlob = await WordService.getFileContent();
 
@@ -947,8 +958,8 @@ export const WordService = {
 
         if (mode === 'master') {
             if (onProgress) onProgress("Đang tạo file tổng...", 50);
-            const folderName = baseName || 'HoSo';
-            const fileName = `HoSoTongHop_${baseName}.docx`;
+            const folderName = rootFolderName;
+            const fileName = useProjectNameFolder ? "1. Ho so dau vao.docx" : `HoSoTongHop_${baseName}.docx`;
             if (folderHandle) {
                 await WordService._saveBlobToFolder(folderHandle, `${folderName}/${fileName}`, fullBlob);
                 console.log(`✅ Lưu file tổng vào thư mục đã chọn: ${folderName}/${fileName}`);
@@ -1000,7 +1011,6 @@ export const WordService = {
                     fileName: "0. To trinh Thi nghiem vat lieu.docx"
                 }
             ];
-            const rootFolderName = baseName || 'HoSo';
             console.log(`Total required export entries: ${splitGroups.length}`);
 
             const zip = useZip ? new JSZip() : null;
