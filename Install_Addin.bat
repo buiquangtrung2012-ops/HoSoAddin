@@ -1,9 +1,9 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
 chcp 65001 >nul
 
 echo ==================================================
-echo CHUONG TRINH CAI DAT ADD-IN (OPEN SETTINGS)
+echo CHUONG TRINH CAI DAT ADD-IN (FIX UNC PATH)
 echo ==================================================
 
 :: 1. Tao file script PowerShell tam thoi
@@ -18,10 +18,13 @@ echo $url = "https://raw.githubusercontent.com/buiquangtrung2012-ops/HoSoAddin/m
 echo $dest = Join-Path $installDir "manifest.xml" >> "%PS_SCRIPT%"
 echo (New-Object Net.WebClient).DownloadFile($url, $dest) >> "%PS_SCRIPT%"
 echo. >> "%PS_SCRIPT%"
-echo # Copy duong dan vao Clipboard de nguoi dung chi viec Paste >> "%PS_SCRIPT%"
-echo Set-Clipboard -Value $installDir >> "%PS_SCRIPT%"
+echo # Chuyen doi sang duong dan UNC (\\localhost\c$\...) >> "%PS_SCRIPT%"
+echo $drive = $installDir.Substring(0,1) >> "%PS_SCRIPT%"
+echo $pathWithoutDrive = $installDir.Substring(3) >> "%PS_SCRIPT%"
+echo $uncPath = "\\localhost\$drive`$\$pathWithoutDrive" >> "%PS_SCRIPT%"
+echo Set-Clipboard -Value $uncPath >> "%PS_SCRIPT%"
 echo. >> "%PS_SCRIPT%"
-echo # Mo Word va tu dong bat cua so Trust Center (neu co the) >> "%PS_SCRIPT%"
+echo # Mo Word >> "%PS_SCRIPT%"
 echo Start-Process "winword.exe" >> "%PS_SCRIPT%"
 
 :: 2. Chay script
@@ -30,14 +33,14 @@ del "%PS_SCRIPT%"
 
 echo.
 echo ==================================================
-echo QUY TRINH 3 GIAY DE DUC DIEM LOI:
+echo QUY TRINH FIX LOI CHUOI "HTTPS":
 echo.
-echo 1. Toi da COPY duong dan thu muc vao Clipboard cho ban.
-echo 2. Bay gio trong Word, hay vao: 
-echo    File -> Options -> Trust Center -> Trust Center Settings.
+echo 1. Toi da COPY duong dan dang MANG (UNC) vao Clipboard cho ban.
+echo 2. Trong Word, vao: File -^> Options -^> Trust Center -^> Settings.
 echo 3. Chon "Trusted Add-in Catalogs".
-echo 4. Click chuot vao o "Catalog Url", nhan CTRL + V roi bam "Add Catalog".
-echo 5. Tich vao o "Show in Menu" cua dong vua hien ra.
-echo 6. Bam OK, tat Word di mo lai la xong 100%%.
+echo 4. Paste (Ctrl + V) duong dan vao o "Catalog Url". 
+echo    (No se co dang: \\localhost\c$\Users\...)
+echo 5. Bam "Add Catalog" -> Tich vao "Show in Menu" -> Bam OK.
+echo 6. Tat Word di mo lai la se thay tab "HO SO" tren Toolbar.
 echo ==================================================
 pause
