@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=24042026.1027';
-import { StorageService } from './storage_service.js?v=24042026.1027';
-import { MockData } from './mock_data.js?v=24042026.1027';
+import { WordService } from './word_service.js?v=24042026.1035';
+import { StorageService } from './storage_service.js?v=24042026.1035';
+import { MockData } from './mock_data.js?v=24042026.1035';
 
 /* global Office, lucide */
 
@@ -699,8 +699,8 @@ function renderExportSettings(container) {
                 <label class="flex items-center gap-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl cursor-pointer hover:bg-slate-100 transition-all mt-3">
                     <input type="checkbox" id="chkUseProjectName" ${state.useProjectNameFolder ? 'checked' : ''} class="w-5 h-5 text-indigo-600 rounded">
                     <div>
-                        <p class="text-sm font-bold text-slate-700">Tạo thư mục theo tên dự án</p>
-                        <p class="text-[10px] text-slate-500">Đặt tên thư mục tổng là Tên dự án, file tổng là "1. Ho so dau vao"</p>
+                        <p class="text-sm font-bold text-slate-700">Tạo thư mục "1. Ho so dau vao"</p>
+                        <p class="text-[10px] text-slate-500">Đặt tên thư mục là cố định thay vì trích xuất từ tên dự án</p>
                     </div>
                 </label>
             </div>
