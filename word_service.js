@@ -353,7 +353,7 @@ export const WordService = {
                     }
                 } else {
                     range.insertText(text.toUpperCase(), "Replace");
-                    range.font.set({ bold: isBold, italic: false, size: 13, name: "Times New Roman" });
+                    range.font.set({ bold: isBold, italic: false, size: 11, name: "Times New Roman" });
                     await context.sync();
 
                     const firstP = cell.body.paragraphs.getFirst();
