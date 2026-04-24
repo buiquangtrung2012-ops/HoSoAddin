@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=24042026.1040';
-import { StorageService } from './storage_service.js?v=24042026.1040';
-import { MockData } from './mock_data.js?v=24042026.1040';
+import { WordService } from './word_service.js?v=24042026.1116';
+import { StorageService } from './storage_service.js?v=24042026.1116';
+import { MockData } from './mock_data.js?v=24042026.1116';
 
 /* global Office, lucide */
 
@@ -492,8 +492,8 @@ function renderList(container, type) {
     // Tính toán tỷ lệ % cho các cột để không bị vỡ khung
     const thead = document.createElement('thead');
     let wMap = { stt: '8%' };
-    if (type === 'mayMoc') wMap = { name: '28%', unit: '12%', qty: '12%', owner: '28%', status: '12%' };
-    else if (type === 'nhanSu') wMap = { name: '30%', role: '22%', major: '20%', phone: '20%' };
+    if (type === 'mayMoc') wMap = { name: '24%', unit: '10%', qty: '10%', owner: '36%', status: '12%' };
+    else if (type === 'nhanSu') wMap = { name: '24%', role: '23%', major: '25%', phone: '20%' };
     else if (type === 'vatLieu') wMap = { name: '28%', standard: '20%', origin: '20%', note: '24%' };
     else if (type === 'thiNghiem') wMap = { dvtn: '23%', address: '24%', ptn: '19%', func: '26%' };
 
