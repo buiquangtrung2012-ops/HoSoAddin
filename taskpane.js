@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=20042026.1006';
-import { StorageService } from './storage_service.js?v=20042026.1006';
-import { MockData } from './mock_data.js?v=20042026.1006';
+import { WordService } from './word_service.js?v=24042026.1015';
+import { StorageService } from './storage_service.js?v=24042026.1015';
+import { MockData } from './mock_data.js?v=24042026.1015';
 
 /* global Office, lucide */
 
@@ -926,6 +926,17 @@ async function syncDataToWord() {
     await WordService.applyModernStyleToDocument();
 }
 
+async function verifyPermission(fileHandle) {
+    const options = { mode: 'readwrite' };
+    if ((await fileHandle.queryPermission(options)) === 'granted') {
+        return true;
+    }
+    if ((await fileHandle.requestPermission(options)) === 'granted') {
+        return true;
+    }
+    return false;
+}
+
 async function onCapNhatClick() {
     try {
         updateLog("--- Bắt đầu Cập nhật dữ liệu ---", 2);
@@ -934,22 +945,27 @@ async function onCapNhatClick() {
         
         // Tự động ghi đè lại file đã xuất nếu có
         if (state.exportFolderHandle && (state.hasExportedMaster || (state.hasSplitFiles && state.autoSplitOnUpdate))) {
-            updateLog("Cập nhật thay thế các file DOCX gốc...", 96);
-            if (state.hasExportedMaster) {
-                await WordService.processExport('master', state.duAn.tenDuAn, {
-                    folderHandle: state.exportFolderHandle,
-                    outputMode: state.outputMode
-                });
-                updateLog("✓ Đã cập nhật ghi đè file tổng.", 97);
+            const hasPerm = await verifyPermission(state.exportFolderHandle);
+            if (hasPerm) {
+                updateLog("Cập nhật thay thế các file DOCX gốc...", 96);
+                if (state.hasExportedMaster) {
+                    await WordService.processExport('master', state.duAn.tenDuAn, {
+                        folderHandle: state.exportFolderHandle,
+                        outputMode: state.outputMode
+                    });
+                    updateLog("✓ Đã cập nhật ghi đè file tổng.", 97);
+                }
+                if (state.hasSplitFiles && state.autoSplitOnUpdate) {
+                    await WordService.processExport('split', state.duAn.tenDuAn, {
+                        folderHandle: state.exportFolderHandle,
+                        outputMode: state.outputMode
+                    });
+                    updateLog("✓ Đã cập nhật ghi đè file tách.", 98);
+                }
+                showToast("Đã cập nhật Word & xuất file thành công!", "success");
+            } else {
+                showToast("Không có quyền ghi vào thư mục để tự động xuất file!", "warning");
             }
-            if (state.hasSplitFiles && state.autoSplitOnUpdate) {
-                await WordService.processExport('split', state.duAn.tenDuAn, {
-                    folderHandle: state.exportFolderHandle,
-                    outputMode: state.outputMode
-                });
-                updateLog("✓ Đã cập nhật ghi đè file tách.", 98);
-            }
-            showToast("Đã cập nhật Word & xuất file thành công!", "success");
         } else {
             showToast("Đã cập nhật dữ liệu thành công!", "success");
         }
@@ -1015,7 +1031,14 @@ async function onImportFromDocClick() {
 }
 
 async function requestExportFolder() {
-    if (state.exportFolderHandle) return true;
+    if (state.exportFolderHandle) {
+        const hasPerm = await verifyPermission(state.exportFolderHandle);
+        if (hasPerm) return true;
+        // Nếu không được cấp quyền, reset handle và yêu cầu chọn lại
+        state.exportFolderHandle = null;
+        state.exportFolderLabel = "";
+    }
+    
     if (typeof window.showDirectoryPicker !== 'function') {
         updateLog('⚠️ Trình duyệt không hỗ trợ chọn thư mục trực tiếp. Hệ thống sẽ lưu file vào thư mục Download.');
         return false;
