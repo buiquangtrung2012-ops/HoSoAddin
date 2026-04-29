@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Hồ Sơ - Fluent UI</title>
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js" type="text/javascript"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap');
+
+        :root {
+            --fw-bg: #f3f6f9;
+            --fw-sidebar: #ffffff;
+            --fw-accent: #4f46e5;
+            --fw-card: #ffffff;
+            --fw-text-main: #1e293b;
+            --fw-text-muted: #64748b;
+            --radius-xl: 1.5rem;
+            --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+        }
+
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            background-color: var(--fw-bg);
+            color: var(--fw-text-main);
+            overflow: hidden;
+        }
+
+        .sidebar-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: var(--fw-text-muted);
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%;
+            border: none;
+            background: transparent;
+        }
+
+        .sidebar-btn:hover {
+            background-color: #f8fafc;
+            color: var(--fw-accent);
+        }
+
+        .sidebar-btn.active {
+            background-color: #4f46e515;
+            color: var(--fw-accent);
+        }
+
+        .sidebar-btn i {
+            width: 20px;
+            height: 20px;
+        }
+
+        .glass-card {
+            background: var(--fw-card);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid #f1f5f9;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .hero-card {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            border-radius: var(--radius-xl);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 20px 25px -5px rgba(79, 70, 229, 0.3);
+        }
+
+        .info-card {
+            background: white;
+            padding: 1rem 1.25rem;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 1px solid #f1f5f9;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .info-card:hover {
+            border-color: #e2e8f0;
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .action-card {
+            border-radius: 1.25rem;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 13px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            text-align: center;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .action-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .action-card i {
+            margin-bottom: 4px;
+        }
+
+        /* Responsive Buttons */
+        @media (max-width: 480px) {
+            .action-card { padding: 0.75rem; gap: 0; border-radius: 1rem; min-width: 44px; }
+            .action-card span { display: none; }
+            .action-card i { transform: scale(0.95); margin-bottom: 0; }
+            footer.p-8 { padding: 1rem; }
+        }
+
+        @media (max-width: 380px) {
+            .action-card { padding: 0.5rem; }
+            .action-card i { transform: scale(0.8); }
+        }
+
+        .action-card span { display: none; } /* Mặc định ẩn chữ theo yêu cầu mới */
+        .action-card { padding: 1rem; gap: 0; min-height: 3.5rem; justify-content: center; }
+        .action-card i { margin-bottom: 0; }
+
+        /* Nút màu sắc theo thiết kế mới */
+        .btn-capnhat { background: #e0e7ff; color: #4338ca; }
+        .btn-tach { background: #ecfeff; color: #0891b2; }
+        .btn-nhap { background: #ecfdf5; color: #059669; }
+        .btn-xuat { background: #f5f3ff; color: #7c3aed; }
+        .btn-reset { background: #fef2f2; color: #dc2626; }
+
+        .btn-capnhat:hover { background: #c7d2fe; }
+        .btn-tach:hover { background: #cffafe; }
+        .btn-nhap:hover { background: #d1fae5; }
+        .btn-xuat:hover { background: #ede9fe; }
+        .btn-reset:hover { background: #fee2e2; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        .input-inline {
+            background: transparent;
+            border: none;
+            outline: none;
+            width: 100%;
+            font-size: 13px;
+            color: var(--fw-text-muted);
+            padding: 0;
+            margin-top: 2px;
+        }
+        .input-inline:focus { color: var(--fw-text-main); }
+
+        .flatpickr-calendar {
+            transform: scale(0.85);
+            transform-origin: top left;
+        }
+    </style>
+</head>
+
+<body class="flex h-screen bg-[#f3f6f9]">
+
+    <!-- Sidebar -->
+    <aside class="w-20 bg-white border-r border-slate-100 p-4 flex flex-col gap-8 overflow-y-auto overflow-x-hidden flex-shrink-0 custom-scrollbar h-full">
+        <div class="flex flex-col items-center gap-2">
+            <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+                <i data-lucide="layers" class="text-white"></i>
+            </div>
+        </div>
+
+        <nav class="flex flex-col gap-4 items-center">
+            <button data-tab="duAn" class="sidebar-btn active justify-center p-3" title="Dự án">
+                <i data-lucide="home"></i>
+            </button>
+            <button data-tab="nhanSu" class="sidebar-btn justify-center p-3" title="Nhân sự">
+                <i data-lucide="users"></i>
+            </button>
+            <button data-tab="mayMoc" class="sidebar-btn justify-center p-3" title="Máy móc">
+                <i data-lucide="truck"></i>
+            </button>
+            <button data-tab="vatLieu" class="sidebar-btn justify-center p-3" title="Vật liệu">
+                <i data-lucide="package"></i>
+            </button>
+            <button data-tab="thiNghiem" class="sidebar-btn justify-center p-3" title="Phòng TN">
+                <i data-lucide="microscope"></i>
+            </button>
+            <button data-tab="xuatBan" class="sidebar-btn justify-center p-3" title="Cài đặt">
+                <i data-lucide="settings"></i>
+            </button>
+            <button data-tab="mauHoSo" class="sidebar-btn justify-center p-3" title="Tạo mẫu">
+                <i data-lucide="layout-template"></i>
+            </button>
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <!-- Header -->
+        <header class="h-16 flex items-center justify-between px-8 bg-[#f3f6f9] z-10">
+            <div class="flex items-center gap-4">
+                <button class="p-2 hover:bg-white rounded-lg transition-all text-slate-400">
+                    <i data-lucide="arrow-left" size="20"></i>
+                </button>
+                <h1 id="pageTitle" class="text-sm font-black uppercase tracking-widest text-slate-800">HỒ SƠ DỰ ÁN</h1>
+            </div>
+            
+            <div class="flex flex-col items-end gap-1">
+                <button onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold rounded-lg transition-all shadow-sm shadow-emerald-100 uppercase tracking-tighter">
+                    <div class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                    UPDATE
+                </button>
+                <div id="statusInfo" class="text-[9px] font-bold text-slate-400">v29042026.1706</div>
+            </div>
+        </header>
+
+        <!-- Dynamic Content -->
+        <main class="flex-1 overflow-y-auto p-8 custom-scrollbar" id="mainContent">
+            <div id="tabContent" class="max-w-4xl mx-auto space-y-8">
+                <!-- Content will be injected by JS -->
+            </div>
+        </main>
+
+        <!-- Footer Actions -->
+        <footer class="p-8 bg-[#f3f6f9] border-t border-slate-200">
+            <div class="grid grid-cols-5 gap-3 max-w-4xl mx-auto">
+                <button id="btnCapNhat" class="action-card btn-capnhat" title="Cập nhật dữ liệu từ trang tính vào văn bản Word">
+                    <i data-lucide="refresh-cw" size="24"></i>
+                    <span>CẬP NHẬT HỒ SƠ</span>
+                </button>
+                <button id="btnSplit" class="action-card btn-tach" title="Tách tài liệu thành nhiều tệp nhỏ theo các Bookmark đã đánh dấu">
+                    <i data-lucide="split" size="24"></i>
+                    <span>TÁCH HỒ SƠ</span>
+                </button>
+                <button id="btnImportDoc" class="action-card btn-nhap" title="Đọc dữ liệu ngược từ tệp Word đã điền thông tin vào lại ứng dụng">
+                    <i data-lucide="cloud-download" size="24"></i>
+                    <span>NHẬP DỮ LIỆU</span>
+                </button>
+                <button id="btnExport" class="action-card btn-xuat" title="Xuất tệp Word tổng hợp tất cả thông tin đã đồng bộ">
+                    <i data-lucide="file-text" size="24"></i>
+                    <span>XUẤT HỒ SƠ TỔNG</span>
+                </button>
+                <button id="btnResetFooter" class="action-card btn-reset" title="Xóa toàn bộ dữ liệu hiện tại và nạp lại dữ liệu mẫu">
+                    <i data-lucide="rotate-ccw" size="24"></i>
+                    <span>KHỞI TẠO LẠI DỮ LIỆU</span>
+                </button>
+            </div>
+            <div id="loadingProgressContainer" class="mt-4 w-full flex flex-col items-center hidden">
+                <div class="w-full max-w-xs bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                    <div id="loadingProgressBar" class="bg-indigo-600 h-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <div id="loadingProgressText" class="text-[10px] font-bold text-indigo-600 mt-2">Đang xử lý: 0%</div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modals -->
+    <div id="modalOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl">
+            <h3 id="modalTitle" class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-3">
+                <i data-lucide="edit-3" class="text-indigo-500"></i>
+                Chi tiết thông tin
+            </h3>
+            <div id="modalFormContent" class="space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2 mb-8"></div>
+            <div class="flex gap-3">
+                <button id="btnModalCancel" class="flex-1 h-12 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all">Hủy</button>
+                <button id="btnModalSave" class="flex-2 h-12 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">LƯU LẠI</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Data Modal -->
+    <div id="resetDataModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl">
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+                    <i data-lucide="alert-triangle" class="text-red-600" size="28"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Khởi tạo dữ liệu mẫu</h3>
+            </div>
+            <p class="text-sm text-slate-600 mb-8 leading-relaxed">
+                Bạn có chắc chắn muốn <strong>nạp lại dữ liệu mẫu</strong> không? Toàn bộ thông tin hiện tại sẽ được thay thế bằng dữ liệu mẫu để thử nghiệm.
+            </p>
+            <div class="flex justify-end gap-3">
+                <button id="resetDataCancel" class="px-6 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-all">Hủy bỏ</button>
+                <button id="resetDataConfirm" class="px-6 py-3 rounded-xl bg-red-600 text-white font-bold shadow-lg shadow-red-100 hover:bg-red-700 transition-all">Khởi tạo lại</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generic Prompt Modal -->
+    <div id="promptModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-[60]">
+        <div class="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl">
+            <h3 id="promptTitle" class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-3">
+                <i data-lucide="help-circle" class="text-indigo-500"></i>
+                Nhập thông tin
+            </h3>
+            <div class="space-y-4 mb-8">
+                <p id="promptMessage" class="text-xs text-slate-500"></p>
+                <input type="text" id="promptInput" class="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:bg-white transition-all" spellcheck="false">
+                <p id="promptError" class="text-[10px] text-red-500 hidden italic">Vui lòng không để trống trường này.</p>
+            </div>
+            <div class="flex gap-3">
+                <button id="promptCancel" class="flex-1 h-12 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all">Hủy</button>
+                <button id="promptConfirm" class="flex-2 h-12 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">XÁC NHẬN</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Choice Modal -->
+    <div id="choiceModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-[70]">
+        <div class="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl">
+            <h3 id="choiceTitle" class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-3">
+                <i data-lucide="list" class="text-indigo-500"></i>
+                Chọn cấu hình
+            </h3>
+            <div id="choiceOptions" class="space-y-3 mb-8">
+                <!-- Options will be injected here -->
+            </div>
+            <div class="flex justify-end">
+                <button id="choiceCancel" class="px-6 py-3 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-all">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Split Marker Modal -->
+    <div id="splitModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-[60]">
+        <div class="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl">
+            <h3 class="text-lg font-bold text-slate-800 mb-2 flex items-center gap-3">
+                <i data-lucide="scissors" class="text-rose-500"></i>
+                Tách Tờ trình tùy chỉnh
+            </h3>
+            <p class="text-xs text-slate-500 mb-6">Bôi đen vùng văn bản trước, sau đó điền thông tin để đánh dấu vùng tách.</p>
+            <div class="space-y-4 mb-8">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Tên thư mục lưu</label>
+                    <input type="text" id="splitFolderInput" class="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-sm font-bold text-slate-700 outline-none focus:border-rose-400 focus:bg-white transition-all" spellcheck="false" placeholder="VD: 7. To trinh ATVSLD">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Tên file xuất ra</label>
+                    <input type="text" id="splitFileInput" class="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 text-sm font-bold text-slate-700 outline-none focus:border-rose-400 focus:bg-white transition-all" spellcheck="false" placeholder="VD: To trinh An toan lao dong">
+                </div>
+                <p id="splitModalError" class="text-[10px] text-red-500 hidden italic">Vui lòng điền đầy đủ cả tên thư mục và tên file.</p>
+            </div>
+            <div class="flex gap-3">
+                <button id="splitModalCancel" class="flex-1 h-12 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all">Hủy</button>
+                <button id="splitModalConfirm" class="flex-1 h-12 bg-rose-500 text-white font-bold rounded-xl shadow-lg shadow-rose-100 hover:bg-rose-600 transition-all">ĐÁNH DẤU</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="taskpane.js?v=29042026.1706"></script>
+    <script>lucide.createIcons();</script>
+</body>
+
+</html>
