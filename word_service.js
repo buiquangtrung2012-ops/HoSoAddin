@@ -345,11 +345,11 @@ export const WordService = {
      * Cập nhật bảng ký tên Liên danh hoặc Thường (Bookmark: bmKyLienDanh)
      * Bản cập nhật v1130: Ultimate Safety - Chống sập do gộp ô/undefined body
      */
-    updateSignatureTable: async (isLienDanh, membersList, dvtcName, bookmarkName, logCallback) => {
+    updateSignatureTable: async (isLienDanh, membersList, dvtcName, bookmarkName, fontSize = 11, logCallback) => {
         const logger = (msg, percent) => { if (logCallback) logCallback(msg, percent); console.log(`[SignatureTable] ${msg}`); };
 
         // HELPER v1310: Fix căn lề, định dạng & Ép độ cao bằng Spacing
-        const safeFillCell = async (context, cell, text, isBold = true, alignment = "Centered") => {
+        const safeFillCell = async (context, cell, text, isBold = true, alignment = "Centered", fontSize = 11) => {
             if (!cell || !text) return false;
             try {
                 const range = cell.body.getRange();
@@ -366,7 +366,7 @@ export const WordService = {
                     }
                 } else {
                     range.insertText(text.toUpperCase(), "Replace");
-                    range.font.set({ bold: isBold, italic: false, size: 11, name: "Times New Roman" });
+                    range.font.set({ bold: isBold, italic: false, size: fontSize, name: "Times New Roman" });
                     await context.sync();
 
                     const firstP = cell.body.paragraphs.getFirst();
@@ -429,7 +429,7 @@ export const WordService = {
                     if (itemIdx >= itemsToFill.length) break;
                     const text = itemsToFill[itemIdx];
                     const isNn = (text === "Nơi nhận:");
-                    await safeFillCell(context, cells[colIdx], text, !isNn, isNn ? "Left" : "Centered");
+                    await safeFillCell(context, cells[colIdx], text, !isNn, isNn ? "Left" : "Centered", fontSize);
                     itemIdx++;
                 }
 

@@ -18,7 +18,8 @@ let state = {
         ngayKhoiCong: "",
         ngayHoanThanh: "",
         isLienDanh: false,
-        dvtcMembers: []
+        dvtcMembers: [],
+        sigFontSize: 11
     },
     soHDForExport: "",
     exportFolderHandle: null,
@@ -253,6 +254,18 @@ function renderProjectView(container) {
                             <i data-lucide="plus-circle" size="14"></i>
                             THÊM THÀNH VIÊN
                         </button>
+                        <div class="flex items-center gap-3">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cỡ chữ tên công ty:</label>
+                            <select id="selSigFontSize" class="bg-slate-50 border border-slate-100 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:border-indigo-300 transition-all">
+                                <option value="8" ${state.duAn.sigFontSize == 8 ? 'selected' : ''}>8</option>
+                                <option value="9" ${state.duAn.sigFontSize == 9 ? 'selected' : ''}>9</option>
+                                <option value="10" ${state.duAn.sigFontSize == 10 ? 'selected' : ''}>10</option>
+                                <option value="11" ${state.duAn.sigFontSize == 11 ? 'selected' : ''}>11</option>
+                                <option value="12" ${state.duAn.sigFontSize == 12 ? 'selected' : ''}>12</option>
+                                <option value="13" ${state.duAn.sigFontSize == 13 ? 'selected' : ''}>13</option>
+                                <option value="14" ${state.duAn.sigFontSize == 14 ? 'selected' : ''}>14</option>
+                            </select>
+                        </div>
                         <button id="btnUpdateSignatureTable" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-green-50 text-green-700 rounded-lg text-[11px] font-bold hover:bg-green-100 transition-all border border-green-200">
                             <i data-lucide="refresh-cw" size="14"></i>
                             CẬP NHẬT BẢNG KÝ TÊN
@@ -313,6 +326,14 @@ function renderProjectView(container) {
                         renderMembers();
                     }
                 };
+                
+                const selFontSize = jvToggleArea.querySelector('#selSigFontSize');
+                if (selFontSize) {
+                    selFontSize.onchange = async () => {
+                        state.duAn.sigFontSize = parseInt(selFontSize.value, 10);
+                        await saveState();
+                    };
+                }
 
                 btnAdd.onclick = async () => {
                     state.duAn.dvtcMembers.push("");
@@ -340,6 +361,7 @@ function renderProjectView(container) {
                                 membersList,
                                 state.duAn.dvtc,
                                 "bmKyLienDanh",
+                                state.duAn.sigFontSize || 11,
                                 (msg, percent) => updateLog(msg, percent)
                             );
 
@@ -1079,7 +1101,7 @@ async function syncDataToWord() {
         const membersList = state.duAn.isLienDanh
             ? (Array.isArray(state.duAn.dvtcMembers) ? state.duAn.dvtcMembers : [])
             : [];
-        await WordService.updateSignatureTable(state.duAn.isLienDanh, membersList, state.duAn.dvtc, "bmKyLienDanh", updateLog);
+        await WordService.updateSignatureTable(state.duAn.isLienDanh, membersList, state.duAn.dvtc, "bmKyLienDanh", state.duAn.sigFontSize || 11, updateLog);
     } catch (e) {
         updateLog("Không thể cập nhật bảng ký: " + e.message);
     }
