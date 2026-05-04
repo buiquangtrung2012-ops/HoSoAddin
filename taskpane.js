@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=04052026.1228';
-import { StorageService } from './storage_service.js?v=04052026.1228';
-import { MockData } from './mock_data.js?v=04052026.1228';
+import { WordService } from './word_service.js?v=04052026.1233';
+import { StorageService } from './storage_service.js?v=04052026.1233';
+import { MockData } from './mock_data.js?v=04052026.1233';
 
 /* global Office, lucide */
 
@@ -1148,29 +1148,29 @@ async function onCapNhatClick() {
 
         // Tự động ghi đè lại file đã xuất nếu có
         if (state.exportFolderHandle && (state.hasExportedMaster || (state.hasSplitFiles && state.autoSplitOnUpdate))) {
-            const hasPerm = await verifyPermission(state.exportFolderHandle);
-            if (hasPerm) {
-                updateLog("Cập nhật thay thế các file DOCX gốc...", 96);
-                if (state.hasExportedMaster) {
-                    await WordService.processExport('master', state.duAn.tenDuAn, {
-                        folderHandle: state.exportFolderHandle,
-                        outputMode: state.outputMode,
-                        useProjectNameFolder: state.useProjectNameFolder
-                    });
-                    updateLog("✓ Đã cập nhật ghi đè file tổng.", 97);
-                }
-                if (state.hasSplitFiles && state.autoSplitOnUpdate) {
-                    await WordService.processExport('split', state.duAn.tenDuAn, {
-                        folderHandle: state.exportFolderHandle,
-                        outputMode: state.outputMode,
-                        useProjectNameFolder: state.useProjectNameFolder
-                    });
-                    updateLog("✓ Đã cập nhật ghi đè file tách.", 98);
-                }
-                showToast("Đã cập nhật Word & xuất file thành công!", "success");
-            } else {
-                showToast("Không có quyền ghi vào thư mục để tự động xuất file!", "warning");
-            }
+            try {
+                const hasPerm = await verifyPermission(state.exportFolderHandle);
+                if (hasPerm) {
+                    updateLog("Cập nhật thay thế các file DOCX gốc...", 96);
+                    if (state.hasExportedMaster) {
+                        await WordService.processExport('master', state.duAn.tenDuAn, {
+                            folderHandle: state.exportFolderHandle,
+                            outputMode: state.outputMode,
+                            useProjectNameFolder: state.useProjectNameFolder
+                        });
+                        updateLog("✓ Đã cập nhật ghi đè file tổng.", 97);
+                    }
+                    if (state.hasSplitFiles && state.autoSplitOnUpdate) {
+                        await WordService.processExport('split', state.duAn.tenDuAn, {
+                            folderHandle: state.exportFolderHandle,
+                            outputMode: state.outputMode,
+                            useProjectNameFolder: state.useProjectNameFolder
+                        });
+                        updateLog("✓ Đã cập nhật ghi đè file tách.", 98);
+                    }
+                    showToast("Đã cập nhật Word & xuất file thành công!", "success");
+                } else {
+                    showToast("Không có quyền ghi vào thư mục để tự động xuất file!", "warning");
                 }
                 updateLog("✓ Hoàn tất cập nhật hồ sơ.", 100);
             } catch (exportErr) {
