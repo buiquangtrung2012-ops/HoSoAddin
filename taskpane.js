@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=04052026.1157';
-import { StorageService } from './storage_service.js?v=04052026.1157';
-import { MockData } from './mock_data.js?v=04052026.1157';
+import { WordService } from './word_service.js?v=04052026.1228';
+import { StorageService } from './storage_service.js?v=04052026.1228';
+import { MockData } from './mock_data.js?v=04052026.1228';
 
 /* global Office, lucide */
 
@@ -183,6 +183,44 @@ function renderProjectView(container) {
     const wrapper = document.createElement("div");
     wrapper.className = "max-w-3xl mx-auto space-y-4 pb-12";
 
+    // --- NEW: General Signature Settings (Always Visible) ---
+    const sigSettingsCard = document.createElement("div");
+    sigSettingsCard.className = "px-5 py-4 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-3";
+    sigSettingsCard.innerHTML = `
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+                    <i data-lucide="type" size="18"></i>
+                </div>
+                <div>
+                    <h4 class="text-xs font-bold text-slate-700">Cấu hình Bảng ký tên</h4>
+                    <p class="text-[10px] text-slate-500">Cỡ chữ hiển thị của tên các công ty</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cỡ chữ:</span>
+                <select id="selSigFontSize" class="bg-slate-50 border border-slate-100 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:border-indigo-300 transition-all">
+                    <option value="8" ${state.duAn.sigFontSize == 8 ? 'selected' : ''}>8</option>
+                    <option value="9" ${state.duAn.sigFontSize == 9 ? 'selected' : ''}>9</option>
+                    <option value="10" ${state.duAn.sigFontSize == 10 ? 'selected' : ''}>10</option>
+                    <option value="11" ${state.duAn.sigFontSize == 11 ? 'selected' : ''}>11</option>
+                    <option value="12" ${state.duAn.sigFontSize == 12 ? 'selected' : ''}>12</option>
+                    <option value="13" ${state.duAn.sigFontSize == 13 ? 'selected' : ''}>13</option>
+                    <option value="14" ${state.duAn.sigFontSize == 14 ? 'selected' : ''}>14</option>
+                </select>
+            </div>
+        </div>
+    `;
+    wrapper.appendChild(sigSettingsCard);
+
+    const selFontSize = sigSettingsCard.querySelector('#selSigFontSize');
+    if (selFontSize) {
+        selFontSize.onchange = async () => {
+            state.duAn.sigFontSize = parseInt(selFontSize.value, 10);
+            await saveState();
+        };
+    }
+
     const fieldIcons = {
         tenDuAn: 'file-text',
         goiThau: 'clipboard-list',
@@ -254,18 +292,6 @@ function renderProjectView(container) {
                             <i data-lucide="plus-circle" size="14"></i>
                             THÊM THÀNH VIÊN
                         </button>
-                        <div class="flex items-center gap-3">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cỡ chữ tên công ty:</label>
-                            <select id="selSigFontSize" class="bg-slate-50 border border-slate-100 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:border-indigo-300 transition-all">
-                                <option value="8" ${state.duAn.sigFontSize == 8 ? 'selected' : ''}>8</option>
-                                <option value="9" ${state.duAn.sigFontSize == 9 ? 'selected' : ''}>9</option>
-                                <option value="10" ${state.duAn.sigFontSize == 10 ? 'selected' : ''}>10</option>
-                                <option value="11" ${state.duAn.sigFontSize == 11 ? 'selected' : ''}>11</option>
-                                <option value="12" ${state.duAn.sigFontSize == 12 ? 'selected' : ''}>12</option>
-                                <option value="13" ${state.duAn.sigFontSize == 13 ? 'selected' : ''}>13</option>
-                                <option value="14" ${state.duAn.sigFontSize == 14 ? 'selected' : ''}>14</option>
-                            </select>
-                        </div>
                         <button id="btnUpdateSignatureTable" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-green-50 text-green-700 rounded-lg text-[11px] font-bold hover:bg-green-100 transition-all border border-green-200">
                             <i data-lucide="refresh-cw" size="14"></i>
                             CẬP NHẬT BẢNG KÝ TÊN
@@ -326,14 +352,6 @@ function renderProjectView(container) {
                         renderMembers();
                     }
                 };
-                
-                const selFontSize = jvToggleArea.querySelector('#selSigFontSize');
-                if (selFontSize) {
-                    selFontSize.onchange = async () => {
-                        state.duAn.sigFontSize = parseInt(selFontSize.value, 10);
-                        await saveState();
-                    };
-                }
 
                 btnAdd.onclick = async () => {
                     state.duAn.dvtcMembers.push("");
@@ -1153,14 +1171,21 @@ async function onCapNhatClick() {
             } else {
                 showToast("Không có quyền ghi vào thư mục để tự động xuất file!", "warning");
             }
+                }
+                updateLog("✓ Hoàn tất cập nhật hồ sơ.", 100);
+            } catch (exportErr) {
+                console.error("Post-update Export Error:", exportErr);
+                updateLog(`⚠ Cập nhật Word xong, nhưng lỗi khi xuất file: ${exportErr.message}`, 100);
+                showToast("Dữ liệu Word đã cập nhật, nhưng không thể ghi đè file xuất!", "warning");
+            }
         } else {
             showToast("Đã cập nhật dữ liệu thành công!", "success");
+            updateLog("✓ Hoàn tất cập nhật hồ sơ.", 100);
         }
-        updateLog("✓ Hoàn tất cập nhật hồ sơ.", 100);
     } catch (e) {
         console.error("onCapNhatClick Error:", e);
         const errorDetail = e.message || "Lỗi không xác định";
-        updateLog(`❌ LỖI: ${errorDetail}`, 100);
+        updateLog(`❌ LỖI NGHIÊM TRỌNG: ${errorDetail}`, 100);
         if (e.stack) console.log(e.stack);
         showToast("Có lỗi xảy ra khi cập nhật (Xem Nhật ký bên dưới)", "error");
     }
