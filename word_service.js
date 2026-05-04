@@ -287,7 +287,8 @@ export const WordService = {
 
                     targetTable.rows.items.forEach((row, rIdx) => {
                         // Load paragraphs for formatting AND text for header identification
-                        row.cells.load("items/body/paragraphs/items, items/body/text");
+                        // Load thêm font/size để tính Line Spacing 1.15
+                        row.cells.load("items/body/paragraphs/items/alignment, items/body/paragraphs/items/font/size, items/body/paragraphs/items/font/bold, items/body/text");
                     });
                     await context.sync();
 
@@ -323,6 +324,10 @@ export const WordService = {
                                 cell.body.paragraphs.items.forEach(p => {
                                     p.alignment = cellAlignment;
                                     p.font.bold = (rIdx === 0);
+                                    
+                                    // Cài đặt Line Spacing 1.15
+                                    const pSize = p.font.size || 11;
+                                    p.lineSpacing = pSize * 1.15;
                                 });
                             } catch (e) { }
                         });
@@ -376,7 +381,8 @@ export const WordService = {
                         // Bỏ spaceBefore, dồn toàn bộ xuống spaceAfter = 96pt
                         firstP.spaceBefore = 0;
                         firstP.spaceAfter = 96;
-                        firstP.lineSpacing = 12; // Single spacing
+                        // Giãn dòng 1.15 (fontSize * 1.15)
+                        firstP.lineSpacing = fontSize * 1.15;
                     } catch (e) { }
 
                     // Căn lên trên cùng của ô để trống chỗ ký tên phía dưới
