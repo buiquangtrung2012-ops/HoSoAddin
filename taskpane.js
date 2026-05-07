@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=04052026.1616';
-import { StorageService } from './storage_service.js?v=04052026.1616';
-import { MockData } from './mock_data.js?v=04052026.1616';
+import { WordService } from './word_service.js?v=07052026.1530';
+import { StorageService } from './storage_service.js?v=07052026.1530';
+import { MockData } from './mock_data.js?v=07052026.1530';
 
 /* global Office, lucide */
 
@@ -247,9 +247,14 @@ function renderProjectView(container) {
             <div class="flex-1 min-w-0">
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">${config.labels[i]}</p>
                 ${isDate ?
-                `<input type="text" data-field="${field}" spellcheck="false" 
-                        class="project-input w-full bg-transparent border-none outline-none font-bold text-slate-700 text-[14px] p-0 m-0 date-picker-input" 
-                        placeholder="VD: ${mockVal}" value="${value}">` :
+                `<div class="relative group/date">
+                    <input type="text" data-field="${field}" spellcheck="false" 
+                        class="project-input w-full bg-transparent border-none outline-none font-bold text-slate-700 text-[14px] pr-6 m-0 date-picker-input" 
+                        placeholder="VD: ${mockVal}" value="${value}">
+                    <button class="btn-clear-date absolute right-0 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500 opacity-0 group-hover/date:opacity-100 transition-all p-1" data-target="${field}" title="Xóa ngày">
+                        <i data-lucide="x-circle" size="14"></i>
+                    </button>
+                 </div>` :
                 `<textarea data-field="${field}" spellcheck="false" 
                         class="project-input w-full bg-transparent border-none outline-none font-bold text-slate-700 text-[14px] resize-none overflow-hidden p-0 m-0" 
                         placeholder="VD: ${mockVal}" rows="1">${value}</textarea>`
@@ -418,8 +423,35 @@ function renderProjectView(container) {
         });
 
         if (typeof flatpickr !== 'undefined') {
-            flatpickr(".date-picker-input", { dateFormat: "d/m/Y", locale: "vn", allowInput: true });
+            flatpickr(".date-picker-input", { 
+                dateFormat: "d/m/Y", 
+                locale: "vn", 
+                allowInput: true,
+                onClose: function(selectedDates, dateStr, instance) {
+                    const field = instance.element.dataset.field || instance.element.id.replace('modalInput_', '');
+                    if (field && state.duAn[field] !== dateStr) {
+                        state.duAn[field] = dateStr;
+                        saveState();
+                    }
+                }
+            });
         }
+
+        // Xử lý nút xóa ngày
+        container.querySelectorAll('.btn-clear-date').forEach(btn => {
+            btn.onclick = async (e) => {
+                e.stopPropagation();
+                const field = btn.dataset.target;
+                const input = container.querySelector(`input[data-field="${field}"]`);
+                if (input) {
+                    input.value = "";
+                    state.duAn[field] = "";
+                    await saveState();
+                    // Nếu có flatpickr instance, xóa nó
+                    if (input._flatpickr) input._flatpickr.clear();
+                }
+            };
+        });
         lucide.createIcons();
     }, 50);
 }
@@ -438,8 +470,12 @@ function openProjectEditModal(focusField) {
 
         div.innerHTML = `
             <label class="text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">${config.labels[i]}</label>
-            <textarea id="modalInput_${field}" spellcheck="false" class="input-field project-input resize-y py-3 w-full border border-slate-100 rounded-xl text-sm focus:border-indigo-400 transition-all ${isDate ? 'date-picker-input' : ''}" 
-                style="height: auto; min-height: 3rem;" rows="1" placeholder="VD: ${mockVal || ''}">${state.duAn[field] || ''}</textarea>
+            ${isDate ? 
+                `<input type="text" id="modalInput_${field}" spellcheck="false" class="input-field project-input w-full border border-slate-100 rounded-xl text-sm focus:border-indigo-400 transition-all date-picker-input" 
+                    placeholder="VD: ${mockVal || ''}" value="${state.duAn[field] || ''}">` :
+                `<textarea id="modalInput_${field}" spellcheck="false" class="input-field project-input resize-y py-3 w-full border border-slate-100 rounded-xl text-sm focus:border-indigo-400 transition-all" 
+                    style="height: auto; min-height: 3rem;" rows="1" placeholder="VD: ${mockVal || ''}">${state.duAn[field] || ''}</textarea>`
+            }
         `;
         modalForm.appendChild(div);
     });
@@ -449,7 +485,17 @@ function openProjectEditModal(focusField) {
     // Initialize tooltips and datepickers
     setTimeout(() => {
         if (typeof flatpickr !== 'undefined') {
-            flatpickr(".date-picker-input", { dateFormat: "d/m/Y", locale: "vn", allowInput: true });
+            flatpickr(".date-picker-input", { 
+                dateFormat: "d/m/Y", 
+                locale: "vn", 
+                allowInput: true,
+                onClose: function(selectedDates, dateStr, instance) {
+                    const field = instance.element.dataset.field || instance.element.id.replace('modalInput_', '');
+                    if (field && state.duAn[field] !== dateStr) {
+                        state.duAn[field] = dateStr;
+                    }
+                }
+            });
         }
         adjustAllTextareaHeights();
         const firstField = document.getElementById(`modalInput_${focusField}`);

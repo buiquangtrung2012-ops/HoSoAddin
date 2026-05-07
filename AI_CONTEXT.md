@@ -48,4 +48,4 @@
 4. Sau khi thay đổi code thành công, sử dụng file `GitHub_Automation.ps1` để đẩy code lên kho.
 
 ---
-*Cập nhật lần cuối: 29/04/2026*
+*Cập nhật lần cuối: 07/05/2026*

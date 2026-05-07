@@ -5,7 +5,12 @@
 # Đảm bảo sử dụng TLS 1.2 cho kết nối an toàn với GitHub API
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+# Token mới bạn vừa cung cấp
 $token = $env:GITHUB_TOKEN
+if (-not $token) { 
+    Write-Host "WARNING: GITHUB_TOKEN environment variable is not set. API fallback may fail." -ForegroundColor Yellow
+}
+
 $owner = "buiquangtrung2012-ops"
 $repo = "HoSoAddin"
 $branch = "main"
