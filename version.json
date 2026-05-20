@@ -1,0 +1,58 @@
+[
+  {
+    "version": "v20052026.0925",
+    "date": "20/05/2026",
+    "releaseNotes": [
+      "Thêm nút chèn thông tin Phòng TN lẻ trong tab Tạo mẫu.",
+      "Cập nhật dữ liệu mẫu Phòng thí nghiệm chính xác theo thực tế.",
+      "Bổ sung hệ thống tự động kiểm tra bản cập nhật mới khi khởi chạy."
+    ]
+  },
+  {
+    "version": "v18052026.1708",
+    "date": "18/05/2026",
+    "releaseNotes": [
+      "Xuất Hồ Sơ (Mailings 1 File): Thay đổi hành vi tính năng \"Xuất Toàn Bộ Công Việc\" (Mailings). Thay vì tạo file ZIP chứa nhiều file Word nhỏ, hệ thống tự động gom tất cả bản ghi vào chung 1 file Word duy nhất, tách biệt bằng ngắt trang.",
+      "Sử dụng cơ chế Auto-Loop Injection ({#workItems}) trực tiếp vào mã XML, giúp người dùng không cần sửa đổi file mẫu.",
+      "Đảm bảo tương thích hoàn toàn với Header/Footer của tài liệu (thông tin dự án)."
+    ]
+  },
+  {
+    "version": "v16052026.0945",
+    "date": "16/05/2026",
+    "releaseNotes": [
+      "Cải thiện tốc độ tải và xử lý bảng biểu.",
+      "Sửa lỗi co giãn cột bảng máy móc."
+    ]
+  },
+  {
+    "version": "v15052026.1725",
+    "date": "15/05/2026",
+    "releaseNotes": [
+      "Tối ưu bộ nhớ đệm lưu trữ dự án.",
+      "Thêm cảnh báo khi thư mục xuất không khả dụng."
+    ]
+  },
+  {
+    "version": "v15052026.1720",
+    "date": "15/05/2026",
+    "releaseNotes": [
+      "Sửa lỗi đồng bộ chữ ký trong chế độ liên danh."
+    ]
+  },
+  {
+    "version": "v15052026.1715",
+    "date": "15/05/2026",
+    "releaseNotes": [
+      "Hỗ trợ cấu hình cỡ chữ bảng chữ ký.",
+      "Thêm phím tắt khởi tạo lại dữ liệu mẫu."
+    ]
+  },
+  {
+    "version": "v15052026.1705",
+    "date": "15/05/2026",
+    "releaseNotes": [
+      "Phiên bản khởi đầu hỗ trợ đồng bộ dữ liệu cơ bản."
+    ]
+  }
+]

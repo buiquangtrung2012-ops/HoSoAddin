@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=07052026.1530';
-import { StorageService } from './storage_service.js?v=07052026.1530';
-import { MockData } from './mock_data.js?v=07052026.1530';
+import { WordService } from './word_service.js?v=20052026.0925';
+import { StorageService } from './storage_service.js?v=20052026.0925';
+import { MockData } from './mock_data.js?v=20052026.0925';
 
 /* global Office, lucide */
 
@@ -58,6 +58,11 @@ async function initializeApp() {
         registerEvents();
         switchTab('duAn');
         updateLog("Hệ thống sẵn sàng");
+
+        // Tự động kiểm tra bản cập nhật mới ở chế độ nền
+        setTimeout(() => {
+            checkNewVersion(false);
+        }, 1500);
     } catch (e) {
         console.error("Lỗi khởi tạo:", e);
         updateLog("Lỗi khởi tạo: " + e.message);
@@ -68,7 +73,7 @@ async function initializeApp() {
 async function loadState() {
     // Ưu tiên load dữ liệu thực tế từ file Word đang mở (thông qua StorageService)
     const duAnSaved = await StorageService.getProjectData("duAn");
-    if (duAnSaved && Object.keys(duAnSaved).length > 0) state.duAn = duAnSaved;
+    if (duAnSaved && Object.keys(duAnSaved).length > 0) state.duAn = { ...state.duAn, ...duAnSaved };
 
     const nhanSuSaved = await StorageService.getProjectData("nhanSu");
     if (nhanSuSaved && nhanSuSaved.length > 0) state.nhanSu = nhanSuSaved;
@@ -859,7 +864,8 @@ function renderTemplateCreator(container) {
                 { label: "Đại diện CDT", tag: "DaiDienCDT", icon: "user" },
                 { label: "Tư vấn Giám sát", tag: "TVGS", icon: "users" },
                 { label: "Ngày Khởi công", tag: "NgayKhoiCong", icon: "calendar" },
-                { label: "Ngày Hoàn thành", tag: "NgayHoanThanh", icon: "calendar-check" }
+                { label: "Ngày Hoàn thành", tag: "NgayHoanThanh", icon: "calendar-check" },
+                { label: "Thông tin Phòng TN lẻ", tag: "dynamic_thi_nghiem", icon: "microscope", color: "text-indigo-600", bg: "bg-indigo-50" }
             ]
         },
         {
@@ -921,7 +927,52 @@ function renderTemplateCreator(container) {
 
             try {
                 btn.disabled = true;
-                if (tag === 'dynamic_split') {
+                if (tag === 'dynamic_thi_nghiem') {
+                    if (!state.thiNghiem || state.thiNghiem.length === 0) {
+                        showToast("❌ Vui lòng nhập danh sách Phòng TN trước!", "error");
+                        btn.disabled = false;
+                        return;
+                    }
+
+                    // Lựa chọn dòng Phòng TN
+                    const labOptions = state.thiNghiem.map((item, idx) => {
+                        const num = idx + 1;
+                        const dvtn = item[1] || `Đơn vị ${num}`;
+                        const ptn = item[3] || `Phòng TN ${num}`;
+                        return {
+                            label: `${num}. ${ptn}`,
+                            description: dvtn,
+                            value: num
+                        };
+                    });
+
+                    const selectedLabNum = await openChoiceModal("Chọn phòng thí nghiệm", labOptions);
+                    if (!selectedLabNum) {
+                        btn.disabled = false;
+                        return;
+                    }
+
+                    // Lựa chọn trường thông tin
+                    const fieldOptions = [
+                        { label: "Đơn vị Thí nghiệm", description: "Tên công ty/đơn vị thí nghiệm", value: { suffix: "DVTN", label: "Đơn vị TN" } },
+                        { label: "Địa chỉ", description: "Địa chỉ của đơn vị thí nghiệm", value: { suffix: "DiaChi", label: "Địa chỉ TN" } },
+                        { label: "Tên phòng thí nghiệm", description: "Tên phòng thí nghiệm (Mã số LAS)", value: { suffix: "PTN", label: "Tên phòng TN" } },
+                        { label: "Chức năng", description: "Chức năng/Nội dung thí nghiệm", value: { suffix: "ChucNang", label: "Chức năng TN" } }
+                    ];
+
+                    const selectedField = await openChoiceModal("Chọn trường thông tin", fieldOptions);
+                    if (!selectedField) {
+                        btn.disabled = false;
+                        return;
+                    }
+
+                    const finalTag = `${selectedField.suffix}_${selectedLabNum}`;
+                    const finalLabel = `${selectedField.label} ${selectedLabNum}`;
+
+                    await WordService.insertContentControlAtSelection(finalTag, finalLabel);
+                    showToast(`✓ Đã chèn trường: ${finalLabel}`, "success");
+                }
+                else if (tag === 'dynamic_split') {
                     const result = await openSplitModal();
 
                     if (result) {
@@ -1103,6 +1154,25 @@ async function syncDataToWord() {
         "IsLienDanh": state.duAn.isLienDanh ? "True" : "False"
     };
 
+    // Đồng bộ thông tin các Phòng TN lẻ
+    if (state.thiNghiem && state.thiNghiem.length > 0) {
+        state.thiNghiem.forEach((row, idx) => {
+            const num = idx + 1;
+            docVars[`DVTN_${num}`] = row[1] || "";
+            docVars[`DiaChi_${num}`] = row[2] || "";
+            docVars[`PTN_${num}`] = row[3] || "";
+            docVars[`ChucNang_${num}`] = row[4] || "";
+        });
+    }
+    // Xóa các dòng thừa (hỗ trợ tối đa 10 dòng)
+    const currentLabCount = state.thiNghiem ? state.thiNghiem.length : 0;
+    for (let num = currentLabCount + 1; num <= 10; num++) {
+        docVars[`DVTN_${num}`] = "";
+        docVars[`DiaChi_${num}`] = "";
+        docVars[`PTN_${num}`] = "";
+        docVars[`ChucNang_${num}`] = "";
+    }
+
     try {
         updateLog("Cập nhật thông tin dự án...", 10);
         await new Promise(r => setTimeout(r, 10));
@@ -1141,6 +1211,24 @@ async function syncDataToWord() {
         await WordService.replaceInDocument("<<TVGS>>", state.duAn.tvgs || "", "TVGS");
         await WordService.replaceInDocument("<<NgayKhoiCong>>", state.duAn.ngayKhoiCong || "", "NgayKhoiCong");
         await WordService.replaceInDocument("<<NgayHoanThanh>>", state.duAn.ngayHoanThanh || "", "NgayHoanThanh");
+
+        // Thay thế placeholder Phòng TN lẻ
+        if (state.thiNghiem && state.thiNghiem.length > 0) {
+            for (let idx = 0; idx < state.thiNghiem.length; idx++) {
+                const num = idx + 1;
+                const row = state.thiNghiem[idx];
+                await WordService.replaceInDocument(`<<DVTN_${num}>>`, row[1] || "", `DVTN_${num}`);
+                await WordService.replaceInDocument(`<<DiaChi_${num}>>`, row[2] || "", `DiaChi_${num}`);
+                await WordService.replaceInDocument(`<<PTN_${num}>>`, row[3] || "", `PTN_${num}`);
+                await WordService.replaceInDocument(`<<ChucNang_${num}>>`, row[4] || "", `ChucNang_${num}`);
+            }
+        }
+        for (let num = currentLabCount + 1; num <= 10; num++) {
+            await WordService.replaceInDocument(`<<DVTN_${num}>>`, "", `DVTN_${num}`);
+            await WordService.replaceInDocument(`<<DiaChi_${num}>>`, "", `DiaChi_${num}`);
+            await WordService.replaceInDocument(`<<PTN_${num}>>`, "", `PTN_${num}`);
+            await WordService.replaceInDocument(`<<ChucNang_${num}>>`, "", `ChucNang_${num}`);
+        }
     } catch (e) {
         updateLog("Lỗi thay thế placeholder: " + e.message);
     }
@@ -1807,3 +1895,174 @@ function showToast(message, type = 'success') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+
+// --- VERSION MANAGEMENT ---
+const CURRENT_VERSION = "v20052026.0925";
+
+async function loadVersions() {
+    try {
+        const response = await fetch(`./version.json?t=${new Date().getTime()}`);
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (e) {
+        console.error("Lỗi tải danh sách phiên bản:", e);
+    }
+    return [];
+}
+
+async function checkNewVersion(isManual = false) {
+    const list = await loadVersions();
+    if (list.length === 0) {
+        if (isManual) showToast("Không thể kết nối đến máy chủ cập nhật", "error");
+        return;
+    }
+    
+    const latestVersion = list[0].version;
+    if (latestVersion && latestVersion !== CURRENT_VERSION) {
+        if (isManual) {
+            showVersionModal(list);
+        } else {
+            showUpdateAvailableToast(list);
+        }
+    } else {
+        if (isManual) {
+            showVersionModal(list);
+        }
+    }
+}
+
+function showVersionModal(list) {
+    const modal = document.getElementById('versionModal');
+    const currentSub = document.getElementById('currentVersionSub');
+    const activeName = document.getElementById('activeVersionName');
+    const activeNewest = document.getElementById('activeNewestBadge');
+    const activeDate = document.getElementById('activeVersionDate');
+    const activeNotes = document.getElementById('activeVersionNotes');
+    const olderList = document.getElementById('olderVersionsList');
+    
+    currentSub.innerText = `Đang dùng: ${CURRENT_VERSION}`;
+    
+    // Tìm thông tin của phiên bản hiện tại
+    const activeVer = list.find(v => v.version === CURRENT_VERSION) || {
+        version: CURRENT_VERSION,
+        date: "Hiện tại",
+        releaseNotes: ["Phiên bản hiện tại đang hoạt động."]
+    };
+    
+    activeName.innerText = activeVer.version;
+    activeDate.innerText = activeVer.date;
+    
+    // Hiển thị badge MỚI NHẤT nếu là bản đầu tiên trong danh sách
+    if (list.length > 0 && list[0].version === CURRENT_VERSION) {
+        activeNewest.classList.remove('hidden');
+    } else {
+        activeNewest.classList.add('hidden');
+    }
+    
+    activeNotes.innerHTML = '';
+    activeVer.releaseNotes.forEach(note => {
+        const li = document.createElement('li');
+        li.innerText = note;
+        activeNotes.appendChild(li);
+    });
+    
+    // Hiển thị danh sách các phiên bản khác (tối đa 5 phiên bản gần nhất không phải bản đang dùng)
+    olderList.innerHTML = '';
+    const otherVersions = list.filter(v => v.version !== CURRENT_VERSION).slice(0, 5);
+    
+    if (otherVersions.length === 0) {
+        olderList.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-4">Không có phiên bản nào khác.</p>`;
+    } else {
+        otherVersions.forEach(v => {
+            const isLatest = (v.version === list[0].version);
+            const item = document.createElement('div');
+            item.className = 'bg-[#202030] hover:bg-[#252538] border border-slate-800 rounded-2xl p-4 flex flex-col gap-2 transition-all';
+            item.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2 cursor-pointer toggle-notes-btn">
+                        <i data-lucide="chevron-down" class="text-slate-400 transform transition-transform duration-200 notes-chevron" style="width: 14px; height: 14px;"></i>
+                        <span class="text-xs font-bold text-slate-200">${v.version}</span>
+                        <span class="text-[10px] text-slate-400">${v.date}</span>
+                        ${isLatest ? `<span class="bg-indigo-500/20 text-indigo-300 text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">MỚI</span>` : ''}
+                    </div>
+                    <button class="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 hover:text-white text-slate-300 text-[10px] font-bold rounded-lg transition-all border border-slate-700/80 btn-use-version" data-version="${v.version}">
+                        <i data-lucide="arrow-left" style="width: 12px; height: 12px;"></i>
+                        Dùng bản này
+                    </button>
+                </div>
+                <div class="hidden mt-2 pl-6 pr-2 py-2 border-t border-slate-800/50 notes-content">
+                    <ul class="list-disc text-[11px] text-slate-400 space-y-1">
+                        ${v.releaseNotes.map(n => `<li>${n}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            
+            const toggleBtn = item.querySelector('.toggle-notes-btn');
+            const notesContent = item.querySelector('.notes-content');
+            const chevron = item.querySelector('.notes-chevron');
+            toggleBtn.onclick = () => {
+                const isHidden = notesContent.classList.contains('hidden');
+                if (isHidden) {
+                    notesContent.classList.remove('hidden');
+                    chevron.style.transform = 'rotate(180deg)';
+                } else {
+                    notesContent.classList.add('hidden');
+                    chevron.style.transform = 'rotate(0deg)';
+                }
+            };
+            
+            const btnUse = item.querySelector('.btn-use-version');
+            btnUse.onclick = () => {
+                modal.classList.add('hidden');
+                updateLog(`Đang chuyển sang phiên bản ${v.version}...`, 50);
+                window.location.href = window.location.pathname + '?v=' + v.version;
+            };
+            
+            olderList.appendChild(item);
+        });
+    }
+    
+    modal.classList.remove('hidden');
+    lucide.createIcons();
+    
+    const btnClose = document.getElementById('versionClose');
+    btnClose.onclick = () => {
+        modal.classList.add('hidden');
+    };
+}
+
+function showUpdateAvailableToast(list) {
+    const latestVersion = list[0].version;
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-4 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-4 py-3 rounded-xl shadow-xl shadow-slate-900/40 text-[12px] font-bold z-[100] transition-all duration-300 flex items-center gap-2 cursor-pointer hover:bg-indigo-700 border border-indigo-500/25';
+    toast.style.transform = 'translate(-50%, 20px)';
+    toast.style.opacity = '0';
+    toast.innerHTML = `
+        <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+        <span>Có bản cập nhật mới (${latestVersion})! Nhấp vào đây để cập nhật.</span>
+    `;
+    
+    toast.onclick = () => {
+        toast.remove();
+        showVersionModal(list);
+    };
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.transform = 'translate(-50%, 0)';
+        toast.style.opacity = '1';
+    }, 100);
+    
+    // Tự động xóa sau 10 giây
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.style.transform = 'translate(-50%, 20px)';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 10000);
+}
+
+window.checkForUpdatesManual = () => checkNewVersion(true);

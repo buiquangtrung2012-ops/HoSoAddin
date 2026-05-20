@@ -15,7 +15,9 @@ export const MockData = {
         ["1", "Cát vàng", "TCVN", "Việt Trì, Phú Thọ", "Công ty cổ phần khai thác"],
     ],
     thiNghiem: [
-        ["1", "Công ty thí nghiệm", "xã AV, tỉnh BC", "LAS-XD 123  ", "Thí nghiệm xây dựng"],
+        ["1", "Trung tâm Kỹ thuật Tiêu chuẩn Đo lường Chất lượng 1", "Số 8 Hoàng Quốc Việt, phường Nghĩa Đô, Hà Nội", "Quatest 1", "Thí nghiệm đèn"],
+        ["2", "Công ty cổ phần tư vấn xây dựng và thương mại MP Việt Nam", "Khu đô thị Trung Văn, phường Đại Mỗ, TP Hà Nội", "LAS - XD 1473", "Thí nghiệm vật liệu xây dựng"],
+        ["3", "Công ty TNHH thí nghiệm và phân tích kỹ thuật điện", "Thôn Đồng Tâm, xã Thanh Oai, TP Hà Nội", "VALAS 012", "Thí nghiệm thiết bị điện"]
     ],
     duAn: {
         soHD: "127/HĐ-THTT ngày 18/03/2026",

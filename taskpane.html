@@ -224,11 +224,11 @@
             </div>
             
             <div class="flex flex-col items-end gap-1">
-                <button onclick="window.location.href = window.location.pathname + '?v=' + new Date().getTime()" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold rounded-lg transition-all shadow-sm shadow-emerald-100 uppercase tracking-tighter">
+                <button onclick="window.checkForUpdatesManual()" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold rounded-lg transition-all shadow-sm shadow-emerald-100 uppercase tracking-tighter">
                     <div class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
                     UPDATE
                 </button>
-                <div id="statusInfo" class="text-[9px] font-bold text-slate-400">v07052026.1530</div>
+                <div id="statusInfo" class="text-[9px] font-bold text-slate-400">v20052026.0925</div>
             </div>
         </header>
 
@@ -367,7 +367,62 @@
         </div>
     </div>
 
-    <script type="module" src="taskpane.js?v=07052026.1530"></script>
+    <!-- Version Management Modal -->
+    <div id="versionModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-[80]">
+        <div class="bg-[#181824] text-slate-100 rounded-[2rem] w-full max-w-md p-8 shadow-2xl relative border border-slate-800">
+            <!-- Close Button -->
+            <button id="versionClose" class="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors">
+                <i data-lucide="x" size="20"></i>
+            </button>
+
+            <!-- Title -->
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-11 h-11 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <i data-lucide="refresh-cw" class="text-white" size="20"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-100">Quản lý Phiên bản</h3>
+                    <p id="currentVersionSub" class="text-[10px] text-slate-400 font-medium">Đang dùng: ...</p>
+                </div>
+            </div>
+
+            <!-- Active Version Card -->
+            <div id="activeVersionCard" class="p-6 bg-[#24243a] border border-indigo-500/30 rounded-[1.5rem] space-y-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span id="activeVersionName" class="text-sm font-black text-white">...</span>
+                        <span id="activeNewestBadge" class="hidden bg-indigo-500/20 text-indigo-300 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">MỚI NHẤT</span>
+                    </div>
+                    <span class="text-emerald-400 text-xs font-bold flex items-center gap-1">
+                        <i data-lucide="check-circle" size="14"></i>
+                        Đang dùng
+                    </span>
+                </div>
+                <p id="activeVersionDate" class="text-[10px] text-slate-400 font-bold"></p>
+                <ul id="activeVersionNotes" class="list-disc pl-5 text-xs text-slate-300 space-y-2 max-h-[120px] overflow-y-auto custom-scrollbar">
+                    <!-- Notes -->
+                </ul>
+            </div>
+
+            <!-- Older Versions Header -->
+            <div class="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
+                <i data-lucide="clock" size="12"></i>
+                <span>PHIÊN BẢN CŨ HƠN</span>
+            </div>
+
+            <!-- Older Versions List -->
+            <div id="olderVersionsList" class="space-y-3 max-h-[220px] overflow-y-auto custom-scrollbar pr-1 mb-6">
+                <!-- Old versions will be injected here -->
+            </div>
+
+            <!-- Footer Note -->
+            <div class="text-center text-[10px] text-slate-500 font-medium pt-2 border-t border-slate-800">
+                Dữ liệu người dùng (localStorage) không bị ảnh hưởng khi rollback.
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="taskpane.js?v=20052026.0925"></script>
     <script>lucide.createIcons();</script>
 </body>
 

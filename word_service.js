@@ -1281,6 +1281,7 @@ export const WordService = {
             });
 
             // 1.1 Đọc Document Variables (Phòng trường hợp file cũ dùng DOCVARIABLE)
+            const dynamicLabData = {}; // { 1: { dvtn, diaChi, ptn, chucNang }, 2: {...}, ... }
             try {
                 const docVars = context.document.variables;
                 docVars.load("items/name,items/value");
@@ -1299,10 +1300,46 @@ export const WordService = {
                             }
                         }
                     }
+
+                    // Quét biến DVTN_N, DiaChi_N, PTN_N, ChucNang_N từ docVariables
+                    const labPatterns = [
+                        { prefix: "DVTN_", field: "dvtn" },
+                        { prefix: "DiaChi_", field: "diaChi" },
+                        { prefix: "PTN_", field: "ptn" },
+                        { prefix: "ChucNang_", field: "chucNang" }
+                    ];
+                    for (const { prefix, field } of labPatterns) {
+                        if (v.name.startsWith(prefix)) {
+                            const num = parseInt(v.name.slice(prefix.length), 10);
+                            if (!isNaN(num) && v.value && v.value.trim().length > 0) {
+                                if (!dynamicLabData[num]) dynamicLabData[num] = {};
+                                dynamicLabData[num][field] = v.value.trim();
+                            }
+                        }
+                    }
                 });
             } catch (e) {
                 console.log("DocVars not supported or empty");
             }
+
+            // Quét Content Controls cá nhân cho trường lẻ Phòng TN (DVTN_N, PTN_N, ...)
+            controls.items.forEach(ctrl => {
+                const labPatterns = [
+                    { prefix: "DVTN_", field: "dvtn" },
+                    { prefix: "DiaChi_", field: "diaChi" },
+                    { prefix: "PTN_", field: "ptn" },
+                    { prefix: "ChucNang_", field: "chucNang" }
+                ];
+                for (const { prefix, field } of labPatterns) {
+                    if ((ctrl.tag || "").startsWith(prefix)) {
+                        const num = parseInt((ctrl.tag || "").slice(prefix.length), 10);
+                        if (!isNaN(num) && ctrl.text && ctrl.text.trim().length > 0 && !ctrl.text.includes("<<")) {
+                            if (!dynamicLabData[num]) dynamicLabData[num] = {};
+                            dynamicLabData[num][field] = ctrl.text.trim();
+                        }
+                    }
+                }
+            });
 
             // 2. Đọc Tables (Danh sách dữ liệu) - ƯU TIÊN bmNhanSu3 cho Nhân sự
             const tables = context.document.tables;
@@ -1462,6 +1499,21 @@ export const WordService = {
                             ]);
                         }
                     }
+                }
+            }
+
+            // Nếu chưa có bảng Phòng TN nhưng có Content Control lẻ, tái tạo mảng thiNghiem từ dynamicLabData
+            if (result.thiNghiem.length === 0 && Object.keys(dynamicLabData).length > 0) {
+                const sortedNums = Object.keys(dynamicLabData).map(Number).sort((a, b) => a - b);
+                for (const num of sortedNums) {
+                    const d = dynamicLabData[num];
+                    result.thiNghiem.push([
+                        num.toString(),
+                        d.dvtn || "",
+                        d.diaChi || "",
+                        d.ptn || "",
+                        d.chucNang || ""
+                    ]);
                 }
             }
 
