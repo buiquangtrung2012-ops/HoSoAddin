@@ -124,115 +124,126 @@ export const WordService = {
                 logger(`🔍 Đang chuẩn bị bảng ${bookmarkName || keyword}...`);
 
                 // Bước 1: Tìm bảng qua Bookmark
-                // Bookmark được chèn vào ô [0,0] của bảng (xem insertTableWithBookmark)
-                // nên bmRange.parentTable LUÔN trả về đúng bảng cần tìm
                 if (bookmarkName) {
                     try {
                         let bmRange = null;
 
-                        // Thử getItemOrNullObject (Word API 1.4+)
+                        // Cách 1: getByNameOrNullObject (chuẩn của Word API)
                         try {
-                            const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
-                            bm.load("isNullObject");
-                            await context.sync();
-                            if (!bm.isNullObject) {
-                                bmRange = bm.getRange();
-                                logger(`📌 Bookmark '${bookmarkName}' tìm thấy`);
+                            if (context.document.bookmarks.getByNameOrNullObject) {
+                                const bm = context.document.bookmarks.getByNameOrNullObject(bookmarkName);
+                                bm.load("isNullObject");
+                                await context.sync();
+                                if (!bm.isNullObject) {
+                                    bmRange = bm.getRange();
+                                    logger(`📌 Bookmark '${bookmarkName}' tìm thấy (getByNameOrNullObject)`);
+                                }
                             }
-                        } catch (e1) {
-                            // Fallback: getItem (Word API 1.3)
+                        } catch (e1) { }
+
+                        // Cách 2: getItemOrNullObject
+                        if (!bmRange) {
                             try {
-                                const bm2 = context.document.bookmarks.getItem(bookmarkName);
-                                bmRange = bm2.getRange();
-                                logger(`📌 Bookmark '${bookmarkName}' tìm thấy (via getItem)`);
-                            } catch (e2) { /* Bookmark không tồn tại */ }
+                                if (context.document.bookmarks.getItemOrNullObject) {
+                                    const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
+                                    bm.load("isNullObject");
+                                    await context.sync();
+                                    if (!bm.isNullObject) {
+                                        bmRange = bm.getRange();
+                                        logger(`📌 Bookmark '${bookmarkName}' tìm thấy (getItemOrNullObject)`);
+                                    }
+                                }
+                            } catch (e2) { }
+                        }
+
+                        // Cách 3: Lặp qua toàn bộ context.document.bookmarks
+                        if (!bmRange) {
+                            try {
+                                const allBm = context.document.bookmarks;
+                                allBm.load("items/name");
+                                await context.sync();
+                                for (const item of allBm.items) {
+                                    if (item.name === bookmarkName) {
+                                        bmRange = item.getRange();
+                                        logger(`📌 Bookmark '${bookmarkName}' tìm thấy (qua iteration)`);
+                                        break;
+                                    }
+                                }
+                            } catch (e3) { }
                         }
 
                         if (bmRange) {
-                            // Chiến lược chính: parentTable (bookmark nằm trong ô [0,0] của bảng)
+                            // Chiến lược 1: Thử parentTable (nếu bookmark nằm trong ô)
                             try {
-                                const parentTbl = bmRange.parentTableOrNullObject ?? bmRange.parentTable;
-                                parentTbl.load("isNullObject");
+                                const pt = bmRange.parentTable;
+                                pt.load("isNullObject");
                                 await context.sync();
-                                if (!parentTbl.isNullObject) {
-                                    targetTable = parentTbl;
-                                    logger(`✓ parentTable → bảng của Bookmark '${bookmarkName}'`);
+                                if (!pt.isNullObject) {
+                                    targetTable = pt;
+                                    logger(`✓ Đã xác định bảng từ Bookmark '${bookmarkName}' (parentTable)`);
                                 }
-                            } catch (e) { /* bookmark không nằm trong bảng (legacy bookmark) */ }
+                            } catch (ePt) { }
 
-                            // Fallback: tables trong vùng bookmark (legacy: bookmark bao quanh bảng)
+                            // Chiến lược 2: Thử tablesInRange (nếu bookmark bao trùm bảng)
                             if (!targetTable) {
                                 try {
-                                    const tInRange = bmRange.tables;
-                                    tInRange.load("items");
+                                    const tList = bmRange.tables;
+                                    tList.load("items");
                                     await context.sync();
-                                    if (tInRange.items.length > 0) {
-                                        targetTable = tInRange.items[0];
-                                        logger(`✓ tablesInRange → Bookmark '${bookmarkName}'`);
+                                    if (tList.items && tList.items.length > 0) {
+                                        targetTable = tList.items[0];
+                                        logger(`✓ Đã xác định bảng từ Bookmark '${bookmarkName}' (tablesInRange)`);
                                     }
-                                } catch (e) { }
+                                } catch (eTr) { }
                             }
-
-                            // Fallback: compareLocation Contains/Equal
-                            if (!targetTable) {
-                                try {
-                                    const allTbls = context.document.tables;
-                                    allTbls.load("items");
-                                    await context.sync();
-                                    for (const tbl of allTbls.items) {
-                                        const rel = tbl.getRange().compareLocationWith(bmRange);
-                                        await context.sync();
-                                        if (rel.value === "Equal" || rel.value === "Contains") {
-                                            targetTable = tbl;
-                                            logger(`✓ compareLocation(${rel.value}) → Bookmark '${bookmarkName}'`);
-                                            break;
-                                        }
-                                    }
-                                } catch (e) { }
-                            }
-                        } else {
-                            logger(`⚠️ Bookmark '${bookmarkName}' không tồn tại, chuyển sang quét từ khóa`);
                         }
                     } catch (err) {
                         console.warn(`xuatBang@bookmark(${bookmarkName}):`, err.message);
                     }
                 }
 
-                if (!targetTable || targetTable.isNullObject) {
-                    logger(`🔍 Bookmark thất bại, đang quét tìm bảng theo từ khóa "${keyword}"...`);
-                    // Bước 2: Fallback – quét tất cả bảng, chọn bảng theo từ khóa tiêu đề
-                    const tables = context.document.tables;
-                    tables.load("items");
-                    await context.sync();
-
-                    const matchedTables = [];
-                    for (let i = 0; i < tables.items.length; i++) {
-                        const table = tables.items[i];
-                        const fRow = table.rows.getFirst();
-                        fRow.load("values");
+                // Bước 2: Fallback tìm bảng theo từ khóa hàng đầu (Header text)
+                if (!targetTable) {
+                    logger(`🔍 Đang quét tìm bảng theo từ khóa "${keyword}"...`);
+                    try {
+                        const tables = context.document.tables;
+                        tables.load("items");
                         await context.sync();
 
-                        const rowText = fRow.values[0].join(" ");
-                        const normRow = WordService.normalizeTextForSearch(rowText);
-                        const keywords = keyword.split('|').map(k => WordService.normalizeTextForSearch(k));
+                        const matchedTables = [];
+                        const kwList = keyword.split('|').map(k => WordService.normalizeTextForSearch(k));
 
-                        if (keywords.some(k => normRow.includes(k))) {
-                            matchedTables.push({ table, colCount: fRow.values[0].length });
+                        for (let i = 0; i < tables.items.length; i++) {
+                            const tbl = tables.items[i];
+                            try {
+                                const headerRow = tbl.rows.getFirst();
+                                headerRow.cells.load("items/body/text");
+                                await context.sync();
+
+                                const rowText = headerRow.cells.items.map(c => c.body.text || "").join(" ");
+                                const normText = WordService.normalizeTextForSearch(rowText);
+
+                                if (kwList.some(k => normText.includes(k))) {
+                                    matchedTables.push({ table: tbl, colCount: headerRow.cells.items.length });
+                                }
+                            } catch (errRow) { }
                         }
-                    }
 
-                    if (matchedTables.length > 0) {
-                        let matchIndex = 0;
-                        if (bookmarkName) {
-                            const match = bookmarkName.match(/(\d+)$/);
-                            if (match) matchIndex = parseInt(match[1], 10) - 1;
+                        if (matchedTables.length > 0) {
+                            let matchIndex = 0;
+                            if (bookmarkName) {
+                                const match = bookmarkName.match(/(\d+)$/);
+                                if (match) matchIndex = parseInt(match[1], 10) - 1;
+                            }
+                            if (matchIndex >= matchedTables.length) matchIndex = matchedTables.length - 1;
+                            if (matchIndex < 0) matchIndex = 0;
+
+                            targetTable = matchedTables[matchIndex].table;
+                            targetColCount = matchedTables[matchIndex].colCount;
+                            logger(`✓ Tìm thấy bảng qua từ khóa tại vị trí #${matchIndex + 1}`);
                         }
-                        if (matchIndex >= matchedTables.length) matchIndex = matchedTables.length - 1;
-                        if (matchIndex < 0) matchIndex = 0;
-
-                        targetTable = matchedTables[matchIndex].table;
-                        targetColCount = matchedTables[matchIndex].colCount;
-                        logger(`✓ Tìm thấy bảng qua từ khóa tại vị trí #${matchIndex + 1}`);
+                    } catch (errFallback) {
+                        console.warn("Lỗi fallback quét bảng:", errFallback.message);
                     }
                 }
 

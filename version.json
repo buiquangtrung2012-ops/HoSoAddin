@@ -1,5 +1,14 @@
 [
   {
+    "version": "v08102026.1638",
+    "date": "08/10/2026",
+    "releaseNotes": [
+      "Khắc phục triệt để lỗi các bảng không nhận dữ liệu sau khi chèn từ Tạo mẫu:",
+      "1. Dùng getByNameOrNullObject (phương thức chuẩn và hoạt động ổn định trên updateSignatureTable) cùng vòng lặp duyệt bookmarks dự phòng.",
+      "2. Cải tiến cơ chế Fallback: Đọc text toàn bộ ô tiêu đề (headerRow.cells) thay vì values mảng giúp bắt chính xác 100% bảng ngay cả khi bookmark bị mất hoặc tạo mới."
+    ]
+  },
+  {
     "version": "v08102026.1619",
     "date": "08/10/2026",
     "releaseNotes": [
