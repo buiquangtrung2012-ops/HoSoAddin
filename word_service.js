@@ -1073,6 +1073,21 @@ export const WordService = {
         }
     },
 
+    /**
+     * Làm sạch tên thư mục/tên file để tránh lỗi InvalidArgument trên Windows
+     * Loại bỏ ký tự đặc biệt cấm: \ / : * ? " < > |
+     * Giữ nguyên dấu cách và tiếng Việt (hợp lệ với NTFS)
+     */
+    _sanitizePathPart: (name) => {
+        if (!name) return 'unnamed';
+        return name
+            .replace(/[\\/:*?"<>|]/g, '')   // Loại bỏ ký tự cấm trên Windows
+            .replace(/\s+/g, ' ')             // Chuẩn hoá khoảng trắng liên tiếp
+            .replace(/^[\s.]+|[\s.]+$/g, '') // Trim dấu cách và dấu chấm ở đầu/cuối
+            .substring(0, 200)               // Giới hạn độ dài tên
+            || 'unnamed';
+    },
+
     _saveBlobToFolder: async (dirHandle, relativePath, blob) => {
         if (!dirHandle || !relativePath || !blob) {
             return false;
@@ -1082,10 +1097,12 @@ export const WordService = {
         let current = dirHandle;
 
         for (let i = 0; i < parts.length - 1; i++) {
-            current = await current.getDirectoryHandle(parts[i], { create: true });
+            const safePart = WordService._sanitizePathPart(parts[i]);
+            current = await current.getDirectoryHandle(safePart, { create: true });
         }
 
-        const fileName = parts[parts.length - 1];
+        const rawFileName = parts[parts.length - 1];
+        const fileName = WordService._sanitizePathPart(rawFileName);
         const fileHandle = await current.getFileHandle(fileName, { create: true });
         const writable = await fileHandle.createWritable();
         await writable.write(blob);
