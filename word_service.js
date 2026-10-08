@@ -126,27 +126,45 @@ export const WordService = {
                 // Bước 1: Tìm bảng (ưu tiên Bookmark)
                 if (bookmarkName) {
                     try {
-                        const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
-                        bm.load("isNullObject");
-                        await context.sync();
+                        // Lấy bookmark range — insertBookmark() đặt con trỏ vào ô đầu bảng
+                        // nên parentTable LUÔN là cách đúng để lấy bảng liên kết
+                        let bmRange = null;
 
-                        if (!bm.isNullObject) {
-                            const bmRange = bm.getRange();
-
-                            // Chiến lược 1a: parentTable – bookmark nằm TRONG ô bảng
+                        // Thử getItemOrNullObject (Word API 1.4+)
+                        try {
+                            const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
+                            bm.load("isNullObject");
+                            await context.sync();
+                            if (!bm.isNullObject) {
+                                bmRange = bm.getRange();
+                                logger(`📌 Tìm thấy bookmark '${bookmarkName}'`);
+                            }
+                        } catch (e1) {
+                            // Fallback: getItem (Word API 1.3)
                             try {
-                                const pt = bmRange.parentTableOrNullObject
-                                    ? bmRange.parentTableOrNullObject
-                                    : bmRange.parentTable;
-                                pt.load("isNullObject");
-                                await context.sync();
-                                if (!pt.isNullObject) {
-                                    targetTable = pt;
-                                    logger(`✓ [1a] parentTable → Bookmark ${bookmarkName}`);
-                                }
-                            } catch (e) { /* range không nằm trong bảng */ }
+                                const bm2 = context.document.bookmarks.getItem(bookmarkName);
+                                bmRange = bm2.getRange();
+                                logger(`📌 Tìm thấy bookmark '${bookmarkName}' qua getItem`);
+                            } catch (e2) { /* Bookmark không tồn tại */ }
+                        }
 
-                            // Chiến lược 1b: tables trong vùng bookmark (bookmark bao quanh bảng)
+                        if (bmRange) {
+                            // Chiến lược 1a: parentTableOrNullObject (an toàn nhất)
+                            // Vì bookmark được chèn vào ô đầu tiên của bảng, parentTable = chính bảng đó
+                            try {
+                                const parentTbl = bmRange.parentTableOrNullObject
+                                    ?? bmRange.parentTable;
+                                parentTbl.load("isNullObject");
+                                await context.sync();
+                                if (!parentTbl.isNullObject) {
+                                    targetTable = parentTbl;
+                                    logger(`✓ [1a] parentTable → bảng của Bookmark ${bookmarkName}`);
+                                }
+                            } catch (e) {
+                                // parentTable ném exception → bookmark không nằm trong bảng (hiếm)
+                            }
+
+                            // Chiến lược 1b: tablesInRange (bookmark bao quanh bảng)
                             if (!targetTable) {
                                 try {
                                     const tInRange = bmRange.tables;
@@ -159,27 +177,25 @@ export const WordService = {
                                 } catch (e) { }
                             }
 
-                            // Chiến lược 1c: quét toàn bộ – chỉ khớp Equal hoặc Contains
-                            // Equal  : tableRange = bmRange (bookmark bao quanh đúng bảng đó)
-                            // Contains: tableRange ⊃ bmRange (bookmark nằm trong bảng)
+                            // Chiến lược 1c: quét toàn bộ – Equal (table=bookmark) hoặc Contains (bookmark trong bảng)
                             if (!targetTable) {
                                 try {
                                     const allTbls = context.document.tables;
                                     allTbls.load("items");
                                     await context.sync();
-
                                     for (const tbl of allTbls.items) {
-                                        const tblRange = tbl.getRange();
-                                        const rel = tblRange.compareLocationWith(bmRange);
+                                        const rel = tbl.getRange().compareLocationWith(bmRange);
                                         await context.sync();
                                         if (rel.value === "Equal" || rel.value === "Contains") {
                                             targetTable = tbl;
-                                            logger(`✓ [1c] compareLocation(${rel.value}) → Bookmark ${bookmarkName}`);
+                                            logger(`✓ [1c] compare(${rel.value}) → Bookmark ${bookmarkName}`);
                                             break;
                                         }
                                     }
                                 } catch (e) { }
                             }
+                        } else {
+                            logger(`⚠️ Không tìm thấy bookmark '${bookmarkName}' trong tài liệu`);
                         }
                     } catch (err) {
                         console.warn(`xuatBang@bookmark(${bookmarkName})`, err.message);

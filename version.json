@@ -1,5 +1,13 @@
 [
   {
+    "version": "v08102026.1612",
+    "date": "08/10/2026",
+    "releaseNotes": [
+      "Sửa triệt để lỗi bảng dữ liệu (Nhân sự, Máy móc, Vật liệu, Thí nghiệm) không nhận dữ liệu: insertBookmark() chỉ đánh dấu một điểm trong ô bảng (không bao quanh bảng), nên parentTable mới là chiến lược tìm đúng nhất.",
+      "Thêm fallback getItem (Word API 1.3) khi getItemOrNullObject không hoạt động, thêm log chi tiết để debug."
+    ]
+  },
+  {
     "version": "v08102026.1551",
     "date": "08/10/2026",
     "releaseNotes": [
