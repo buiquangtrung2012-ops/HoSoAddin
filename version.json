@@ -1,5 +1,13 @@
 [
   {
+    "version": "v08102026.1505",
+    "date": "08/10/2026",
+    "releaseNotes": [
+      "Sửa lỗi InvalidArgument khi tên thư mục/tên file xuất có dấu cách hoặc ký tự đặc biệt trong tính năng Tách tờ trình tùy chỉnh.",
+      "Thêm hàm _sanitizePathPart() để làm sạch tên thư mục và tên file trước khi ghi vào File System."
+    ]
+  },
+  {
     "version": "v08102026.1030",
     "date": "08/10/2026",
     "releaseNotes": [
