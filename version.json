@@ -1,5 +1,13 @@
 [
   {
+    "version": "v08102026.1619",
+    "date": "08/10/2026",
+    "releaseNotes": [
+      "Sửa triệt để lỗi bảng không nhận dữ liệu: table.getRange().insertBookmark() đặt bookmark NGOÀI bảng (ở paragraph trước table boundary) — giờ đặt vào cell.body.getRange() của ô [0,0] đảm bảo bookmark nằm TRONG ô bảng.",
+      "parentTable giờ trả đúng bảng 100% thay vì cần 3 chiến lược phức tạp."
+    ]
+  },
+  {
     "version": "v08102026.1612",
     "date": "08/10/2026",
     "releaseNotes": [
