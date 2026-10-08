@@ -1,5 +1,13 @@
 [
   {
+    "version": "v08102026.1518",
+    "date": "08/10/2026",
+    "releaseNotes": [
+      "Sửa nút CẬP NHẬT trong Version Modal: nhấn vào sẽ tải lại toàn bộ add-in từ server (bỏ qua cache), không còn hiện phiên bản cũ sau khi update.",
+      "Toast thông báo phiên bản mới: nhấn vào cũng tự động reload ngay, không cần thao tác thêm."
+    ]
+  },
+  {
     "version": "v08102026.1505",
     "date": "08/10/2026",
     "releaseNotes": [

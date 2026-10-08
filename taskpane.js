@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=08102026.1505';
-import { StorageService } from './storage_service.js?v=08102026.1505';
-import { MockData } from './mock_data.js?v=08102026.1505';
+import { WordService } from './word_service.js?v=08102026.1518';
+import { StorageService } from './storage_service.js?v=08102026.1518';
+import { MockData } from './mock_data.js?v=08102026.1518';
 
 /* global Office, lucide */
 
@@ -2122,7 +2122,7 @@ function showToast(message, type = 'success') {
 }
 
 // --- VERSION MANAGEMENT ---
-const CURRENT_VERSION = "v08102026.1505";
+const CURRENT_VERSION = "v08102026.1518";
 
 async function loadVersions() {
     try {
@@ -2191,7 +2191,31 @@ function showVersionModal(list) {
         li.innerText = note;
         activeNotes.appendChild(li);
     });
-    
+
+    // Nếu có phiên bản mới hơn, hiển thị nút "CẬP NHẬT NGAY" buộc tải lại từ server
+    const hasNewerVersion = list.length > 0 && list[0].version !== CURRENT_VERSION;
+    const existingUpdateBtn = document.getElementById('btnHardReload');
+    if (existingUpdateBtn) existingUpdateBtn.remove();
+    if (hasNewerVersion) {
+        const updateBanner = document.createElement('div');
+        updateBanner.id = 'btnHardReload';
+        updateBanner.className = 'mb-4 flex items-center gap-3 p-4 bg-indigo-600/20 border border-indigo-500/40 rounded-2xl';
+        updateBanner.innerHTML = `
+            <div class="flex-1 min-w-0">
+                <p class="text-xs font-black text-indigo-300">Có phiên bản mới: ${list[0].version}</p>
+                <p class="text-[10px] text-slate-400 mt-0.5">Nhấn để tải lại add-in và áp dụng bản cập nhật</p>
+            </div>
+            <button onclick="location.reload(true)"
+                class="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black rounded-xl transition-all">
+                <i data-lucide="refresh-cw" size="13"></i>
+                CẬP NHẬT NGAY
+            </button>
+        `;
+        // Chèn banner trước phần "PHIÊN BẢN CŨ HƠN"
+        olderList.parentElement.insertBefore(updateBanner, olderList.previousElementSibling);
+        lucide.createIcons();
+    }
+
     // Hiển thị danh sách các phiên bản khác (tối đa 5 phiên bản gần nhất không phải bản đang dùng)
     olderList.innerHTML = '';
     const otherVersions = list.filter(v => v.version !== CURRENT_VERSION).slice(0, 5);
@@ -2270,7 +2294,8 @@ function showUpdateAvailableToast(list) {
     
     toast.onclick = () => {
         toast.remove();
-        showVersionModal(list);
+        // Buộc tải lại toàn bộ từ server (bỏ qua cache) để áp dụng bản cập nhật mới
+        location.reload(true);
     };
     
     document.body.appendChild(toast);
