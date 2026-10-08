@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=08102026.1524';
-import { StorageService } from './storage_service.js?v=08102026.1524';
-import { MockData } from './mock_data.js?v=08102026.1524';
+import { WordService } from './word_service.js?v=08102026.1531';
+import { StorageService } from './storage_service.js?v=08102026.1531';
+import { MockData } from './mock_data.js?v=08102026.1531';
 
 /* global Office, lucide */
 
@@ -1152,8 +1152,15 @@ function renderTemplateCreator(container) {
                     if (result) {
                         const { folder, file } = result;
                         // Encode: TT_[thuMuc]__[tenFile] — dấu __ phân cách thư mục và tên file
-                        const safeFolder = WordService.normalizeTextForSearch(folder).replace(/\s+/g, "_");
-                        const safeFile = WordService.normalizeTextForSearch(file).replace(/\s+/g, "_");
+                        // Bookmark Word chỉ cho phép chữ cái, số và dấu gạch dưới → phải loại bỏ dấu chấm, dấu gạch ngang, v.v.
+                        const safeFolder = WordService.normalizeTextForSearch(folder)
+                            .replace(/[^a-z0-9\s]/g, '')   // Loại bỏ mọi ký tự đặc biệt (dấu chấm, gạch ngang...)
+                            .replace(/\s+/g, '_')           // Khoảng trắng → gạch dưới
+                            .replace(/^_+|_+$/g, '');       // Trim gạch dưới đầu/cuối
+                        const safeFile = WordService.normalizeTextForSearch(file)
+                            .replace(/[^a-z0-9\s]/g, '')
+                            .replace(/\s+/g, '_')
+                            .replace(/^_+|_+$/g, '');
                         const bookmarkName = `TT_${safeFolder}__${safeFile}`;
                         await WordService.insertBookmarkAtSelection(bookmarkName);
                         showToast(`✓ Đã đánh dấu: "${file}" → 📁 ${folder}`, "success");
@@ -2126,7 +2133,7 @@ function showToast(message, type = 'success') {
 }
 
 // --- VERSION MANAGEMENT ---
-const CURRENT_VERSION = "v08102026.1524";
+const CURRENT_VERSION = "v08102026.1531";
 
 async function loadVersions() {
     try {

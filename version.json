@@ -1,5 +1,13 @@
 [
   {
+    "version": "v08102026.1531",
+    "date": "08/10/2026",
+    "releaseNotes": [
+      "Sửa lỗi InvalidArgument khi tên thư mục dạng '7. Tên thư mục': loại bỏ dấu chấm trước khoảng trắng trong _sanitizePathPart.",
+      "Sửa lỗi bookmark Word không hợp lệ khi tên có dấu chấm: khi tạo mốc tách tùy chỉnh, chỉ giữ lại chữ cái, số và gạch dưới trong tên bookmark."
+    ]
+  },
+  {
     "version": "v08102026.1524",
     "date": "08/10/2026",
     "releaseNotes": [

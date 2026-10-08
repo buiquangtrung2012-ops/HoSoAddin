@@ -1075,16 +1075,19 @@ export const WordService = {
 
     /**
      * Làm sạch tên thư mục/tên file để tránh lỗi InvalidArgument trên Windows
-     * Loại bỏ ký tự đặc biệt cấm: \ / : * ? " < > |
-     * Giữ nguyên dấu cách và tiếng Việt (hợp lệ với NTFS)
+     * Quy tắc Windows NTFS qua File System Access API:
+     *   - Cấm: \ / : * ? " < > |
+     *   - Không được kết thúc bằng dấu chấm (.) hoặc khoảng trắng
+     *   - Dấu chấm ngay trước khoảng trắng (vd: "7. abc") gây lỗi trên một số môi trường
      */
     _sanitizePathPart: (name) => {
         if (!name) return 'unnamed';
         return name
-            .replace(/[\\/:*?"<>|]/g, '')   // Loại bỏ ký tự cấm trên Windows
-            .replace(/\s+/g, ' ')             // Chuẩn hoá khoảng trắng liên tiếp
-            .replace(/^[\s.]+|[\s.]+$/g, '') // Trim dấu cách và dấu chấm ở đầu/cuối
-            .substring(0, 200)               // Giới hạn độ dài tên
+            .replace(/[\\/:*?"<>|]/g, '')      // Loại bỏ ký tự cấm trên Windows
+            .replace(/\.\s+/g, ' ')             // "7. abc" → "7 abc" (dấu chấm trước khoảng trắng)
+            .replace(/\s+/g, ' ')               // Chuẩn hoá khoảng trắng liên tiếp
+            .replace(/^[\s.]+|[\s.]+$/g, '')    // Trim dấu cách và dấu chấm ở đầu/cuối
+            .substring(0, 200)                  // Giới hạn độ dài tên
             || 'unnamed';
     },
 
