@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=08102026.1638';
-import { StorageService } from './storage_service.js?v=08102026.1638';
-import { MockData } from './mock_data.js?v=08102026.1638';
+import { WordService } from './word_service.js?v=08102026.1648';
+import { StorageService } from './storage_service.js?v=08102026.1648';
+import { MockData } from './mock_data.js?v=08102026.1648';
 
 /* global Office, lucide */
 
@@ -1420,17 +1420,17 @@ async function syncDataToWord() {
 
     // 2. Cập nhật Bảng (Table Syncs), ưu tiên Bookmark nếu có
     updateLog(`📊 Đang chèn bảng Nhân sự 1...`, 30);
-    await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu", updateLog);
+    await WordService.xuatBang(state.nhanSu, "Họ và tên|Nhân sự", "bmNhanSu", updateLog);
     updateLog(`📊 Đang chèn bảng Nhân sự 2...`, 40);
-    await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu2", updateLog);
+    await WordService.xuatBang(state.nhanSu, "Họ và tên|Nhân sự", "bmNhanSu2", updateLog);
     updateLog(`📊 Đang chèn bảng Nhân sự 3...`, 50);
-    await WordService.xuatBang(state.nhanSu, "Họ và tên", "bmNhanSu3", updateLog);
+    await WordService.xuatBang(state.nhanSu, "Họ và tên|Nhân sự", "bmNhanSu3", updateLog);
     updateLog(`📊 Đang chèn bảng Máy móc...`, 60);
     await WordService.xuatBang(state.mayMoc, "Tên thiết bị|Xe máy|Máy móc|Thiết bị", "bmMayMoc", updateLog);
     updateLog(`📊 Đang chèn bảng Vật liệu...`, 70);
-    await WordService.xuatBang(state.vatLieu, "Tên vật tư|Tên vật liệu", "bmVatLieu", updateLog);
+    await WordService.xuatBang(state.vatLieu, "Tên vật tư|Tên vật liệu|Vật tư|Vật liệu", "bmVatLieu", updateLog);
     updateLog(`📊 Đang chèn bảng Thí nghiệm...`, 80);
-    await WordService.xuatBang(state.thiNghiem, "Đơn vị thí nghiệm", "bmThiNghiem", updateLog);
+    await WordService.xuatBang(state.thiNghiem, "thí nghiệm|thi nghiem|las|phòng thí nghiệm|đơn vị thí nghiệm", "bmThiNghiem", updateLog);
 
     // Xử lý bảng ký tên Liên danh hoặc Thường
     try {
@@ -2133,7 +2133,7 @@ function showToast(message, type = 'success') {
 }
 
 // --- VERSION MANAGEMENT ---
-const CURRENT_VERSION = "v08102026.1638";
+const CURRENT_VERSION = "v08102026.1648";
 
 async function loadVersions() {
     try {

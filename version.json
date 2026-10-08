@@ -1,5 +1,14 @@
 [
   {
+    "version": "v08102026.1648",
+    "date": "08/10/2026",
+    "releaseNotes": [
+      "Khắc phục cỡ chữ bảng Đơn vị thí nghiệm (và các bảng dữ liệu): Tự động đặt đồng bộ font Times New Roman, cỡ chữ 13pt (thay vì bị nhảy size 10 hoặc 11) và giãn dòng 1.15.",
+      "Tăng độ nhạy nhận diện bảng: Mở rộng từ khóa tìm kiếm (hỗ trợ cả 'Tên đơn vị thí nghiệm', 'Phòng thí nghiệm', 'LAS', 'Ghi chú'...).",
+      "Định dạng tiêu đề bảng mẫu: Thiết lập sẵn cỡ chữ 13pt khi chèn bảng từ Tạo mẫu."
+    ]
+  },
+  {
     "version": "v08102026.1638",
     "date": "08/10/2026",
     "releaseNotes": [

@@ -355,11 +355,12 @@ export const WordService = {
                             try {
                                 cell.body.paragraphs.items.forEach(p => {
                                     p.alignment = cellAlignment;
+                                    p.font.name = "Times New Roman";
+                                    p.font.size = 13;
                                     p.font.bold = (rIdx === 0);
                                     
-                                    // Cài đặt Line Spacing 1.15 (Điều chỉnh hệ số 1.05 để Word nhận là 1.15)
-                                    const pSize = p.font.size || 11;
-                                    p.lineSpacing = pSize * 1.05;
+                                    // Cài đặt Line Spacing 1.15 (13 * 1.15 ~ 15pt)
+                                    p.lineSpacing = 13 * 1.15;
                                 });
                             } catch (e) { }
                         });
@@ -929,6 +930,8 @@ export const WordService = {
                     
                     // Căn giữa và in đậm (trừ cột Nơi nhận của bảng ký tên)
                     const p = cell.body.paragraphs.getFirst();
+                    p.font.name = "Times New Roman";
+                    p.font.size = 13;
                     if (headers[i] === "Nơi nhận:") {
                         p.alignment = "Left";
                         p.font.bold = false;
