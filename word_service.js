@@ -133,46 +133,52 @@ export const WordService = {
                         if (!bm.isNullObject) {
                             const bmRange = bm.getRange();
 
-                            // Thử 1a: Bảng bao quanh (Bookmark được chèn TRONG ô của bảng)
+                            // Chiến lược 1a: parentTable – bookmark nằm TRONG ô bảng
                             try {
-                                const parentTable = bmRange.parentTable;
-                                parentTable.load("isNullObject");
+                                const pt = bmRange.parentTableOrNullObject
+                                    ? bmRange.parentTableOrNullObject
+                                    : bmRange.parentTable;
+                                pt.load("isNullObject");
                                 await context.sync();
-                                if (!parentTable.isNullObject) {
-                                    targetTable = parentTable;
-                                    logger(`✓ Tìm thấy bảng bao quanh Bookmark ${bookmarkName}`);
+                                if (!pt.isNullObject) {
+                                    targetTable = pt;
+                                    logger(`✓ [1a] parentTable → Bookmark ${bookmarkName}`);
                                 }
-                            } catch (e) { /* Không nằm trong bảng */ }
+                            } catch (e) { /* range không nằm trong bảng */ }
 
-                            // Thử 1b: Bảng nằm trong vùng bookmark
+                            // Chiến lược 1b: tables trong vùng bookmark (bookmark bao quanh bảng)
                             if (!targetTable) {
-                                const tablesInRange = bmRange.tables;
-                                tablesInRange.load("items");
-                                await context.sync();
-                                if (tablesInRange.items.length > 0) {
-                                    targetTable = tablesInRange.items[0];
-                                    logger(`✓ Tìm thấy bảng trong vùng Bookmark ${bookmarkName}`);
-                                }
+                                try {
+                                    const tInRange = bmRange.tables;
+                                    tInRange.load("items");
+                                    await context.sync();
+                                    if (tInRange.items.length > 0) {
+                                        targetTable = tInRange.items[0];
+                                        logger(`✓ [1b] tablesInRange → Bookmark ${bookmarkName}`);
+                                    }
+                                } catch (e) { }
                             }
 
-                            // Thử 1c: Quét bảng lân cận/kế tiếp bookmark
+                            // Chiến lược 1c: quét toàn bộ – chỉ khớp Equal hoặc Contains
+                            // Equal  : tableRange = bmRange (bookmark bao quanh đúng bảng đó)
+                            // Contains: tableRange ⊃ bmRange (bookmark nằm trong bảng)
                             if (!targetTable) {
-                                const allTables = context.document.tables;
-                                allTables.load("items");
-                                await context.sync();
-
-                                for (let t = 0; t < allTables.items.length; t++) {
-                                    const table = allTables.items[t];
-                                    const tableRange = table.getRange();
-                                    const relation = tableRange.compareLocationWith(bmRange);
+                                try {
+                                    const allTbls = context.document.tables;
+                                    allTbls.load("items");
                                     await context.sync();
 
-                                    if (relation.value === "Equal" || relation.value === "After" || relation.value === "AdjacentAfter" || relation.value === "Overlapping") {
-                                        targetTable = table;
-                                        logger(`✓ Tìm thấy bảng lân cận/trùng Bookmark ${bookmarkName}`);
-                                        break;
+                                    for (const tbl of allTbls.items) {
+                                        const tblRange = tbl.getRange();
+                                        const rel = tblRange.compareLocationWith(bmRange);
+                                        await context.sync();
+                                        if (rel.value === "Equal" || rel.value === "Contains") {
+                                            targetTable = tbl;
+                                            logger(`✓ [1c] compareLocation(${rel.value}) → Bookmark ${bookmarkName}`);
+                                            break;
+                                        }
                                     }
-                                }
+                                } catch (e) { }
                             }
                         }
                     } catch (err) {

@@ -1,5 +1,13 @@
 [
   {
+    "version": "v08102026.1551",
+    "date": "08/10/2026",
+    "releaseNotes": [
+      "Sửa lỗi bảng dữ liệu (Nhân sự, Máy móc, Vật liệu, Thí nghiệm) không nhận dữ liệu sau khi chèn qua Tạo mẫu: sửa điều kiện tìm bảng từ 'After/Overlapping' (sai) thành 'Equal/Contains' (đúng).",
+      "Tăng độ ổn định tìm bảng qua bookmark: thêm try/catch cho từng chiến lược, dùng parentTableOrNullObject nếu API hỗ trợ."
+    ]
+  },
+  {
     "version": "v08102026.1541",
     "date": "08/10/2026",
     "releaseNotes": [
