@@ -1,5 +1,13 @@
 [
   {
+    "version": "v08102026.1541",
+    "date": "08/10/2026",
+    "releaseNotes": [
+      "Sửa lỗi 'Cannot read properties of undefined (reading top)' khi thêm bảng ký tên: dùng getBorder() thay vì truy cập trực tiếp borders.top.",
+      "Sửa lỗi bảng trống sau khi cập nhật dữ liệu: ưu tiên tìm parentTable trước khi quét tablesInRange, đảm bảo nhận đúng bảng vừa chèn qua Tạo mẫu."
+    ]
+  },
+  {
     "version": "v08102026.1531",
     "date": "08/10/2026",
     "releaseNotes": [
