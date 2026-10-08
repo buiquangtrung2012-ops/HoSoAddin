@@ -774,6 +774,94 @@ export const WordService = {
     },
 
     /**
+     * Xóa một Bookmark trong tài liệu Word
+     */
+    deleteBookmark: async (bookmarkName) => {
+        return await Word.run(async (context) => {
+            try {
+                // Thử cách 1: getItemOrNullObject
+                try {
+                    const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
+                    bm.load("isNullObject");
+                    await context.sync();
+                    if (!bm.isNullObject) {
+                        bm.delete();
+                        await context.sync();
+                        console.log(`✓ Đã xóa bookmark '${bookmarkName}' qua getItemOrNullObject`);
+                        return true;
+                    }
+                } catch (e1) {
+                    console.log(`deleteBookmark: Method 1 failed, trying iteration...`);
+                }
+
+                // Cách 2: Lặp qua danh sách bookmarks
+                const allBookmarks = context.document.bookmarks;
+                allBookmarks.load("items");
+                await context.sync();
+
+                for (const bm of allBookmarks.items) {
+                    if (bm.name === bookmarkName) {
+                        bm.delete();
+                        await context.sync();
+                        console.log(`✓ Đã xóa bookmark '${bookmarkName}' qua iteration`);
+                        return true;
+                    }
+                }
+
+                console.warn(`✗ Không tìm thấy bookmark '${bookmarkName}' để xóa`);
+                return false;
+            } catch (err) {
+                console.error(`deleteBookmark '${bookmarkName}' lỗi:`, err.message || err);
+                throw err;
+            }
+        });
+    },
+
+    /**
+     * Di chuyển con trỏ và chọn vùng Bookmark trong tài liệu Word
+     */
+    selectBookmark: async (bookmarkName) => {
+        return await Word.run(async (context) => {
+            try {
+                // Thử cách 1: getItemOrNullObject
+                try {
+                    const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
+                    bm.load("isNullObject");
+                    await context.sync();
+                    if (!bm.isNullObject) {
+                        bm.range.select();
+                        await context.sync();
+                        console.log(`✓ Đã chọn bookmark '${bookmarkName}' qua getItemOrNullObject`);
+                        return true;
+                    }
+                } catch (e1) {
+                    console.log(`selectBookmark: Method 1 failed, trying iteration...`);
+                }
+
+                // Cách 2: Lặp qua danh sách bookmarks
+                const allBookmarks = context.document.bookmarks;
+                allBookmarks.load("items");
+                await context.sync();
+
+                for (const bm of allBookmarks.items) {
+                    if (bm.name === bookmarkName) {
+                        bm.range.select();
+                        await context.sync();
+                        console.log(`✓ Đã chọn bookmark '${bookmarkName}' qua iteration`);
+                        return true;
+                    }
+                }
+
+                console.warn(`✗ Không tìm thấy bookmark '${bookmarkName}' để chọn`);
+                return false;
+            } catch (err) {
+                console.error(`selectBookmark '${bookmarkName}' lỗi:`, err.message || err);
+                throw err;
+            }
+        });
+    },
+
+    /**
      * Chèn Bảng mẫu kèm Bookmark
      */
     insertTableWithBookmark: async (bookmarkName, colCount, headers, noBorder = false) => {

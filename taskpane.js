@@ -848,6 +848,139 @@ function renderExportSettings(container) {
     }
 }
 
+/**
+ * Hiển thị và quản lý danh sách Dấu mốc tách file tùy chỉnh (Dynamic Split Markers)
+ */
+async function renderCustomSplitMarkersList() {
+    const listContainer = document.getElementById('customSplitMarkersContainer');
+    const badge = document.getElementById('customSplitCountBadge');
+    if (!listContainer) return;
+
+    try {
+        const allBookmarks = await WordService.getAvailableBookmarks();
+        const defaultMarkerTags = ["TT_BCH", "TT_KeHoach", "TT_NhanSu", "TT_MayMoc", "TT_VatLieu", "TT_ThiNghiem", "TT_TienDoThiCong"];
+        const customBookmarks = allBookmarks.filter(name => 
+            (name.startsWith("TT_") || name.startsWith("SPLIT_")) && !defaultMarkerTags.includes(name)
+        );
+
+        if (badge) badge.innerText = customBookmarks.length.toString();
+
+        if (customBookmarks.length === 0) {
+            listContainer.innerHTML = `
+                <div class="p-4 text-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-slate-400 text-[11px] leading-relaxed">
+                    <i data-lucide="info" size="18" class="mx-auto mb-1.5 text-slate-400"></i>
+                    Chưa có mốc tách tùy chỉnh nào trong tài liệu.<br>
+                    Bôi đen vùng văn bản và nhấn nút <strong class="text-slate-600 font-bold">"Tách Tờ trình tùy chỉnh"</strong> để đánh dấu.
+                </div>
+            `;
+            lucide.createIcons();
+            return;
+        }
+
+        const items = customBookmarks.map(bmName => {
+            const stripped = bmName.replace(/^TT_|^SPLIT_/, "");
+            let folder = "Các tài liệu khác";
+            let file = stripped.replace(/_/g, " ");
+            if (stripped.includes("__")) {
+                const sepIdx = stripped.indexOf("__");
+                folder = stripped.slice(0, sepIdx).replace(/_/g, " ");
+                file = stripped.slice(sepIdx + 2).replace(/_/g, " ");
+            }
+            return { bmName, folder, file };
+        });
+
+        listContainer.innerHTML = items.map(item => `
+            <div class="flex items-center justify-between p-3 bg-white rounded-2xl border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow-md transition-all group">
+                <div class="flex items-center gap-3 min-w-0 pr-2">
+                    <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center shrink-0 border border-rose-100">
+                        <i data-lucide="file-text" size="18"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-[12px] font-bold text-slate-800 truncate" title="${item.file}.docx">
+                            ${item.file}.docx
+                        </div>
+                        <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                            <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                                <i data-lucide="folder" size="11" class="text-slate-400"></i>
+                                ${item.folder}
+                            </span>
+                            <span class="text-[9px] font-mono text-slate-400 truncate max-w-[140px]" title="${item.bmName}">
+                                #${item.bmName}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                    <button data-action="locate-custom-split" data-bm="${item.bmName}" data-file="${item.file}"
+                        class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Đến vị trí dấu mốc này trong Word">
+                        <i data-lucide="locate" size="16"></i>
+                    </button>
+                    <button data-action="delete-custom-split" data-bm="${item.bmName}" data-file="${item.file}"
+                        class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Xóa mốc tách này">
+                        <i data-lucide="trash-2" size="16"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+        // Gắn sự kiện cho các nút thao tác
+        listContainer.querySelectorAll('[data-action="locate-custom-split"]').forEach(btn => {
+            btn.onclick = async () => {
+                const bmName = btn.dataset.bm;
+                const file = btn.dataset.file;
+                try {
+                    const success = await WordService.selectBookmark(bmName);
+                    if (success) {
+                        showToast(`✓ Đã đến vị trí: "${file}"`, "info");
+                    } else {
+                        showToast(`Không tìm thấy mốc "${file}" trong tài liệu`, "warning");
+                    }
+                } catch (e) {
+                    console.error("Locate error:", e);
+                    showToast(`❌ Lỗi: ${e.message || e}`, "error");
+                }
+            };
+        });
+
+        listContainer.querySelectorAll('[data-action="delete-custom-split"]').forEach(btn => {
+            btn.onclick = async () => {
+                const bmName = btn.dataset.bm;
+                const file = btn.dataset.file;
+                const confirmed = await openConfirmModal(
+                    "Xóa mốc tách tùy chỉnh",
+                    `Bạn có chắc chắn muốn xóa mốc tách <strong>"${file}"</strong> không?<br><span class="text-slate-500 text-[11px] mt-1.5 inline-block">Thao tác này chỉ gỡ bỏ Bookmark trong Word, không làm mất nội dung văn bản.</span>`,
+                    "XÓA MỐC",
+                    true
+                );
+
+                if (!confirmed) return;
+
+                try {
+                    const deleted = await WordService.deleteBookmark(bmName);
+                    if (deleted) {
+                        showToast(`✓ Đã xóa mốc tách: "${file}"`, "success");
+                    } else {
+                        showToast(`Mốc "${file}" không còn tồn tại trong tài liệu`, "warning");
+                    }
+                    await renderCustomSplitMarkersList();
+                } catch (e) {
+                    console.error("Delete error:", e);
+                    showToast(`❌ Lỗi xóa mốc: ${e.message || e}`, "error");
+                }
+            };
+        });
+
+        lucide.createIcons();
+    } catch (err) {
+        console.error("Lỗi khi tải danh sách mốc tách:", err);
+        listContainer.innerHTML = `
+            <div class="p-3 text-center rounded-xl border border-red-200 bg-red-50 text-red-600 text-[11px]">
+                Không thể tải danh sách mốc tách: ${err.message || err}
+            </div>
+        `;
+    }
+}
+
 function renderTemplateCreator(container) {
     const wrapper = document.createElement("div");
     wrapper.className = "max-w-4xl mx-auto space-y-8 pb-12";
@@ -897,6 +1030,8 @@ function renderTemplateCreator(container) {
     sections.forEach(section => {
         const sectionDiv = document.createElement("div");
         sectionDiv.className = "space-y-4";
+        const isSplitSection = section.title.includes("SPLIT MARKERS");
+
         sectionDiv.innerHTML = `
             <div class="pl-4 border-l-4 border-indigo-500 rounded-l-sm bg-gradient-to-r from-indigo-50/80 to-transparent py-2">
                 <h4 class="text-[11px] font-black text-indigo-900 uppercase tracking-widest mb-1">${section.title}</h4>
@@ -913,11 +1048,46 @@ function renderTemplateCreator(container) {
                     </button>
                 `).join('')}
             </div>
+            ${isSplitSection ? `
+                <div class="mt-4 pt-4 border-t border-slate-200 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full bg-rose-500"></div>
+                            <span class="text-[11px] font-black uppercase tracking-wider text-slate-700">Mốc tách tùy chỉnh đã tạo</span>
+                            <span id="customSplitCountBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">0</span>
+                        </div>
+                        <button id="btnRefreshSplitMarkers" title="Làm mới danh sách mốc tách" 
+                            class="px-2.5 py-1 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 transition-all flex items-center gap-1.5 text-[11px] font-bold">
+                            <i data-lucide="refresh-cw" size="13"></i>
+                            <span>Làm mới</span>
+                        </button>
+                    </div>
+                    <div id="customSplitMarkersContainer" class="space-y-2">
+                        <div class="p-4 text-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-slate-400 text-[11px]">
+                            Đang tải danh sách mốc tách...
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
         `;
         wrapper.appendChild(sectionDiv);
     });
 
     container.appendChild(wrapper);
+
+    // Xử lý nút làm mới danh sách mốc tách
+    const btnRefresh = wrapper.querySelector('#btnRefreshSplitMarkers');
+    if (btnRefresh) {
+        btnRefresh.onclick = async () => {
+            const icon = btnRefresh.querySelector('i');
+            if (icon) icon.classList.add('animate-spin');
+            await renderCustomSplitMarkersList();
+            setTimeout(() => {
+                if (icon) icon.classList.remove('animate-spin');
+            }, 500);
+            showToast("✓ Đã làm mới danh sách mốc tách", "info");
+        };
+    }
 
     // Event Delegation
     wrapper.querySelectorAll('.template-btn').forEach(btn => {
@@ -983,6 +1153,7 @@ function renderTemplateCreator(container) {
                         const bookmarkName = `TT_${safeFolder}__${safeFile}`;
                         await WordService.insertBookmarkAtSelection(bookmarkName);
                         showToast(`✓ Đã đánh dấu: "${file}" → 📁 ${folder}`, "success");
+                        await renderCustomSplitMarkersList();
                     }
                 } else if (tag.startsWith('bm') || tag.startsWith('TT_')) {
                     let headers = [];
@@ -1025,7 +1196,7 @@ function renderTemplateCreator(container) {
                     }
                 } else {
                     await WordService.insertContentControlAtSelection(tag, label);
-                    showToast(`✓ Đ chèn trường: ${label}`, "success");
+                    showToast(`✓ Đã chèn trường: ${label}`, "success");
                 }
             } catch (e) {
                 console.error("Template Creator Error:", e);
@@ -1039,6 +1210,9 @@ function renderTemplateCreator(container) {
     });
 
     lucide.createIcons();
+
+    // Tự động tải danh sách mốc tách tùy chỉnh hiện có trong Word
+    renderCustomSplitMarkersList();
 }
 
 
@@ -1842,6 +2016,53 @@ function openChoiceModal(title, options) {
     });
 }
 
+function openConfirmModal(title, message, confirmText = "XÓA", isDanger = true) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirmModal');
+        if (!modal) {
+            resolve(window.confirm(message.replace(/<[^>]*>/g, '')));
+            return;
+        }
+        const titleElem = document.getElementById('confirmModalTitle');
+        const msgElem = document.getElementById('confirmModalMessage');
+        const btnOk = document.getElementById('confirmModalOk');
+        const btnCancel = document.getElementById('confirmModalCancel');
+
+        if (titleElem) titleElem.textContent = title;
+        if (msgElem) msgElem.innerHTML = message;
+        if (btnOk) {
+            btnOk.textContent = confirmText;
+            if (isDanger) {
+                btnOk.className = "flex-1 h-11 bg-red-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-red-100 hover:bg-red-700 transition-all";
+            } else {
+                btnOk.className = "flex-1 h-11 bg-indigo-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all";
+            }
+        }
+
+        const close = () => {
+            modal.classList.add('hidden');
+            if (btnOk) btnOk.onclick = null;
+            if (btnCancel) btnCancel.onclick = null;
+        };
+
+        if (btnOk) {
+            btnOk.onclick = () => {
+                close();
+                resolve(true);
+            };
+        }
+        if (btnCancel) {
+            btnCancel.onclick = () => {
+                close();
+                resolve(false);
+            };
+        }
+
+        modal.classList.remove('hidden');
+        lucide.createIcons();
+    });
+}
+
 function updateLog(m, progress = undefined) {
     const logMsgElem = document.getElementById('logMsg');
     if (logMsgElem) logMsgElem.innerText = m;
@@ -1874,7 +2095,11 @@ function updateLog(m, progress = undefined) {
 }
 
 function showToast(message, type = 'success') {
-    const bgClass = type === 'error' ? 'bg-red-600' : 'bg-emerald-600';
+    let bgClass = 'bg-emerald-600';
+    if (type === 'error') bgClass = 'bg-red-600';
+    else if (type === 'warning') bgClass = 'bg-amber-600';
+    else if (type === 'info') bgClass = 'bg-indigo-600';
+
     const toast = document.createElement('div');
     toast.className = `fixed bottom-4 left-1/2 -translate-x-1/2 ${bgClass} text-white px-4 py-2 rounded-xl shadow-xl shadow-slate-200/50 text-[12px] font-bold z-[100] transition-all duration-300`;
     toast.style.transform = 'translate(-50%, 20px)';
@@ -1897,7 +2122,7 @@ function showToast(message, type = 'success') {
 }
 
 // --- VERSION MANAGEMENT ---
-const CURRENT_VERSION = "v20052026.0925";
+const CURRENT_VERSION = "v08102026.1030";
 
 async function loadVersions() {
     try {

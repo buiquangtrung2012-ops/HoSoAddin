@@ -1,5 +1,14 @@
 [
   {
+    "version": "v08102026.1030",
+    "date": "08/10/2026",
+    "releaseNotes": [
+      "Hiển thị trực quan danh sách Dấu mốc tách file tùy chỉnh trong mục 'DẤU MỐC TÁCH FILE (SPLIT MARKERS)'.",
+      "Cho phép xem vị trí và xóa dấu mốc tách file tùy chỉnh đã tạo trực tiếp từ giao diện.",
+      "Tự động cập nhật danh sách mốc tách ngay sau khi tạo mốc mới từ 'Tách Tờ trình tùy chỉnh'."
+    ]
+  },
+  {
     "version": "v20052026.0925",
     "date": "20/05/2026",
     "releaseNotes": [

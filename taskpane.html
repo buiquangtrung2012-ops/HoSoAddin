@@ -228,7 +228,7 @@
                     <div class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
                     UPDATE
                 </button>
-                <div id="statusInfo" class="text-[9px] font-bold text-slate-400">v20052026.0925</div>
+                <div id="statusInfo" class="text-[9px] font-bold text-slate-400">v08102026.1030</div>
             </div>
         </header>
 
@@ -363,6 +363,23 @@
             <div class="flex gap-3">
                 <button id="splitModalCancel" class="flex-1 h-12 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all">Hủy</button>
                 <button id="splitModalConfirm" class="flex-1 h-12 bg-rose-500 text-white font-bold rounded-xl shadow-lg shadow-rose-100 hover:bg-rose-600 transition-all">ĐÁNH DẤU</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="fixed inset-0 bg-slate-900/40 hidden flex items-center justify-center p-4 z-[75]">
+        <div class="bg-white rounded-[2rem] w-full max-w-sm p-6 shadow-2xl">
+            <div class="flex items-center gap-3 mb-4">
+                <div id="confirmModalIcon" class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                    <i data-lucide="alert-triangle" size="20"></i>
+                </div>
+                <h3 id="confirmModalTitle" class="text-base font-bold text-slate-800">Xác nhận</h3>
+            </div>
+            <p id="confirmModalMessage" class="text-xs text-slate-600 mb-6 leading-relaxed">Bạn có chắc chắn muốn thực hiện hành động này?</p>
+            <div class="flex justify-end gap-2.5">
+                <button id="confirmModalCancel" class="flex-1 h-11 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition-all">Hủy</button>
+                <button id="confirmModalOk" class="flex-1 h-11 bg-red-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-red-100 hover:bg-red-700 transition-all">Xóa</button>
             </div>
         </div>
     </div>
