@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=08102026.1518';
-import { StorageService } from './storage_service.js?v=08102026.1518';
-import { MockData } from './mock_data.js?v=08102026.1518';
+import { WordService } from './word_service.js?v=08102026.1524';
+import { StorageService } from './storage_service.js?v=08102026.1524';
+import { MockData } from './mock_data.js?v=08102026.1524';
 
 /* global Office, lucide */
 
@@ -58,6 +58,10 @@ async function initializeApp() {
         registerEvents();
         switchTab('duAn');
         updateLog("Hệ thống sẵn sàng");
+
+        // Hiển thị phiên bản hiện tại lên header
+        const statusInfo = document.getElementById('statusInfo');
+        if (statusInfo) statusInfo.innerText = CURRENT_VERSION;
 
         // Tự động kiểm tra bản cập nhật mới ở chế độ nền
         setTimeout(() => {
@@ -2122,7 +2126,7 @@ function showToast(message, type = 'success') {
 }
 
 // --- VERSION MANAGEMENT ---
-const CURRENT_VERSION = "v08102026.1518";
+const CURRENT_VERSION = "v08102026.1524";
 
 async function loadVersions() {
     try {

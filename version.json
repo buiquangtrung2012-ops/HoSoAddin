@@ -1,5 +1,13 @@
 [
   {
+    "version": "v08102026.1524",
+    "date": "08/10/2026",
+    "releaseNotes": [
+      "Sửa lỗi version dưới nút UPDATE luôn hiển thị version cũ (hardcode trong HTML): nay version được lấy động từ JS, luôn đúng với bản đang chạy.",
+      "Nút UPDATE / Toast cập nhật: nhấn sẽ reload ngay, không cần thao tác thêm."
+    ]
+  },
+  {
     "version": "v08102026.1518",
     "date": "08/10/2026",
     "releaseNotes": [
