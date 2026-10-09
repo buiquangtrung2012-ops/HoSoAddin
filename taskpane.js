@@ -1,6 +1,6 @@
-import { WordService } from './word_service.js?v=08102026.1648';
-import { StorageService } from './storage_service.js?v=08102026.1648';
-import { MockData } from './mock_data.js?v=08102026.1648';
+import { WordService } from './word_service.js?v=09102026.1700';
+import { StorageService } from './storage_service.js?v=09102026.1700';
+import { MockData } from './mock_data.js?v=09102026.1700';
 
 /* global Office, lucide */
 
@@ -2133,7 +2133,7 @@ function showToast(message, type = 'success') {
 }
 
 // --- VERSION MANAGEMENT ---
-const CURRENT_VERSION = "v08102026.1648";
+const CURRENT_VERSION = "v09102026.1700";
 
 async function loadVersions() {
     try {

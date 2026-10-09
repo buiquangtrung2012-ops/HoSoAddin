@@ -126,85 +126,64 @@ export const WordService = {
                 // Bước 1: Tìm bảng qua Bookmark
                 if (bookmarkName) {
                     try {
-                        let bmRange = null;
+                        const allBm = context.document.bookmarks;
+                        allBm.load("items/name");
+                        await context.sync();
 
-                        // Cách 1: getByNameOrNullObject (chuẩn của Word API)
-                        try {
-                            if (context.document.bookmarks.getByNameOrNullObject) {
-                                const bm = context.document.bookmarks.getByNameOrNullObject(bookmarkName);
-                                bm.load("isNullObject");
-                                await context.sync();
-                                if (!bm.isNullObject) {
-                                    bmRange = bm.getRange();
-                                    logger(`📌 Bookmark '${bookmarkName}' tìm thấy (getByNameOrNullObject)`);
-                                }
-                            }
-                        } catch (e1) { }
+                        const foundBm = allBm.items.find(b => b.name && b.name.toLowerCase() === bookmarkName.toLowerCase());
+                        if (foundBm) {
+                            const bmRange = foundBm.getRange();
 
-                        // Cách 2: getItemOrNullObject
-                        if (!bmRange) {
-                            try {
-                                if (context.document.bookmarks.getItemOrNullObject) {
-                                    const bm = context.document.bookmarks.getItemOrNullObject(bookmarkName);
-                                    bm.load("isNullObject");
-                                    await context.sync();
-                                    if (!bm.isNullObject) {
-                                        bmRange = bm.getRange();
-                                        logger(`📌 Bookmark '${bookmarkName}' tìm thấy (getItemOrNullObject)`);
-                                    }
-                                }
-                            } catch (e2) { }
-                        }
-
-                        // Cách 3: Lặp qua toàn bộ context.document.bookmarks
-                        if (!bmRange) {
-                            try {
-                                const allBm = context.document.bookmarks;
-                                allBm.load("items/name");
-                                await context.sync();
-                                for (const item of allBm.items) {
-                                    if (item.name === bookmarkName) {
-                                        bmRange = item.getRange();
-                                        logger(`📌 Bookmark '${bookmarkName}' tìm thấy (qua iteration)`);
-                                        break;
-                                    }
-                                }
-                            } catch (e3) { }
-                        }
-
-                        if (bmRange) {
-                            // Chiến lược 1: Thử parentTable (nếu bookmark nằm trong ô)
+                            // Cách 1: Bookmark nằm trong ô của bảng -> parentTable
                             try {
                                 const pt = bmRange.parentTable;
-                                pt.load("isNullObject");
+                                pt.load("rowCount");
                                 await context.sync();
-                                if (!pt.isNullObject) {
-                                    targetTable = pt;
-                                    logger(`✓ Đã xác định bảng từ Bookmark '${bookmarkName}' (parentTable)`);
-                                }
+                                targetTable = pt;
+                                logger(`✓ Xác định bảng từ Bookmark '${bookmarkName}' (parentTable)`);
                             } catch (ePt) { }
 
-                            // Chiến lược 2: Thử tablesInRange (nếu bookmark bao trùm bảng)
+                            // Cách 2: Bookmark bao quanh bảng -> tables trong vùng bookmark
                             if (!targetTable) {
                                 try {
-                                    const tList = bmRange.tables;
-                                    tList.load("items");
+                                    const tbls = bmRange.tables;
+                                    tbls.load("items/rowCount");
                                     await context.sync();
-                                    if (tList.items && tList.items.length > 0) {
-                                        targetTable = tList.items[0];
-                                        logger(`✓ Đã xác định bảng từ Bookmark '${bookmarkName}' (tablesInRange)`);
+                                    if (tbls.items && tbls.items.length > 0) {
+                                        targetTable = tbls.items[0];
+                                        logger(`✓ Xác định bảng từ Bookmark '${bookmarkName}' (tablesInRange)`);
                                     }
                                 } catch (eTr) { }
                             }
+
+                            // Cách 3: So sánh vị trí bảng với bookmark
+                            if (!targetTable) {
+                                try {
+                                    const allTables = context.document.tables;
+                                    allTables.load("items");
+                                    await context.sync();
+                                    for (const tbl of allTables.items) {
+                                        const rel = tbl.getRange().compareLocationWith(bmRange);
+                                        await context.sync();
+                                        if (rel.value === "Contains" || rel.value === "Equal") {
+                                            targetTable = tbl;
+                                            logger(`✓ Xác định bảng từ Bookmark '${bookmarkName}' (compareLocation)`);
+                                            break;
+                                        }
+                                    }
+                                } catch (eCmp) { }
+                            }
+                        } else {
+                            logger(`ℹ Không thấy bookmark '${bookmarkName}', chuyển sang tìm theo tiêu đề`);
                         }
-                    } catch (err) {
-                        console.warn(`xuatBang@bookmark(${bookmarkName}):`, err.message);
+                    } catch (errBm) {
+                        console.warn(`Lỗi tìm bookmark ${bookmarkName}:`, errBm.message);
                     }
                 }
 
-                // Bước 2: Fallback tìm bảng theo từ khóa hàng đầu (Header text)
+                // Bước 2: Fallback tìm bảng theo tiêu đề hàng đầu (Header text)
                 if (!targetTable) {
-                    logger(`🔍 Đang quét tìm bảng theo từ khóa "${keyword}"...`);
+                    logger(`🔍 Quét tìm bảng theo tiêu đề: "${keyword}"...`);
                     try {
                         const tables = context.document.tables;
                         tables.load("items");
@@ -216,15 +195,13 @@ export const WordService = {
                         for (let i = 0; i < tables.items.length; i++) {
                             const tbl = tables.items[i];
                             try {
-                                const headerRow = tbl.rows.getFirst();
-                                headerRow.cells.load("items/body/text");
+                                const headerRange = tbl.rows.getFirst().getRange();
+                                headerRange.load("text");
                                 await context.sync();
 
-                                const rowText = headerRow.cells.items.map(c => c.body.text || "").join(" ");
-                                const normText = WordService.normalizeTextForSearch(rowText);
-
+                                const normText = WordService.normalizeTextForSearch(headerRange.text || "");
                                 if (kwList.some(k => normText.includes(k))) {
-                                    matchedTables.push({ table: tbl, colCount: headerRow.cells.items.length });
+                                    matchedTables.push(tbl);
                                 }
                             } catch (errRow) { }
                         }
@@ -238,45 +215,43 @@ export const WordService = {
                             if (matchIndex >= matchedTables.length) matchIndex = matchedTables.length - 1;
                             if (matchIndex < 0) matchIndex = 0;
 
-                            targetTable = matchedTables[matchIndex].table;
-                            targetColCount = matchedTables[matchIndex].colCount;
-                            logger(`✓ Tìm thấy bảng qua từ khóa tại vị trí #${matchIndex + 1}`);
+                            targetTable = matchedTables[matchIndex];
+                            logger(`✓ Tìm thấy bảng qua tiêu đề tại vị trí #${matchIndex + 1}`);
                         }
                     } catch (errFallback) {
                         console.warn("Lỗi fallback quét bảng:", errFallback.message);
                     }
                 }
 
-                if (!targetTable || targetTable.isNullObject) {
+                if (!targetTable) {
                     logger(`✖ Không tìm thấy bảng đích cho ${bookmarkName || keyword}.`);
                     return;
                 }
 
-                const firstRow = targetTable.rows.getFirst();
-                firstRow.load("values");
                 targetTable.load("rowCount");
+                const firstRow = targetTable.rows.getFirst();
+                firstRow.cells.load("items");
                 await context.sync();
 
-                targetColCount = firstRow.values[0].length;
                 const rowCount = targetTable.rowCount;
+                targetColCount = firstRow.cells.items.length;
 
                 logger(`→ Xử lý bảng ${bookmarkName}: đang có ${rowCount} hàng, cần chèn ${data ? data.length : 0} dữ liệu.`);
 
                 if (rowCount > 1) {
+                    logger(`🗑 Đang xóa ${rowCount - 1} hàng cũ...`);
                     try {
-                        logger(`🗑 Đang xóa ${rowCount - 1} hàng cũ...`);
                         targetTable.deleteRows(1, rowCount - 1);
                         await context.sync();
                     } catch (err) {
-                        logger(`⚠ Lỗi xóa hàng nhanh, đang xóa thủ công...`);
-                        targetTable.load("rows/items");
-                        await context.sync();
-                        for (let j = rowCount - 1; j >= 1; j--) {
-                            try {
+                        try {
+                            targetTable.rows.load("items");
+                            await context.sync();
+                            for (let j = targetTable.rows.items.length - 1; j >= 1; j--) {
                                 targetTable.rows.items[j].delete();
-                                await context.sync();
-                            } catch (e) { }
-                        }
+                            }
+                            await context.sync();
+                        } catch (eDel) { }
                     }
                 }
 
@@ -286,7 +261,7 @@ export const WordService = {
                 }
 
                 // Bước 2: Thêm dữ liệu mới
-                const colCount = targetColCount || data[0].length;
+                const colCount = targetColCount || (data[0] ? data[0].length : 5);
                 const newRowsValues = data
                     .filter(row => {
                         if (!row || row.length === 0) return false;
@@ -305,66 +280,47 @@ export const WordService = {
                 if (newRowsValues.length > 0) {
                     logger(`📝 Đang chèn ${newRowsValues.length} hàng mới...`);
                     targetTable.addRows("End", newRowsValues.length, newRowsValues);
-
                     targetTable.headerRowCount = 1;
-                    targetTable.load("rows/items");
                     await context.sync();
 
-                    const justifiedKeywords = [
-                        "ho va ten", "nhan su", "thiet bi", "xe may", "vat tu", "vat lieu",
-                        "tieu chuan", "ghi chu", "don vi", "noi dung", "dia diem", "pham vi"
-                    ];
+                    // Đặt font Times New Roman 13pt toàn bộ bảng
+                    try {
+                        const tableRange = targetTable.getRange();
+                        tableRange.font.name = "Times New Roman";
+                        tableRange.font.size = 13;
+                    } catch (eFnt) { }
 
-                    // Định dạng chi tiết sẽ được xử lý trên từng đoạn văn (Paragraph) để tránh lỗi InvalidArgument
-
-                    targetTable.rows.items.forEach((row, rIdx) => {
-                        // Load paragraphs for formatting AND text for header identification
-                        // Load thêm font/size để tính Line Spacing 1.15
-                        row.cells.load("items/body/paragraphs/items/alignment, items/body/paragraphs/items/font/size, items/body/paragraphs/items/font/bold, items/body/text");
-                    });
+                    // Định dạng chi tiết trên từng ô đảm bảo cỡ chữ 13pt Times New Roman, Line Spacing 1.15
+                    targetTable.rows.load("items");
                     await context.sync();
 
-                    const headerRow = targetTable.rows.items[0];
-                    const headerTexts = headerRow.cells.items.map(cell => WordService.normalizeTextForSearch(cell.body.text || ""));
+                    for (let rIdx = 0; rIdx < targetTable.rows.items.length; rIdx++) {
+                        targetTable.rows.items[rIdx].cells.load("items");
+                    }
+                    await context.sync();
 
-                    targetTable.rows.items.forEach((row, rIdx) => {
-                        row.cells.items.forEach((cell, cIdx) => {
-                            let cellAlignment = "Centered";
-                            const headerText = headerTexts[cIdx] || "";
+                    for (let rIdx = 0; rIdx < targetTable.rows.items.length; rIdx++) {
+                        const row = targetTable.rows.items[rIdx];
+                        for (let cIdx = 0; cIdx < row.cells.items.length; cIdx++) {
+                            const cell = row.cells.items[cIdx];
+                            cell.shadingColor = "#FFFFFF";
                             cell.verticalAlignment = "Center";
 
-                            // Chỉ căn đều (Justified) các cột nội dung dài đặc thù
-                            const isJustified = [
-                                "ho va ten", "ten thiet bi", "ten vat tu", "tieu chuan", "don vi thi nghiem", "ghi chu", "noi dung"
-                            ].some(kw => headerText.includes(kw));
-
-                            // Nếu là cột STT (cột đầu tiên) thì luôn căn giữa
-                            if (cIdx === 0) {
-                                cellAlignment = "Centered";
-                            } else {
-                                if (rIdx === 0) {
-                                    cellAlignment = "Centered";
-                                } else {
-                                    cellAlignment = isJustified ? "Justified" : "Centered";
-                                }
-                            }
-
-                            // Sử dụng "#FFFFFF" (Màu trắng) để làm nền an toàn, không dùng "Clear" hay null để tránh InvalidArgument
-                            cell.shadingColor = "#FFFFFF";
-
                             try {
-                                cell.body.paragraphs.items.forEach(p => {
-                                    p.alignment = cellAlignment;
-                                    p.font.name = "Times New Roman";
-                                    p.font.size = 13;
-                                    p.font.bold = (rIdx === 0);
-                                    
-                                    // Cài đặt Line Spacing 1.15 (13 * 1.15 ~ 15pt)
-                                    p.lineSpacing = 13 * 1.15;
-                                });
-                            } catch (e) { }
-                        });
-                    });
+                                const p = cell.body.paragraphs.getFirst();
+                                p.font.name = "Times New Roman";
+                                p.font.size = 13;
+                                p.font.bold = (rIdx === 0);
+                                p.lineSpacing = 13 * 1.15;
+
+                                if (cIdx === 0 || rIdx === 0) {
+                                    p.alignment = "Centered";
+                                } else {
+                                    p.alignment = (cIdx === 1) ? "Justified" : "Centered";
+                                }
+                            } catch (eP) { }
+                        }
+                    }
 
                     targetTable.headerRowCount = 1;
                     logger(`✓ Hoàn tất ${bookmarkName} với ${newRowsValues.length} hàng.`);
@@ -904,6 +860,13 @@ export const WordService = {
             // Chèn bảng bằng "After" thay vì "Replace" để tránh lỗi selection
             const table = range.insertTable(2, colCount, "After");
             
+            // Thiết lập font chuẩn 13pt Times New Roman cho toàn bộ bảng mẫu
+            try {
+                const tRange = table.getRange();
+                tRange.font.name = "Times New Roman";
+                tRange.font.size = 13;
+            } catch (eFnt) { }
+            
             if (noBorder) {
                 // Dùng getBorder() thay vì borders.top (borders.top trả undefined trên nhiều phiên bản Word API)
                 try {
@@ -943,10 +906,19 @@ export const WordService = {
                 }
             }
             
+            // Xóa bookmark cũ cùng tên nếu có để đảm bảo bookmark trỏ chính xác vào bảng mới
+            try {
+                const allBms = context.document.bookmarks;
+                allBms.load("items/name");
+                await context.sync();
+                const existingBm = allBms.items.find(b => b.name && b.name.toLowerCase() === bookmarkName.toLowerCase());
+                if (existingBm) {
+                    existingBm.delete();
+                    await context.sync();
+                }
+            } catch (eBm) { }
+
             // Chèn bookmark vào body của ô đầu tiên (ô [0,0])
-            // Lý do: table.getRange() trả về range bao gồm cả boundary bên ngoài bảng
-            // → insertBookmark sẽ đặt bookmark trước bảng, không phải bên trong
-            // Đặt vào ô [0,0] đảm bảo bookmark luôn nằm TRONG bảng → parentTable hoạt động chính xác
             const firstCellRange = table.getCell(0, 0).body.getRange();
             firstCellRange.insertBookmark(bookmarkName);
             

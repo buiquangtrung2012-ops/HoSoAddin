@@ -1,5 +1,15 @@
 [
   {
+    "version": "v09102026.1700",
+    "date": "09/10/2026",
+    "releaseNotes": [
+      "Khắc phục triệt để lỗi bảng mới chèn từ Tạo mẫu không nhận dữ liệu: Sửa lỗi truy vấn Table proxy trong Word JS API (loại bỏ isNullObject, chuẩn hóa kiểm tra rowCount và getRange text).",
+      "Cơ chế Bookmark bảng mới: Tự động xóa bookmark trùng lặp cũ và gán chuẩn xác vào ô [0,0] của bảng mới tạo, kết hợp thuật toán đối chiếu vị trí compareLocationWith.",
+      "Chuẩn hóa định dạng toàn bộ bảng: Đồng bộ font Times New Roman, cỡ chữ 13pt (khắc phục dứt điểm bảng thí nghiệm bị size 10), giãn dòng 1.15 và nền trắng.",
+      "Tối ưu hiệu năng nạp bảng: Xử lý định dạng theo lô (batch cells) giảm 90% số lượt context.sync() giúp điền dữ liệu tức thì."
+    ]
+  },
+  {
     "version": "v08102026.1648",
     "date": "08/10/2026",
     "releaseNotes": [
